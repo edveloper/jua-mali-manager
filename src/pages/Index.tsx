@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { Store } from 'lucide-react';
 import { useInventory } from '@/hooks/useInventory';
+import { useCredit } from '@/hooks/useCredit';
 import { Dashboard } from '@/components/Dashboard';
 import { ProductList } from '@/components/ProductList';
 import { ProductForm } from '@/components/ProductForm';
 import { SellDialog } from '@/components/SellDialog';
 import { LowStockAlerts } from '@/components/LowStockAlerts';
 import { SalesHistory } from '@/components/SalesHistory';
+import { CreditManager } from '@/components/CreditManager';
+import { SalesReports } from '@/components/SalesReports';
 import { Navigation, TabType } from '@/components/Navigation';
 import { Product } from '@/types/inventory';
 import { useToast } from '@/hooks/use-toast';
@@ -31,8 +34,20 @@ const Index = () => {
     searchProducts,
   } = useInventory();
 
+  const {
+    customers,
+    creditSales,
+    addCustomer,
+    addCreditSale,
+    recordPayment,
+    getTotalOwed,
+    getCustomerTotalOwed,
+  } = useCredit();
+
   const stats = getStats();
   const lowStockProducts = getLowStockProducts();
+  const totalOwed = getTotalOwed();
+  const pendingCredits = creditSales.filter(cs => cs.status !== 'paid').length;
 
   const handleSaveProduct = (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (editingProduct) {
@@ -62,13 +77,21 @@ const Index = () => {
     });
   };
 
-  const handleSell = (productId: string, quantity: number) => {
+  const handleSell = (productId: string, quantity: number, isCredit?: boolean, customerId?: string) => {
     const sale = recordSale(productId, quantity);
     if (sale) {
-      toast({
-        title: "Sale Recorded",
-        description: `Sold ${quantity}x ${sale.productName} for KSh ${sale.totalAmount.toLocaleString()}`,
-      });
+      if (isCredit && customerId) {
+        addCreditSale(customerId, sale.id, sale.productName, quantity, sale.totalAmount);
+        toast({
+          title: "Credit Sale Recorded",
+          description: `Sold ${quantity}x ${sale.productName} on credit for KSh ${sale.totalAmount.toLocaleString()}`,
+        });
+      } else {
+        toast({
+          title: "Sale Recorded",
+          description: `Sold ${quantity}x ${sale.productName} for KSh ${sale.totalAmount.toLocaleString()}`,
+        });
+      }
     }
   };
 
@@ -80,6 +103,27 @@ const Index = () => {
   const handleAddProduct = () => {
     setEditingProduct(null);
     setShowProductForm(true);
+  };
+
+  const handleRecordPayment = (creditSaleId: string, amount: number) => {
+    const payment = recordPayment(creditSaleId, amount);
+    if (payment) {
+      toast({
+        title: "Payment Recorded",
+        description: `KSh ${amount.toLocaleString()} payment received.`,
+      });
+    }
+  };
+
+  const handleAddCustomer = (name: string, phone?: string) => {
+    const customer = addCustomer(name, phone);
+    if (customer) {
+      toast({
+        title: "Customer Added",
+        description: `${name} has been added.`,
+      });
+    }
+    return customer;
   };
 
   if (isLoading) {
@@ -112,7 +156,9 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="max-w-md mx-auto px-4 py-4">
-        {activeTab === 'dashboard' && <Dashboard stats={stats} />}
+        {activeTab === 'dashboard' && (
+          <Dashboard stats={{ ...stats, totalCreditOwed: totalOwed }} />
+        )}
         
         {activeTab === 'products' && (
           <ProductList
@@ -133,6 +179,19 @@ const Index = () => {
         )}
         
         {activeTab === 'sales' && <SalesHistory sales={sales} />}
+
+        {activeTab === 'credit' && (
+          <CreditManager
+            customers={customers}
+            creditSales={creditSales}
+            totalOwed={totalOwed}
+            onAddCustomer={handleAddCustomer}
+            onRecordPayment={handleRecordPayment}
+            getCustomerTotalOwed={getCustomerTotalOwed}
+          />
+        )}
+
+        {activeTab === 'reports' && <SalesReports sales={sales} />}
       </main>
 
       {/* Bottom Navigation */}
@@ -140,6 +199,7 @@ const Index = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         alertCount={lowStockProducts.length}
+        creditCount={pendingCredits}
       />
 
       {/* Modals */}
@@ -157,6 +217,7 @@ const Index = () => {
       {sellingProduct && (
         <SellDialog
           product={sellingProduct}
+          customers={customers}
           onSell={handleSell}
           onClose={() => setSellingProduct(null)}
         />
