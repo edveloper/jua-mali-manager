@@ -1,21 +1,32 @@
 import { useState } from 'react';
-import { X, Minus, Plus, ShoppingCart } from 'lucide-react';
-import { Product } from '@/types/inventory';
+import { X, Minus, Plus, ShoppingCart, CreditCard, Wallet } from 'lucide-react';
+import { Product, Customer } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface SellDialogProps {
   product: Product;
-  onSell: (productId: string, quantity: number) => void;
+  customers: Customer[];
+  onSell: (productId: string, quantity: number, isCredit?: boolean, customerId?: string) => void;
   onClose: () => void;
 }
 
-export function SellDialog({ product, onSell, onClose }: SellDialogProps) {
+export function SellDialog({ product, customers, onSell, onClose }: SellDialogProps) {
   const [quantity, setQuantity] = useState(1);
+  const [isCredit, setIsCredit] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
 
   const handleSell = () => {
     if (quantity > 0 && quantity <= product.quantity) {
-      onSell(product.id, quantity);
+      if (isCredit && !selectedCustomerId) return;
+      onSell(product.id, quantity, isCredit, isCredit ? selectedCustomerId : undefined);
       onClose();
     }
   };
@@ -71,6 +82,54 @@ export function SellDialog({ product, onSell, onClose }: SellDialogProps) {
             </div>
           </div>
 
+          {/* Payment Type Toggle */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Payment Type</label>
+            <div className="flex gap-2">
+              <Button
+                variant={!isCredit ? 'default' : 'outline'}
+                className="flex-1"
+                onClick={() => setIsCredit(false)}
+              >
+                <Wallet className="h-4 w-4 mr-2" />
+                Cash
+              </Button>
+              <Button
+                variant={isCredit ? 'default' : 'outline'}
+                className="flex-1"
+                onClick={() => setIsCredit(true)}
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Credit
+              </Button>
+            </div>
+          </div>
+
+          {/* Customer Selection for Credit */}
+          {isCredit && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Select Customer</label>
+              <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a customer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers.length === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground text-center">
+                      No customers yet. Add one in Credit tab.
+                    </div>
+                  ) : (
+                    customers.map(customer => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        {customer.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="bg-muted rounded-xl p-4 space-y-2">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Total Amount</span>
@@ -80,15 +139,25 @@ export function SellDialog({ product, onSell, onClose }: SellDialogProps) {
               <span className="text-muted-foreground">Profit</span>
               <span className="font-semibold text-success">KSh {profit.toLocaleString()}</span>
             </div>
+            {isCredit && (
+              <div className="flex justify-between text-warning pt-2 border-t border-border">
+                <span>Payment Type</span>
+                <span className="font-semibold">Credit Sale</span>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3 pt-2">
             <Button variant="outline" className="flex-1" onClick={onClose}>
               Cancel
             </Button>
-            <Button className="flex-1" onClick={handleSell}>
+            <Button 
+              className="flex-1" 
+              onClick={handleSell}
+              disabled={isCredit && !selectedCustomerId}
+            >
               <ShoppingCart className="h-4 w-4 mr-2" />
-              Complete Sale
+              {isCredit ? 'Credit Sale' : 'Complete Sale'}
             </Button>
           </div>
         </div>

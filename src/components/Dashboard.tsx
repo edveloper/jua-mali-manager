@@ -1,4 +1,4 @@
-import { Package, AlertTriangle, TrendingUp, Wallet } from 'lucide-react';
+import { Package, AlertTriangle, TrendingUp, Wallet, CreditCard } from 'lucide-react';
 import { DashboardStats } from '@/types/inventory';
 
 interface DashboardProps {
@@ -58,18 +58,36 @@ export function Dashboard({ stats }: DashboardProps) {
         </div>
       </div>
 
-      <div className="stat-card">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="metric-label">Total Stock Value</p>
-            <p className="text-xl font-bold text-foreground mt-1">
-              {formatCurrency(stats.totalStockValue)}
-            </p>
-          </div>
-          <div className="p-3 rounded-xl bg-primary/10">
-            <Package className="h-6 w-6 text-primary" />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="stat-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="metric-label">Total Stock Value</p>
+              <p className="text-lg font-bold text-foreground mt-1">
+                {formatCurrency(stats.totalStockValue)}
+              </p>
+            </div>
+            <div className="p-2 rounded-xl bg-primary/10">
+              <Package className="h-5 w-5 text-primary" />
+            </div>
           </div>
         </div>
+
+        {stats.totalCreditOwed !== undefined && (
+          <div className="stat-card border-warning/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="metric-label">Credit Owed</p>
+                <p className="text-lg font-bold text-warning mt-1">
+                  {formatCurrency(stats.totalCreditOwed)}
+                </p>
+              </div>
+              <div className="p-2 rounded-xl bg-warning/10">
+                <CreditCard className="h-5 w-5 text-warning" />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
