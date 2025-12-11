@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 
 interface LowStockAlertsProps {
   products: Product[];
-  onRestock: (product: Product) => void;
+  onRestock?: (product: Product) => void;
 }
 
 export function LowStockAlerts({ products, onRestock }: LowStockAlertsProps) {
@@ -45,14 +45,16 @@ export function LowStockAlerts({ products, onRestock }: LowStockAlertsProps) {
                 <p className="text-xs text-muted-foreground">remaining</p>
               </div>
             </div>
-            <Button
-              variant="warning"
-              size="sm"
-              className="w-full mt-3"
-              onClick={() => onRestock(product)}
-            >
-              Update Stock
-            </Button>
+            {onRestock && (
+              <Button
+                variant="warning"
+                size="sm"
+                className="w-full mt-3"
+                onClick={() => onRestock(product)}
+              >
+                Update Stock
+              </Button>
+            )}
           </div>
         ))}
       </div>

@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Store } from 'lucide-react';
 import { useInventory } from '@/hooks/useInventory';
 import { useCredit } from '@/hooks/useCredit';
-import { Dashboard } from '@/components/Dashboard';
+import { useAuth } from '@/contexts/AuthContext';
+import { OwnerDashboard } from '@/components/OwnerDashboard';
+import { EmployeeDashboard } from '@/components/EmployeeDashboard';
 import { ProductList } from '@/components/ProductList';
 import { ProductForm } from '@/components/ProductForm';
 import { SellDialog } from '@/components/SellDialog';
@@ -10,6 +13,7 @@ import { LowStockAlerts } from '@/components/LowStockAlerts';
 import { SalesHistory } from '@/components/SalesHistory';
 import { CreditManager } from '@/components/CreditManager';
 import { SalesReports } from '@/components/SalesReports';
+import { SettingsPanel } from '@/components/SettingsPanel';
 import { Navigation, TabType } from '@/components/Navigation';
 import { Product } from '@/types/inventory';
 import { useToast } from '@/hooks/use-toast';
@@ -21,6 +25,9 @@ const Index = () => {
   const [sellingProduct, setSellingProduct] = useState<Product | null>(null);
   
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user, isLoading: authLoading, isOwner, shop } = useAuth();
+  
   const {
     products,
     sales,
@@ -44,12 +51,33 @@ const Index = () => {
     getCustomerTotalOwed,
   } = useCredit();
 
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
+
   const stats = getStats();
   const lowStockProducts = getLowStockProducts();
   const totalOwed = getTotalOwed();
   const pendingCredits = creditSales.filter(cs => cs.status !== 'paid').length;
 
+  // Get today's sales count for employee dashboard
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todaySalesCount = sales.filter(s => new Date(s.createdAt) >= today).length;
+
   const handleSaveProduct = (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!isOwner) {
+      toast({
+        title: "Access Denied",
+        description: "Only shop owners can modify products.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (editingProduct) {
       updateProduct(editingProduct.id, productData);
       toast({
@@ -68,6 +96,15 @@ const Index = () => {
   };
 
   const handleDeleteProduct = (id: string) => {
+    if (!isOwner) {
+      toast({
+        title: "Access Denied",
+        description: "Only shop owners can delete products.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const product = products.find(p => p.id === id);
     deleteProduct(id);
     toast({
@@ -96,11 +133,27 @@ const Index = () => {
   };
 
   const handleEditProduct = (product: Product) => {
+    if (!isOwner) {
+      toast({
+        title: "Access Denied",
+        description: "Only shop owners can edit products.",
+        variant: "destructive",
+      });
+      return;
+    }
     setEditingProduct(product);
     setShowProductForm(true);
   };
 
   const handleAddProduct = () => {
+    if (!isOwner) {
+      toast({
+        title: "Access Denied",
+        description: "Only shop owners can add products.",
+        variant: "destructive",
+      });
+      return;
+    }
     setEditingProduct(null);
     setShowProductForm(true);
   };
@@ -126,15 +179,19 @@ const Index = () => {
     return customer;
   };
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-muted-foreground mt-4">Loading inventory...</p>
+          <p className="text-muted-foreground mt-4">Loading...</p>
         </div>
       </div>
     );
+  }
+
+  if (!user) {
+    return null;
   }
 
   return (
@@ -146,9 +203,13 @@ const Index = () => {
             <div className="p-2 bg-primary rounded-xl">
               <Store className="h-6 w-6 text-primary-foreground" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Duka Manager</h1>
-              <p className="text-sm text-muted-foreground">Simple Inventory Tracking</p>
+            <div className="flex-1">
+              <h1 className="text-xl font-bold text-foreground">
+                {shop?.name || 'Duka Manager'}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {isOwner ? 'Owner Dashboard' : 'Employee View'}
+              </p>
             </div>
           </div>
         </div>
@@ -157,7 +218,11 @@ const Index = () => {
       {/* Main Content */}
       <main className="max-w-md mx-auto px-4 py-4">
         {activeTab === 'dashboard' && (
-          <Dashboard stats={{ ...stats, totalCreditOwed: totalOwed }} />
+          isOwner ? (
+            <OwnerDashboard stats={{ ...stats, totalCreditOwed: totalOwed }} />
+          ) : (
+            <EmployeeDashboard stats={stats} todaySalesCount={todaySalesCount} />
+          )
         )}
         
         {activeTab === 'products' && (
@@ -168,19 +233,20 @@ const Index = () => {
             onDelete={handleDeleteProduct}
             onAdd={handleAddProduct}
             onSell={setSellingProduct}
+            isOwner={isOwner}
           />
         )}
         
         {activeTab === 'alerts' && (
           <LowStockAlerts
             products={lowStockProducts}
-            onRestock={handleEditProduct}
+            onRestock={isOwner ? handleEditProduct : undefined}
           />
         )}
         
         {activeTab === 'sales' && <SalesHistory sales={sales} />}
 
-        {activeTab === 'credit' && (
+        {activeTab === 'credit' && isOwner && (
           <CreditManager
             customers={customers}
             creditSales={creditSales}
@@ -191,7 +257,11 @@ const Index = () => {
           />
         )}
 
-        {activeTab === 'reports' && <SalesReports sales={sales} />}
+        {activeTab === 'reports' && isOwner && (
+          <SalesReports sales={sales} />
+        )}
+
+        {activeTab === 'settings' && <SettingsPanel />}
       </main>
 
       {/* Bottom Navigation */}
@@ -200,10 +270,11 @@ const Index = () => {
         onTabChange={setActiveTab}
         alertCount={lowStockProducts.length}
         creditCount={pendingCredits}
+        isOwner={isOwner}
       />
 
-      {/* Modals */}
-      {showProductForm && (
+      {/* Modals - Only show product form for owners */}
+      {showProductForm && isOwner && (
         <ProductForm
           product={editingProduct}
           onSave={handleSaveProduct}

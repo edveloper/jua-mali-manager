@@ -14,16 +14,100 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shop_members: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["shop_role"]
+          shop_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["shop_role"]
+          shop_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["shop_role"]
+          shop_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_members_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shops: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_shop_id: { Args: { p_user_id: string }; Returns: string }
+      get_user_shop_role: {
+        Args: { p_shop_id: string; p_user_id: string }
+        Returns: Database["public"]["Enums"]["shop_role"]
+      }
+      is_shop_owner: {
+        Args: { p_shop_id: string; p_user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      shop_role: "owner" | "employee"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +234,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      shop_role: ["owner", "employee"],
+    },
   },
 } as const

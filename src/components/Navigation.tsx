@@ -1,23 +1,33 @@
-import { LayoutDashboard, Package, AlertTriangle, Receipt, Users, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Package, AlertTriangle, Users, BarChart3, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type TabType = 'dashboard' | 'products' | 'alerts' | 'sales' | 'credit' | 'reports';
+export type TabType = 'dashboard' | 'products' | 'alerts' | 'sales' | 'credit' | 'reports' | 'settings';
 
 interface NavigationProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
   alertCount: number;
   creditCount?: number;
+  isOwner?: boolean;
 }
 
-export function Navigation({ activeTab, onTabChange, alertCount, creditCount = 0 }: NavigationProps) {
-  const tabs = [
+export function Navigation({ activeTab, onTabChange, alertCount, creditCount = 0, isOwner = true }: NavigationProps) {
+  // Employee sees fewer tabs
+  const ownerTabs = [
     { id: 'dashboard' as TabType, label: 'Home', icon: LayoutDashboard },
     { id: 'products' as TabType, label: 'Products', icon: Package },
     { id: 'credit' as TabType, label: 'Credit', icon: Users, badge: creditCount },
     { id: 'reports' as TabType, label: 'Reports', icon: BarChart3 },
+    { id: 'settings' as TabType, label: 'Settings', icon: Settings },
+  ];
+
+  const employeeTabs = [
+    { id: 'dashboard' as TabType, label: 'Home', icon: LayoutDashboard },
+    { id: 'products' as TabType, label: 'Products', icon: Package },
     { id: 'alerts' as TabType, label: 'Alerts', icon: AlertTriangle, badge: alertCount },
   ];
+
+  const tabs = isOwner ? ownerTabs : employeeTabs;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border safe-area-pb z-40">
