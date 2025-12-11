@@ -11,9 +11,10 @@ interface ProductListProps {
   onDelete: (id: string) => void;
   onAdd: () => void;
   onSell: (product: Product) => void;
+  isOwner?: boolean;
 }
 
-export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSell }: ProductListProps) {
+export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSell, isOwner = true }: ProductListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   
   const displayProducts = searchQuery ? onSearch(searchQuery) : products;
@@ -34,9 +35,11 @@ export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSel
             className="pl-10"
           />
         </div>
-        <Button onClick={onAdd} size="icon">
-          <Plus className="h-5 w-5" />
-        </Button>
+        {isOwner && (
+          <Button onClick={onAdd} size="icon">
+            <Plus className="h-5 w-5" />
+          </Button>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -44,10 +47,12 @@ export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSel
           <div className="text-center py-12">
             <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <p className="text-muted-foreground">No products found</p>
-            <Button variant="outline" className="mt-4" onClick={onAdd}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add First Product
-            </Button>
+            {isOwner && (
+              <Button variant="outline" className="mt-4" onClick={onAdd}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add First Product
+              </Button>
+            )}
           </div>
         ) : (
           displayProducts.map((product) => (
@@ -69,9 +74,11 @@ export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSel
                     <p className="text-xs text-muted-foreground mt-0.5">{product.barcode}</p>
                   )}
                   <div className="flex items-center gap-4 mt-2">
-                    <span className="text-sm text-muted-foreground">
-                      Cost: {formatCurrency(product.costPrice)}
-                    </span>
+                    {isOwner && (
+                      <span className="text-sm text-muted-foreground">
+                        Cost: {formatCurrency(product.costPrice)}
+                      </span>
+                    )}
                     <span className="text-sm font-medium text-secondary">
                       Sell: {formatCurrency(product.sellingPrice)}
                     </span>
@@ -96,12 +103,16 @@ export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSel
                 >
                   Sell
                 </Button>
-                <Button variant="ghost" size="icon-sm" onClick={() => onEdit(product)}>
-                  <Edit2 className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon-sm" onClick={() => onDelete(product.id)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                {isOwner && (
+                  <>
+                    <Button variant="ghost" size="icon-sm" onClick={() => onEdit(product)}>
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon-sm" onClick={() => onDelete(product.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           ))
