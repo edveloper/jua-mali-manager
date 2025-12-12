@@ -134,14 +134,22 @@ export default function Auth() {
         <div className="w-full max-w-sm space-y-6">
           <div className="text-center space-y-2">
             <h2 className="text-2xl font-bold text-foreground">
-              {mode === 'signin' ? 'Welcome Back' : 'Create Account'}
+              {mode === 'signin' ? 'Welcome Back' : 'Create Your Shop'}
             </h2>
             <p className="text-muted-foreground">
               {mode === 'signin' 
                 ? 'Sign in to manage your inventory' 
-                : 'Set up your shop in seconds'}
+                : 'Register as a shop owner'}
             </p>
           </div>
+
+          {mode === 'signup' && (
+            <div className="bg-muted/50 border border-border rounded-lg p-3 text-sm">
+              <p className="text-muted-foreground">
+                <strong className="text-foreground">Are you an employee?</strong> Ask your shop owner to create an account for you from their Settings menu.
+              </p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'signup' && (
