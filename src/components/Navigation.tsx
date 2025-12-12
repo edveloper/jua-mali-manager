@@ -25,6 +25,7 @@ export function Navigation({ activeTab, onTabChange, alertCount, creditCount = 0
     { id: 'dashboard' as TabType, label: 'Home', icon: LayoutDashboard },
     { id: 'products' as TabType, label: 'Products', icon: Package },
     { id: 'alerts' as TabType, label: 'Alerts', icon: AlertTriangle, badge: alertCount },
+    { id: 'settings' as TabType, label: 'Settings', icon: Settings },
   ];
 
   const tabs = isOwner ? ownerTabs : employeeTabs;
