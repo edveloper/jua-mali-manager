@@ -16,9 +16,10 @@ interface SellDialogProps {
   customers: Customer[];
   onSell: (productId: string, quantity: number, isCredit?: boolean, customerId?: string) => void;
   onClose: () => void;
+  isOwner?: boolean;
 }
 
-export function SellDialog({ product, customers, onSell, onClose }: SellDialogProps) {
+export function SellDialog({ product, customers, onSell, onClose, isOwner = true }: SellDialogProps) {
   const [quantity, setQuantity] = useState(1);
   const [isCredit, setIsCredit] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
@@ -135,10 +136,13 @@ export function SellDialog({ product, customers, onSell, onClose }: SellDialogPr
               <span className="text-muted-foreground">Total Amount</span>
               <span className="font-bold text-lg">KSh {total.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Profit</span>
-              <span className="font-semibold text-success">KSh {profit.toLocaleString()}</span>
-            </div>
+            {/* Only show profit to owners */}
+            {isOwner && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Profit</span>
+                <span className="font-semibold text-success">KSh {profit.toLocaleString()}</span>
+              </div>
+            )}
             {isCredit && (
               <div className="flex justify-between text-warning pt-2 border-t border-border">
                 <span>Payment Type</span>

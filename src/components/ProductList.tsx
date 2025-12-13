@@ -74,6 +74,7 @@ export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSel
                     <p className="text-xs text-muted-foreground mt-0.5">{product.barcode}</p>
                   )}
                   <div className="flex items-center gap-4 mt-2">
+                    {/* Only show cost price to owners */}
                     {isOwner && (
                       <span className="text-sm text-muted-foreground">
                         Cost: {formatCurrency(product.costPrice)}

@@ -26,7 +26,7 @@ const Index = () => {
   
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, isLoading: authLoading, isOwner, shop } = useAuth();
+  const { user, isLoading: authLoading, isOwner, shop, shopMember } = useAuth();
   
   const {
     products,
@@ -54,7 +54,7 @@ const Index = () => {
   // Redirect to auth if not logged in
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/auth');
+      navigate('/auth', { replace: true });
     }
   }, [user, authLoading, navigate]);
 
@@ -179,7 +179,8 @@ const Index = () => {
     return customer;
   };
 
-  if (authLoading || isLoading) {
+  // Show loading only while checking auth status
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -190,8 +191,35 @@ const Index = () => {
     );
   }
 
+  // If no user, the useEffect will handle redirect
   if (!user) {
     return null;
+  }
+
+  // Wait for shop membership data to load
+  if (isLoading || !shopMember) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-muted-foreground mt-4">Loading your shop...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If user exists but no shop membership found after loading, show error
+  if (!shopMember) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md px-4">
+          <p className="text-destructive mb-4 text-lg font-semibold">No shop membership found</p>
+          <p className="text-muted-foreground text-sm">
+            Your account is not associated with any shop. Please contact support or ask your shop owner to add you.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -291,6 +319,7 @@ const Index = () => {
           customers={customers}
           onSell={handleSell}
           onClose={() => setSellingProduct(null)}
+          isOwner={isOwner}
         />
       )}
     </div>
