@@ -101,10 +101,15 @@ export type Database = {
         Args: { p_shop_id: string; p_user_id: string }
         Returns: Database["public"]["Enums"]["shop_role"]
       }
+      is_shop_member: {
+        Args: { p_shop_id: string; p_user_id: string }
+        Returns: boolean
+      }
       is_shop_owner: {
         Args: { p_shop_id: string; p_user_id: string }
         Returns: boolean
       }
+      shop_has_no_members: { Args: { p_shop_id: string }; Returns: boolean }
     }
     Enums: {
       shop_role: "owner" | "employee"
