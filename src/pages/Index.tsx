@@ -59,6 +59,19 @@ const Index = () => {
     }
   }, [user, authLoading, navigate]);
 
+  // Timeout fallback: if loading takes too long, force to error state
+  useEffect(() => {
+    if (user && isLoading) {
+      const timeout = setTimeout(() => {
+        console.error('Loading timeout - forcing error state');
+        // Force navigation to auth page to reset state
+        navigate('/auth', { replace: true });
+      }, 5000); // 5 second timeout
+
+      return () => clearTimeout(timeout);
+    }
+  }, [user, isLoading, navigate]);
+
   const stats = getStats();
   const lowStockProducts = getLowStockProducts();
   const totalOwed = getTotalOwed();
