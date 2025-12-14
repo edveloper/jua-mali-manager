@@ -17,6 +17,7 @@ import { SettingsPanel } from '@/components/SettingsPanel';
 import { Navigation, TabType } from '@/components/Navigation';
 import { Product } from '@/types/inventory';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
@@ -26,7 +27,7 @@ const Index = () => {
   
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, isLoading: authLoading, isOwner, shop, shopMember } = useAuth();
+  const { user, isLoading: authLoading, isOwner, shop, shopMember, signOut } = useAuth();
   
   const {
     products,
@@ -196,8 +197,8 @@ const Index = () => {
     return null;
   }
 
-  // Wait for shop membership data to load
-  if (isLoading || !shopMember) {
+  // Wait for shop membership data to load (with timeout fallback)
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -208,15 +209,25 @@ const Index = () => {
     );
   }
 
-  // If user exists but no shop membership found after loading, show error
+  // If user exists but no shop membership found after loading, show error or redirect
   if (!shopMember) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center max-w-md px-4">
-          <p className="text-destructive mb-4 text-lg font-semibold">No shop membership found</p>
+        <div className="text-center max-w-md px-4 space-y-4">
+          <p className="text-destructive mb-4 text-lg font-semibold">No shop found</p>
           <p className="text-muted-foreground text-sm">
-            Your account is not associated with any shop. Please contact support or ask your shop owner to add you.
+            Your account is not associated with any shop. This might be because:
           </p>
+          <ul className="text-muted-foreground text-sm text-left space-y-2">
+            <li>• Your shop is still being set up</li>
+            <li>• You need to be added by a shop owner</li>
+          </ul>
+          <Button onClick={() => {
+            signOut();
+            navigate('/auth');
+          }} variant="outline" className="mt-4">
+            Sign Out and Try Again
+          </Button>
         </div>
       </div>
     );

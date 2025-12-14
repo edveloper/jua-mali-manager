@@ -50,6 +50,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (memberError) {
         console.error('Error fetching shop member:', memberError);
+        // Set to null explicitly so loading can stop
+        setShopMember(null);
+        setShop(null);
         return;
       }
 
@@ -65,12 +68,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (shopError) {
           console.error('Error fetching shop:', shopError);
+          setShop(null);
         } else if (shopData) {
           setShop(shopData as Shop);
         }
+      } else {
+        // No shop member data found
+        setShopMember(null);
+        setShop(null);
       }
     } catch (error) {
       console.error('Error in fetchUserData:', error);
+      setShopMember(null);
+      setShop(null);
     }
   };
 
