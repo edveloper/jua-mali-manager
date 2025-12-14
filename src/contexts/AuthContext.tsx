@@ -124,10 +124,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await fetchUserData(session.user.id);
           } catch (error) {
             console.error('Error in auth state change:', error);
+          } finally {
+            // Always set loading to false after handling auth state change
+            if (mounted) {
+              setIsLoading(false);
+            }
           }
         } else {
           setShopMember(null);
           setShop(null);
+          if (mounted) {
+            setIsLoading(false);
+          }
         }
       }
     );
