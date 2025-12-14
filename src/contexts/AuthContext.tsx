@@ -88,18 +88,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true;
 
     // Check for existing session first
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted) return;
       
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchUserData(session.user.id).finally(() => {
+        try {
+          await fetchUserData(session.user.id);
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+        } finally {
           if (mounted) {
             setIsLoading(false);
           }
-        });
+        }
       } else {
         setIsLoading(false);
       }
@@ -116,7 +120,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          await fetchUserData(session.user.id);
+          try {
+            await fetchUserData(session.user.id);
+          } catch (error) {
+            console.error('Error in auth state change:', error);
+          }
         } else {
           setShopMember(null);
           setShop(null);
