@@ -17,7 +17,7 @@ export default function Auth() {
   const [shopName, setShopName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const { signIn, signUp, user, isLoading } = useAuth();
+  const { signIn, signUp, user, loading: isLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -48,20 +48,10 @@ export default function Auth() {
           navigate('/');
         }
       } else {
-        if (!fullName.trim()) {
+        if (!fullName.trim() || !shopName.trim()) {
           toast({
-            title: 'Name Required',
-            description: 'Please enter your full name.',
-            variant: 'destructive',
-          });
-          setIsSubmitting(false);
-          return;
-        }
-
-        if (!shopName.trim()) {
-          toast({
-            title: 'Shop Name Required',
-            description: 'Please enter your shop/business name.',
+            title: 'Missing Information',
+            description: 'Please fill in all fields.',
             variant: 'destructive',
           });
           setIsSubmitting(false);
@@ -70,23 +60,15 @@ export default function Auth() {
 
         const { error } = await signUp(email, password, fullName, shopName);
         if (error) {
-          if (error.message?.includes('already registered')) {
-            toast({
-              title: 'Account Exists',
-              description: 'This email is already registered. Please sign in instead.',
-              variant: 'destructive',
-            });
-          } else {
-            toast({
-              title: 'Sign Up Failed',
-              description: error.message || 'Could not create account',
-              variant: 'destructive',
-            });
-          }
+          toast({
+            title: 'Sign Up Failed',
+            description: error.message || 'Could not create account',
+            variant: 'destructive',
+          });
         } else {
           toast({
             title: 'Account Created!',
-            description: 'Welcome to Duka Manager. Your shop is ready.',
+            description: 'Welcome to Duka Manager.',
           });
           navigate('/');
         }
@@ -95,7 +77,7 @@ export default function Auth() {
       console.error('Auth error:', error);
       toast({
         title: 'Error',
-        description: 'Something went wrong. Please try again.',
+        description: 'Something went wrong.',
         variant: 'destructive',
       });
     } finally {
@@ -116,131 +98,51 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="p-6">
+      <header className="p-6 text-center">
         <div className="flex items-center gap-3 justify-center">
           <div className="p-2 bg-primary rounded-xl">
             <Store className="h-6 w-6 text-primary-foreground" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Duka Manager</h1>
-            <p className="text-sm text-muted-foreground">Simple Inventory Tracking</p>
-          </div>
+          <h1 className="text-xl font-bold">Duka Manager</h1>
         </div>
       </header>
 
-      {/* Auth Form */}
       <main className="flex-1 flex items-center justify-center px-4 pb-8">
         <div className="w-full max-w-sm space-y-6">
-          <div className="text-center space-y-2">
-            <h2 className="text-2xl font-bold text-foreground">
-              {mode === 'signin' ? 'Welcome Back' : 'Create Your Shop'}
-            </h2>
-            <p className="text-muted-foreground">
-              {mode === 'signin' 
-                ? 'Sign in to manage your inventory' 
-                : 'Register as a shop owner'}
-            </p>
+          <div className="text-center">
+            <h2 className="text-2xl font-bold">{mode === 'signin' ? 'Welcome Back' : 'Create Your Shop'}</h2>
+            <p className="text-muted-foreground">{mode === 'signin' ? 'Manage your inventory' : 'Register as owner'}</p>
           </div>
-
-          {mode === 'signup' && (
-            <div className="bg-muted/50 border border-border rounded-lg p-3 text-sm">
-              <p className="text-muted-foreground">
-                <strong className="text-foreground">Are you an employee?</strong> Ask your shop owner to create an account for you from their Settings menu.
-              </p>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'signup' && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="fullName"
-                      type="text"
-                      placeholder="John Kamau"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
+                  <Label>Full Name</Label>
+                  <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="John Kamau" required />
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="shopName">Shop Name</Label>
-                  <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="shopName"
-                      type="text"
-                      placeholder="Kamau's Kiosk"
-                      value={shopName}
-                      onChange={(e) => setShopName(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
+                  <Label>Shop Name</Label>
+                  <Input value={shopName} onChange={(e) => setShopName(e.target.value)} placeholder="Kamau's Kiosk" required />
                 </div>
               </>
             )}
-
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
+              <Label>Email</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                  minLength={6}
-                  required
-                />
-              </div>
+              <Label>Password</Label>
+              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" minLength={6} required />
             </div>
-
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isSubmitting}
-            >
-              {isSubmitting 
-                ? 'Please wait...' 
-                : mode === 'signin' ? 'Sign In' : 'Create Account'}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? 'Processing...' : mode === 'signin' ? 'Sign In' : 'Create Account'}
             </Button>
           </form>
 
           <div className="text-center">
-            <button
-              type="button"
-              onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
-              className="text-sm text-primary hover:underline"
-            >
-              {mode === 'signin' 
-                ? "Don't have an account? Sign up" 
-                : 'Already have an account? Sign in'}
+            <button onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')} className="text-sm text-primary hover:underline">
+              {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
             </button>
           </div>
         </div>

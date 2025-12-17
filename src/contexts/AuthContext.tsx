@@ -1,284 +1,203 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-
-export type ShopRole = 'owner' | 'employee';
-
-interface ShopMember {
-  id: string;
-  shop_id: string;
-  user_id: string;
-  role: ShopRole;
-}
-
-interface Shop {
-  id: string;
-  name: string;
-}
+import { User } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
-  session: Session | null;
-  shopMember: ShopMember | null;
-  shop: Shop | null;
+  shop: any | null;
+  shopMember: any | null;
   isOwner: boolean;
-  isEmployee: boolean;
-  isLoading: boolean;
-  signUp: (email: string, password: string, fullName: string, shopName?: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  loading: boolean;
   signOut: () => Promise<void>;
-  createEmployee: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
+  signIn: (email: string, password?: string) => Promise<{ data: any; error: any }>;
+  signUp: (email: string, password?: string, fullName?: string, shopName?: string) => Promise<{ data: any; error: any }>;
+  refreshShopData: () => Promise<void>;
+  createEmployee: (email: string, password?: string, fullName?: string) => Promise<{ data: any; error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [shopMember, setShopMember] = useState<ShopMember | null>(null);
-  const [shop, setShop] = useState<Shop | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [shop, setShop] = useState<any | null>(null);
+  const [shopMember, setShopMember] = useState<any | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const fetchUserData = async (userId: string) => {
+  const fetchShopData = async (userId: string) => {
     try {
-      // Fetch shop membership
-      const { data: memberData, error: memberError } = await supabase
+      const { data, error } = await supabase
         .from('shop_members')
-        .select('*')
+        .select(`
+          role,
+          created_at,
+          shops (
+            id,
+            name,
+            created_at
+          )
+        `)
         .eq('user_id', userId)
         .maybeSingle();
 
-      if (memberError) {
-        console.error('Error fetching shop member:', memberError);
-        // Set to null explicitly so loading can stop
-        setShopMember(null);
-        setShop(null);
-        return;
-      }
+      if (error) throw error;
 
-      if (memberData) {
-        setShopMember(memberData as ShopMember);
-
-        // Fetch shop details
-        const { data: shopData, error: shopError } = await supabase
-          .from('shops')
-          .select('*')
-          .eq('id', memberData.shop_id)
-          .maybeSingle();
-
-        if (shopError) {
-          console.error('Error fetching shop:', shopError);
-          setShop(null);
-        } else if (shopData) {
-          setShop(shopData as Shop);
-        }
+      if (data) {
+        setShop(data.shops);
+        setShopMember(data);
+        setIsOwner(data.role === 'owner');
       } else {
-        // No shop member data found
-        setShopMember(null);
         setShop(null);
+        setShopMember(null);
+        setIsOwner(false);
       }
-    } catch (error) {
-      console.error('Error in fetchUserData:', error);
-      setShopMember(null);
-      setShop(null);
+    } catch (err) {
+      console.error("Auth Error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshShopData = async () => {
+    if (currentUser) {
+      await fetchShopData(currentUser.id);
     }
   };
 
   useEffect(() => {
-    let mounted = true;
-
-    // Check for existing session first
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mounted) return;
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        try {
-          await fetchUserData(session.user.id);
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-        } finally {
-          if (mounted) {
-            setIsLoading(false);
-          }
-        }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const userObj = session?.user ?? null;
+      setCurrentUser(userObj);
+      if (userObj) {
+        fetchShopData(userObj.id);
       } else {
-        setIsLoading(false);
+        setLoading(false);
       }
     });
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
-        
-        console.log('Auth state changed:', event, session?.user?.email);
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          try {
-            await fetchUserData(session.user.id);
-          } catch (error) {
-            console.error('Error in auth state change:', error);
-          } finally {
-            // Always set loading to false after handling auth state change
-            if (mounted) {
-              setIsLoading(false);
-            }
-          }
-        } else {
-          setShopMember(null);
-          setShop(null);
-          if (mounted) {
-            setIsLoading(false);
-          }
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const userObj = session?.user ?? null;
+      setCurrentUser(userObj);
+      if (userObj) {
+        fetchShopData(userObj.id);
+      } else {
+        setShop(null);
+        setShopMember(null);
+        setIsOwner(false);
+        setLoading(false);
       }
-    );
+    });
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string, shopName?: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-
-    const { data, error } = await supabase.auth.signUp({
+  const signIn = async (email: string, password?: string) => {
+    return await supabase.auth.signInWithPassword({
       email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          full_name: fullName,
-        },
-      },
+      password: password || '',
+    });
+  };
+
+  const signUp = async (email: string, password?: string, fullName?: string, shopName?: string) => {
+    // 1. Create Auth User
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password: password || '',
+      options: { data: { full_name: fullName } }
     });
 
-    if (error) return { error };
+    if (authError || !authData.user) return { data: authData, error: authError };
 
-    // If this is a new owner, create shop and membership
-    if (data.user && shopName) {
-      // Create shop
-      const { data: newShop, error: shopError } = await supabase
-        .from('shops')
-        .insert({ name: shopName })
+    // Set session immediately so RLS policies recognize the user for the next steps
+    if (authData.session) {
+      await supabase.auth.setSession(authData.session);
+    }
+
+    try {
+      // 2. Create Shop
+      const { data: shopData, error: shopError } = await (supabase.from('shops') as any)
+        .insert([{ name: shopName || `${fullName}'s Shop` }])
         .select()
         .single();
 
-      if (shopError) {
-        console.error('Error creating shop:', shopError);
-        return { error: shopError };
-      }
+      if (shopError) throw shopError;
 
-      // Create owner membership
-      const { error: memberError } = await supabase
-        .from('shop_members')
-        .insert({
-          shop_id: newShop.id,
-          user_id: data.user.id,
-          role: 'owner',
-        });
+      // 3. Create Membership as Owner
+      const { error: memberError } = await (supabase.from('shop_members') as any)
+        .insert([{
+          shop_id: shopData.id,
+          user_id: authData.user.id,
+          role: 'owner'
+        }]);
 
-      if (memberError) {
-        console.error('Error creating membership:', memberError);
-        return { error: memberError };
-      }
+      if (memberError) throw memberError;
 
-      // Manually fetch the data after creation
-      await fetchUserData(data.user.id);
+      // 4. Sync local state
+      await fetchShopData(authData.user.id);
+      return { data: authData, error: null };
+    } catch (err: any) {
+      return { data: authData, error: err };
     }
-
-    return { error: null };
   };
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+  const createEmployee = async (email: string, password?: string, fullName?: string) => {
+    if (!shop?.id || !isOwner) {
+      return { data: null, error: { message: "Only shop owners can create employees" } };
+    }
+
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password: password || '123456',
+        options: { data: { full_name: fullName } }
+      });
+
+      if (authError || !authData.user) throw authError;
+
+      const { error: memberError } = await (supabase.from('shop_members') as any)
+        .insert([{
+          shop_id: shop.id,
+          user_id: authData.user.id,
+          role: 'attendant'
+        }]);
+
+      if (memberError) throw memberError;
+
+      return { data: authData, error: null };
+    } catch (err: any) {
+      console.error("Employee creation error:", err);
+      return { data: null, error: err };
+    }
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    setShopMember(null);
-    setShop(null);
   };
-
-  const createEmployee = async (email: string, password: string, fullName: string) => {
-    if (!shop || !shopMember || shopMember.role !== 'owner') {
-      return { error: { message: 'Only owners can create employees' } };
-    }
-
-    // Create the employee account
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: {
-          full_name: fullName,
-        },
-      },
-    });
-
-    if (error) return { error };
-
-    if (data.user) {
-      // Add employee to shop
-      const { error: memberError } = await supabase
-        .from('shop_members')
-        .insert({
-          shop_id: shop.id,
-          user_id: data.user.id,
-          role: 'employee',
-        });
-
-      if (memberError) {
-        console.error('Error adding employee to shop:', memberError);
-        return { error: memberError };
-      }
-    }
-
-    return { error: null };
-  };
-
-  const isOwner = shopMember?.role === 'owner';
-  const isEmployee = shopMember?.role === 'employee';
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        session,
-        shopMember,
-        shop,
-        isOwner,
-        isEmployee,
-        isLoading,
-        signUp,
+    <AuthContext.Provider 
+      value={{ 
+        user: currentUser, 
+        shop, 
+        shopMember, 
+        isOwner, 
+        loading, 
+        signOut, 
         signIn,
-        signOut,
-        createEmployee,
+        signUp,
+        refreshShopData,
+        createEmployee
       }}
     >
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
+};

@@ -1,165 +1,116 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Customer, CreditSale, CreditPayment } from '@/types/inventory';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { CreditSale, Customer } from '@/types/inventory';
+import { useToast } from '@/hooks/use-toast';
 
-const CUSTOMERS_KEY = 'duka_customers';
-const CREDIT_SALES_KEY = 'duka_credit_sales';
-const CREDIT_PAYMENTS_KEY = 'duka_credit_payments';
-
-export function useCredit() {
+export const useCredit = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [creditSales, setCreditSales] = useState<CreditSale[]>([]);
-  const [creditPayments, setCreditPayments] = useState<CreditPayment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { shop } = useAuth();
+  const { toast } = useToast();
 
-  useEffect(() => {
-    const loadData = () => {
-      try {
-        const storedCustomers = localStorage.getItem(CUSTOMERS_KEY);
-        const storedCreditSales = localStorage.getItem(CREDIT_SALES_KEY);
-        const storedPayments = localStorage.getItem(CREDIT_PAYMENTS_KEY);
+  const fetchData = async () => {
+    if (!shop?.id) return;
+    try {
+      setIsLoading(true);
 
-        if (storedCustomers) {
-          const parsed = JSON.parse(storedCustomers);
-          setCustomers(parsed.map((c: Customer) => ({
-            ...c,
-            createdAt: new Date(c.createdAt),
-          })));
-        }
+      // Fetch Customers
+      const { data: custData } = await (supabase.from('customers') as any)
+        .select('*').eq('shop_id', shop.id);
 
-        if (storedCreditSales) {
-          const parsed = JSON.parse(storedCreditSales);
-          setCreditSales(parsed.map((cs: CreditSale) => ({
-            ...cs,
-            createdAt: new Date(cs.createdAt),
-            dueDate: cs.dueDate ? new Date(cs.dueDate) : undefined,
-          })));
-        }
+      // Fetch Credit Sales
+      const { data: creditData } = await (supabase.from('credit_sales') as any)
+        .select('*').eq('shop_id', shop.id);
 
-        if (storedPayments) {
-          const parsed = JSON.parse(storedPayments);
-          setCreditPayments(parsed.map((p: CreditPayment) => ({
-            ...p,
-            createdAt: new Date(p.createdAt),
-          })));
-        }
-      } catch (error) {
-        console.error('Error loading credit data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      if (custData) setCustomers(custData.map((c: any) => ({
+        id: c.id, name: c.name, phone: c.phone, email: c.email, createdAt: c.created_at
+      })));
 
-    loadData();
-  }, []);
+      if (creditData) setCreditSales(creditData.map((cs: any) => ({
+        id: cs.id,
+        customerId: cs.customer_id,
+        saleId: cs.sale_id,
+        productName: cs.product_name,
+        quantity: cs.quantity,
+        amount: Number(cs.amount),
+        balance: Number(cs.amount), // Initially, balance equals amount
+        status: cs.status,
+        createdAt: cs.created_at
+      })));
 
-  const saveCustomers = useCallback((newCustomers: Customer[]) => {
-    setCustomers(newCustomers);
-    localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(newCustomers));
-  }, []);
+    } catch (error: any) {
+      console.error("Credit fetch error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const saveCreditSales = useCallback((newCreditSales: CreditSale[]) => {
-    setCreditSales(newCreditSales);
-    localStorage.setItem(CREDIT_SALES_KEY, JSON.stringify(newCreditSales));
-  }, []);
+  useEffect(() => { fetchData(); }, [shop?.id]);
 
-  const savePayments = useCallback((newPayments: CreditPayment[]) => {
-    setCreditPayments(newPayments);
-    localStorage.setItem(CREDIT_PAYMENTS_KEY, JSON.stringify(newPayments));
-  }, []);
+  const addCustomer = async (customer: Omit<Customer, 'id' | 'createdAt'>) => {
+    if (!shop?.id) return;
+    const { data, error } = await (supabase.from('customers') as any).insert([{
+      shop_id: shop.id,
+      name: customer.name,
+      phone: customer.phone,
+      email: customer.email
+    }]).select().single();
 
-  const addCustomer = useCallback((name: string, phone?: string) => {
-    const newCustomer: Customer = {
-      id: crypto.randomUUID(),
-      name,
-      phone,
-      createdAt: new Date(),
-    };
-    saveCustomers([...customers, newCustomer]);
-    return newCustomer;
-  }, [customers, saveCustomers]);
+    if (!error) {
+      toast({ title: "Customer added" });
+      fetchData();
+    }
+    return data;
+  };
 
-  const addCreditSale = useCallback((
-    customerId: string,
-    saleId: string,
-    productName: string,
-    quantity: number,
-    totalAmount: number
-  ) => {
-    const customer = customers.find(c => c.id === customerId);
-    if (!customer) return null;
+  const addCreditSale = async (customerId: string, saleId: string, productName: string, quantity: number, amount: number) => {
+    if (!shop?.id) return;
+    const { error } = await (supabase.from('credit_sales') as any).insert([{
+      shop_id: shop.id,
+      customer_id: customerId,
+      sale_id: saleId,
+      product_name: productName,
+      quantity: quantity,
+      amount: amount,
+      status: 'pending'
+    }]);
 
-    const creditSale: CreditSale = {
-      id: crypto.randomUUID(),
-      customerId,
-      customerName: customer.name,
-      saleId,
-      productName,
-      quantity,
-      totalAmount,
-      amountPaid: 0,
-      balance: totalAmount,
-      status: 'pending',
-      createdAt: new Date(),
-    };
+    if (!error) {
+      fetchData();
+    } else {
+      toast({ title: "Error saving credit", variant: "destructive" });
+    }
+  };
 
-    saveCreditSales([...creditSales, creditSale]);
-    return creditSale;
-  }, [customers, creditSales, saveCreditSales]);
+  const updateCreditStatus = async (creditId: string, status: CreditSale['status']) => {
+    const { error } = await (supabase.from('credit_sales') as any)
+      .update({ status })
+      .eq('id', creditId);
 
-  const recordPayment = useCallback((creditSaleId: string, amount: number) => {
-    const creditSale = creditSales.find(cs => cs.id === creditSaleId);
-    if (!creditSale || amount <= 0) return null;
-
-    const payment: CreditPayment = {
-      id: crypto.randomUUID(),
-      creditSaleId,
-      customerId: creditSale.customerId,
-      amount: Math.min(amount, creditSale.balance),
-      createdAt: new Date(),
-    };
-
-    savePayments([...creditPayments, payment]);
-
-    const newAmountPaid = creditSale.amountPaid + payment.amount;
-    const newBalance = creditSale.totalAmount - newAmountPaid;
-    const newStatus = newBalance <= 0 ? 'paid' : newBalance < creditSale.totalAmount ? 'partial' : 'pending';
-
-    const updatedCreditSales = creditSales.map(cs =>
-      cs.id === creditSaleId
-        ? { ...cs, amountPaid: newAmountPaid, balance: Math.max(0, newBalance), status: newStatus as CreditSale['status'] }
-        : cs
-    );
-
-    saveCreditSales(updatedCreditSales);
-    return payment;
-  }, [creditSales, creditPayments, saveCreditSales, savePayments]);
-
-  const getCustomerCredits = useCallback((customerId: string) => {
-    return creditSales.filter(cs => cs.customerId === customerId && cs.status !== 'paid');
-  }, [creditSales]);
-
-  const getTotalOwed = useCallback(() => {
-    return creditSales
-      .filter(cs => cs.status !== 'paid')
-      .reduce((sum, cs) => sum + cs.balance, 0);
-  }, [creditSales]);
-
-  const getCustomerTotalOwed = useCallback((customerId: string) => {
-    return creditSales
-      .filter(cs => cs.customerId === customerId && cs.status !== 'paid')
-      .reduce((sum, cs) => sum + cs.balance, 0);
-  }, [creditSales]);
+    if (!error) {
+      toast({ title: `Status updated to ${status}` });
+      fetchData();
+    }
+  };
 
   return {
     customers,
     creditSales,
-    creditPayments,
     isLoading,
+    // Aligning the names to match what Index.tsx expects:
     addCustomer,
     addCreditSale,
-    recordPayment,
-    getCustomerCredits,
-    getTotalOwed,
-    getCustomerTotalOwed,
+    // Map updateCreditStatus to recordPayment
+    recordPayment: (creditId: string) => updateCreditStatus(creditId, 'paid'),
+    // Map getTotalDebt to getTotalOwed
+    getTotalOwed: () =>
+      creditSales.filter(cs => cs.status !== 'paid')
+        .reduce((sum, cs) => sum + cs.amount, 0),
+    // Map getCustomerTotalDebt to getCustomerTotalOwed
+    getCustomerTotalOwed: (customerId: string) =>
+      creditSales.filter(cs => cs.customerId === customerId && cs.status !== 'paid')
+        .reduce((sum, cs) => sum + cs.amount, 0)
   };
-}
+};

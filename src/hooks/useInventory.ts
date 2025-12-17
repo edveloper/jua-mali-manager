@@ -1,222 +1,187 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Product, Sale, DashboardStats } from '@/types/inventory';
+import { useToast } from '@/hooks/use-toast';
 
-const PRODUCTS_KEY = 'duka_products';
-const SALES_KEY = 'duka_sales';
-
-// Sample products for demo
-const sampleProducts: Product[] = [
-  {
-    id: '1',
-    name: 'Unga wa Ngano (2kg)',
-    barcode: '6001234567890',
-    costPrice: 180,
-    sellingPrice: 220,
-    quantity: 25,
-    lowStockThreshold: 10,
-    category: 'Food',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '2',
-    name: 'Cooking Oil (1L)',
-    barcode: '6001234567891',
-    costPrice: 280,
-    sellingPrice: 350,
-    quantity: 8,
-    lowStockThreshold: 10,
-    category: 'Food',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '3',
-    name: 'Sugar (1kg)',
-    barcode: '6001234567892',
-    costPrice: 150,
-    sellingPrice: 180,
-    quantity: 30,
-    lowStockThreshold: 15,
-    category: 'Food',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '4',
-    name: 'Milk (500ml)',
-    barcode: '6001234567893',
-    costPrice: 55,
-    sellingPrice: 70,
-    quantity: 5,
-    lowStockThreshold: 12,
-    category: 'Dairy',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '5',
-    name: 'Bread (Loaf)',
-    barcode: '6001234567894',
-    costPrice: 50,
-    sellingPrice: 65,
-    quantity: 3,
-    lowStockThreshold: 5,
-    category: 'Bakery',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
-
-export function useInventory() {
+export const useInventory = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { shop, isOwner } = useAuth();
+  const { toast } = useToast();
 
-  // Load data from localStorage
+  const fetchProducts = async () => {
+    if (!shop?.id) return;
+    try {
+      setIsLoading(true);
+      const { data, error } = await (supabase.from('products') as any)
+        .select('*')
+        .eq('shop_id', shop.id)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      
+      setProducts((data || []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        category: p.category || 'General',
+        costPrice: Number(p.cost_price || 0),
+        sellingPrice: Number(p.price),
+        quantity: p.stock_level,
+        lowStockThreshold: p.min_stock_level,
+        unit: p.unit || 'pcs',
+        createdAt: p.created_at,
+        updatedAt: p.updated_at
+      })));
+    } catch (error: any) {
+      console.error("Products error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchSales = async () => {
+    if (!shop?.id) return;
+    try {
+      const { data, error } = await (supabase.from('sales') as any)
+        .select('*')
+        .eq('shop_id', shop.id);
+
+      if (error) throw error;
+
+      setSales((data || []).map((s: any) => {
+        const totalAmount = Number(s.total_amount || 0);
+        const costAtSale = Number(s.cost_price_at_sale || 0);
+        const qty = Number(s.quantity || 0);
+        return {
+          id: s.id,
+          productId: s.product_id,
+          productName: s.product_name,
+          quantity: qty,
+          totalAmount: totalAmount,
+          profit: totalAmount - (costAtSale * qty),
+          createdAt: s.created_at
+        };
+      }));
+    } catch (error: any) {
+      console.error("Sales error:", error);
+    }
+  };
+
   useEffect(() => {
-    const loadData = () => {
-      try {
-        const storedProducts = localStorage.getItem(PRODUCTS_KEY);
-        const storedSales = localStorage.getItem(SALES_KEY);
-        
-        if (storedProducts) {
-          const parsed = JSON.parse(storedProducts);
-          setProducts(parsed.map((p: Product) => ({
-            ...p,
-            createdAt: new Date(p.createdAt),
-            updatedAt: new Date(p.updatedAt),
-          })));
-        } else {
-          // Load sample products for first-time users
-          setProducts(sampleProducts);
-          localStorage.setItem(PRODUCTS_KEY, JSON.stringify(sampleProducts));
-        }
-        
-        if (storedSales) {
-          const parsed = JSON.parse(storedSales);
-          setSales(parsed.map((s: Sale) => ({
-            ...s,
-            createdAt: new Date(s.createdAt),
-          })));
-        }
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadData();
-  }, []);
+    fetchProducts();
+    fetchSales();
+  }, [shop?.id]);
 
-  // Save products to localStorage
-  const saveProducts = useCallback((newProducts: Product[]) => {
-    setProducts(newProducts);
-    localStorage.setItem(PRODUCTS_KEY, JSON.stringify(newProducts));
-  }, []);
+  const addProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> & { unit?: string }) => {
+    if (!shop?.id || !isOwner) return;
+    try {
+      const { error } = await (supabase.from('products') as any).insert([{
+        shop_id: shop.id,
+        name: productData.name,
+        category: productData.category,
+        cost_price: productData.costPrice,
+        price: productData.sellingPrice,
+        stock_level: productData.quantity,
+        min_stock_level: productData.lowStockThreshold,
+        unit: productData.unit || 'pcs'
+      }]);
+      if (error) throw error;
+      toast({ title: "Product added successfully" });
+      await fetchProducts();
+    } catch (error: any) {
+      toast({ title: "Error adding product", description: error.message, variant: "destructive" });
+    }
+  };
 
-  // Save sales to localStorage
-  const saveSales = useCallback((newSales: Sale[]) => {
-    setSales(newSales);
-    localStorage.setItem(SALES_KEY, JSON.stringify(newSales));
-  }, []);
+  const updateProduct = async (id: string, updates: Partial<Product> & { unit?: string }) => {
+    if (!isOwner) return;
+    try {
+      const { error } = await (supabase.from('products') as any)
+        .update({
+          name: updates.name,
+          category: updates.category,
+          cost_price: updates.costPrice,
+          price: updates.sellingPrice,
+          stock_level: updates.quantity,
+          min_stock_level: updates.lowStockThreshold,
+          unit: updates.unit
+        })
+        .eq('id', id);
+      if (error) throw error;
+      await fetchProducts();
+    } catch (error: any) {
+      toast({ title: "Update failed", description: error.message, variant: "destructive" });
+    }
+  };
 
-  // Add product
-  const addProduct = useCallback((product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newProduct: Product = {
-      ...product,
-      id: crypto.randomUUID(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    saveProducts([...products, newProduct]);
-    return newProduct;
-  }, [products, saveProducts]);
+  const deleteProduct = async (id: string) => {
+    if (!isOwner) return;
+    try {
+      const { error } = await (supabase.from('products') as any).delete().eq('id', id);
+      if (error) throw error;
+      toast({ title: "Product deleted" });
+      await fetchProducts();
+    } catch (error: any) {
+      toast({ title: "Delete failed", variant: "destructive" });
+    }
+  };
 
-  // Update product
-  const updateProduct = useCallback((id: string, updates: Partial<Product>) => {
-    const newProducts = products.map(p => 
-      p.id === id ? { ...p, ...updates, updatedAt: new Date() } : p
-    );
-    saveProducts(newProducts);
-  }, [products, saveProducts]);
-
-  // Delete product
-  const deleteProduct = useCallback((id: string) => {
-    saveProducts(products.filter(p => p.id !== id));
-  }, [products, saveProducts]);
-
-  // Record sale
-  const recordSale = useCallback((productId: string, quantity: number) => {
+  const recordSale = async (productId: string, quantity: number) => {
+    if (!shop?.id) return;
     const product = products.find(p => p.id === productId);
     if (!product || product.quantity < quantity) return null;
 
-    const sale: Sale = {
-      id: crypto.randomUUID(),
-      productId,
-      productName: product.name,
-      quantity,
-      unitPrice: product.sellingPrice,
-      costPrice: product.costPrice,
-      totalAmount: product.sellingPrice * quantity,
-      profit: (product.sellingPrice - product.costPrice) * quantity,
-      createdAt: new Date(),
-    };
+    try {
+      const { data: saleData, error: saleError } = await (supabase.from('sales') as any).insert([{
+        shop_id: shop.id,
+        product_id: productId,
+        product_name: product.name,
+        quantity: quantity,
+        total_amount: product.sellingPrice * quantity,
+        cost_price_at_sale: product.costPrice || 0
+      }]).select().single();
 
-    saveSales([...sales, sale]);
-    updateProduct(productId, { quantity: product.quantity - quantity });
-    
-    return sale;
-  }, [products, sales, saveSales, updateProduct]);
+      if (saleError) throw saleError;
 
-  // Get low stock products
-  const getLowStockProducts = useCallback(() => {
-    return products.filter(p => p.quantity <= p.lowStockThreshold);
-  }, [products]);
+      await (supabase.from('products') as any)
+        .update({ stock_level: product.quantity - quantity })
+        .eq('id', productId);
 
-  // Get dashboard stats
-  const getStats = useCallback((): DashboardStats => {
+      await fetchProducts();
+      await fetchSales();
+      return saleData;
+    } catch (error: any) {
+      return null;
+    }
+  };
+
+  const getStats = (): DashboardStats => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
     const todaySalesData = sales.filter(s => new Date(s.createdAt) >= today);
-    
+
     return {
       totalProducts: products.length,
       lowStockCount: products.filter(p => p.quantity <= p.lowStockThreshold).length,
-      totalStockValue: products.reduce((sum, p) => sum + (p.costPrice * p.quantity), 0),
-      todaySales: todaySalesData.reduce((sum, s) => sum + s.totalAmount, 0),
-      todayProfit: todaySalesData.reduce((sum, s) => sum + s.profit, 0),
+      totalStockValue: products.reduce((sum, p) => sum + (p.sellingPrice * p.quantity), 0),
+      todaySales: todaySalesData.reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0),
+      todayProfit: todaySalesData.reduce((sum, s) => sum + (Number(s.profit) || 0), 0)
     };
-  }, [products, sales]);
+  };
 
-  // Search products
-  const searchProducts = useCallback((query: string) => {
-    const lowerQuery = query.toLowerCase();
-    return products.filter(p => 
-      p.name.toLowerCase().includes(lowerQuery) ||
-      p.barcode?.includes(query) ||
-      p.category?.toLowerCase().includes(lowerQuery)
-    );
-  }, [products]);
-
-  // Find by barcode
-  const findByBarcode = useCallback((barcode: string) => {
-    return products.find(p => p.barcode === barcode);
-  }, [products]);
-
-  return {
-    products,
-    sales,
-    isLoading,
+  return { 
+    products, 
+    sales, 
+    isLoading, 
     addProduct,
     updateProduct,
     deleteProduct,
-    recordSale,
-    getLowStockProducts,
-    getStats,
-    searchProducts,
-    findByBarcode,
+    recordSale, 
+    getStats, 
+    getLowStockProducts: () => products.filter(p => p.quantity <= p.lowStockThreshold),
+    searchProducts: (q: string) => products.filter(p => p.name.toLowerCase().includes(q.toLowerCase())),
+    refreshProducts: fetchProducts 
   };
-}
+};

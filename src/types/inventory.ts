@@ -28,23 +28,21 @@ export interface Sale {
 export interface Customer {
   id: string;
   name: string;
-  phone?: string;
-  createdAt: Date;
+  phone: string;
+  email?: string; // Ensure this is here (with ? because it's optional)
+  createdAt: string;
 }
 
 export interface CreditSale {
   id: string;
   customerId: string;
-  customerName: string;
   saleId: string;
   productName: string;
   quantity: number;
-  totalAmount: number;
-  amountPaid: number;
-  balance: number;
-  status: 'pending' | 'partial' | 'paid';
-  createdAt: Date;
-  dueDate?: Date;
+  amount: number;       // The original total
+  balance: number;      // <--- Add this: how much is left to pay
+  status: 'pending' | 'partially_paid' | 'paid';
+  createdAt: string;
 }
 
 export interface CreditPayment {

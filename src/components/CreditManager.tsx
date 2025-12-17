@@ -9,7 +9,7 @@ interface CreditManagerProps {
   customers: Customer[];
   creditSales: CreditSale[];
   totalOwed: number;
-  onAddCustomer: (name: string, phone?: string) => Customer | null;
+  onAddCustomer: (name: string, phone?: string) => Promise<Customer | any>;
   onRecordPayment: (creditSaleId: string, amount: number) => void;
   getCustomerTotalOwed: (customerId: string) => number;
 }
@@ -71,7 +71,7 @@ export function CreditManager({
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div className="stat-card">
               <p className="metric-label">Total</p>
-              <p className="text-lg font-semibold">{formatCurrency(selectedCredit.totalAmount)}</p>
+              <p className="text-lg font-semibold">{formatCurrency(selectedCredit.amount)}</p>
             </div>
             <div className="stat-card">
               <p className="metric-label">Balance</p>
@@ -166,9 +166,9 @@ export function CreditManager({
                     <p className="font-semibold text-warning">{formatCurrency(credit.balance)}</p>
                     <span className={cn(
                       "text-xs px-2 py-0.5 rounded-full",
-                      credit.status === 'partial' ? "bg-secondary/10 text-secondary" : "bg-warning/10 text-warning"
+                      credit.status === 'partially_paid' ? "bg-secondary/10 text-secondary" : "bg-warning/10 text-warning"
                     )}>
-                      {credit.status === 'partial' ? 'Partial' : 'Pending'}
+                      {credit.status === 'partially_paid' ? 'Partial' : 'Pending'}
                     </span>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />

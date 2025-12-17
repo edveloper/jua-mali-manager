@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Store } from 'lucide-react';
+import { Store, Loader2 } from 'lucide-react';
 import { useInventory } from '@/hooks/useInventory';
 import { useCredit } from '@/hooks/useCredit';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,15 +24,23 @@ const Index = () => {
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [sellingProduct, setSellingProduct] = useState<Product | null>(null);
-  
+
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, isLoading: authLoading, isOwner, shop, shopMember, signOut } = useAuth();
-  
+
+  const {
+    user,
+    loading: authLoading, // Renamed 'loading' to 'authLoading' to match your local variable
+    isOwner,
+    shop,
+    shopMember,
+    signOut
+  } = useAuth();
+
   const {
     products,
     sales,
-    isLoading,
+    isLoading: inventoryLoading,
     addProduct,
     updateProduct,
     deleteProduct,
@@ -52,288 +60,144 @@ const Index = () => {
     getCustomerTotalOwed,
   } = useCredit();
 
-  // Redirect to auth if not logged in
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth', { replace: true });
     }
   }, [user, authLoading, navigate]);
 
-  // Timeout fallback: if loading takes too long, force to error state
-  useEffect(() => {
-    if (user && isLoading) {
-      const timeout = setTimeout(() => {
-        console.error('Loading timeout - forcing error state');
-        // Force navigation to auth page to reset state
-        navigate('/auth', { replace: true });
-      }, 5000); // 5 second timeout
+  if (authLoading || (inventoryLoading && !shopMember)) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
+        <p className="text-muted-foreground animate-pulse">Loading your Duka...</p>
+      </div>
+    );
+  }
 
-      return () => clearTimeout(timeout);
-    }
-  }, [user, isLoading, navigate]);
+  if (!user || !shopMember) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4 text-center">
+        <div className="max-w-md space-y-6">
+          <Store className="w-12 h-12 text-destructive mx-auto" />
+          <h2 className="text-2xl font-bold">Shop Not Found</h2>
+          <Button onClick={() => window.location.reload()}>Retry Connection</Button>
+          <Button onClick={signOut} variant="outline">Sign Out</Button>
+        </div>
+      </div>
+    );
+  }
 
+  // --- STATS CALCULATION ---
   const stats = getStats();
   const lowStockProducts = getLowStockProducts();
-  const totalOwed = getTotalOwed();
-  const pendingCredits = creditSales.filter(cs => cs.status !== 'paid').length;
+  const totalOwedAmount = getTotalOwed();
+  const pendingCreditsCount = creditSales.filter(cs => cs.status !== 'paid').length;
 
-  // Get today's sales count for employee dashboard
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todaySalesCount = sales.filter(s => new Date(s.createdAt) >= today).length;
 
-  const handleSaveProduct = (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (!isOwner) {
-      toast({
-        title: "Access Denied",
-        description: "Only shop owners can modify products.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  // --- ACTION HANDLERS ---
+  const handleSaveProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!isOwner) return;
     if (editingProduct) {
-      updateProduct(editingProduct.id, productData);
-      toast({
-        title: "Product Updated",
-        description: `${productData.name} has been updated.`,
-      });
+      await updateProduct(editingProduct.id, productData);
     } else {
-      addProduct(productData);
-      toast({
-        title: "Product Added",
-        description: `${productData.name} has been added to inventory.`,
-      });
+      await addProduct(productData);
     }
     setShowProductForm(false);
     setEditingProduct(null);
   };
 
-  const handleDeleteProduct = (id: string) => {
-    if (!isOwner) {
-      toast({
-        title: "Access Denied",
-        description: "Only shop owners can delete products.",
-        variant: "destructive",
-      });
-      return;
+  const handleSell = async (productId: string, quantity: number, isCredit?: boolean, customerId?: string) => {
+    const sale = await recordSale(productId, quantity);
+    if (sale && isCredit && customerId) {
+      await addCreditSale(
+        customerId,
+        sale.id,
+        sale.product_name || sale.productName,
+        quantity,
+        sale.total_amount || sale.totalAmount
+      );
     }
-
-    const product = products.find(p => p.id === id);
-    deleteProduct(id);
-    toast({
-      title: "Product Deleted",
-      description: product ? `${product.name} has been removed.` : "Product removed.",
-      variant: "destructive",
-    });
+    setSellingProduct(null);
   };
-
-  const handleSell = (productId: string, quantity: number, isCredit?: boolean, customerId?: string) => {
-    const sale = recordSale(productId, quantity);
-    if (sale) {
-      if (isCredit && customerId) {
-        addCreditSale(customerId, sale.id, sale.productName, quantity, sale.totalAmount);
-        toast({
-          title: "Credit Sale Recorded",
-          description: `Sold ${quantity}x ${sale.productName} on credit for KSh ${sale.totalAmount.toLocaleString()}`,
-        });
-      } else {
-        toast({
-          title: "Sale Recorded",
-          description: `Sold ${quantity}x ${sale.productName} for KSh ${sale.totalAmount.toLocaleString()}`,
-        });
-      }
-    }
-  };
-
-  const handleEditProduct = (product: Product) => {
-    if (!isOwner) {
-      toast({
-        title: "Access Denied",
-        description: "Only shop owners can edit products.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setEditingProduct(product);
-    setShowProductForm(true);
-  };
-
-  const handleAddProduct = () => {
-    if (!isOwner) {
-      toast({
-        title: "Access Denied",
-        description: "Only shop owners can add products.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setEditingProduct(null);
-    setShowProductForm(true);
-  };
-
-  const handleRecordPayment = (creditSaleId: string, amount: number) => {
-    const payment = recordPayment(creditSaleId, amount);
-    if (payment) {
-      toast({
-        title: "Payment Recorded",
-        description: `KSh ${amount.toLocaleString()} payment received.`,
-      });
-    }
-  };
-
-  const handleAddCustomer = (name: string, phone?: string) => {
-    const customer = addCustomer(name, phone);
-    if (customer) {
-      toast({
-        title: "Customer Added",
-        description: `${name} has been added.`,
-      });
-    }
-    return customer;
-  };
-
-  // Show loading only while checking auth status
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-muted-foreground mt-4">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If no user, the useEffect will handle redirect
-  if (!user) {
-    return null;
-  }
-
-  // Wait for shop membership data to load (with timeout fallback)
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-muted-foreground mt-4">Loading your shop...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If user exists but no shop membership found after loading, show error or redirect
-  if (!shopMember) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center max-w-md px-4 space-y-4">
-          <p className="text-destructive mb-4 text-lg font-semibold">No shop found</p>
-          <p className="text-muted-foreground text-sm">
-            Your account is not associated with any shop. This might be because:
-          </p>
-          <ul className="text-muted-foreground text-sm text-left space-y-2">
-            <li>• Your shop is still being set up</li>
-            <li>• You need to be added by a shop owner</li>
-          </ul>
-          <Button onClick={() => {
-            signOut();
-            navigate('/auth');
-          }} variant="outline" className="mt-4">
-            Sign Out and Try Again
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
       <header className="sticky top-0 bg-card/80 backdrop-blur-lg border-b border-border z-30">
-        <div className="max-w-md mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary rounded-xl">
-              <Store className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <div className="flex-1">
-              <h1 className="text-xl font-bold text-foreground">
-                {shop?.name || 'Duka Manager'}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {isOwner ? 'Owner Dashboard' : 'Employee View'}
-              </p>
-            </div>
+        <div className="max-w-md mx-auto px-4 py-4 flex items-center gap-3">
+          <div className="p-2 bg-primary rounded-xl text-primary-foreground"><Store className="h-6 w-6" /></div>
+          <div className="flex-1">
+            <h1 className="text-xl font-bold truncate">{shop?.name || 'My Duka'}</h1>
+            <p className="text-xs text-muted-foreground font-semibold uppercase">{isOwner ? 'Owner' : 'Staff'}</p>
           </div>
+          <Button variant="ghost" size="sm" onClick={signOut}>Logout</Button>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-md mx-auto px-4 py-4">
         {activeTab === 'dashboard' && (
           isOwner ? (
-            <OwnerDashboard stats={{ ...stats, totalCreditOwed: totalOwed }} />
+            <OwnerDashboard stats={{ ...stats, totalCreditOwed: totalOwedAmount }} />
           ) : (
             <EmployeeDashboard stats={stats} todaySalesCount={todaySalesCount} />
           )
         )}
-        
+
         {activeTab === 'products' && (
           <ProductList
             products={products}
             onSearch={searchProducts}
-            onEdit={handleEditProduct}
-            onDelete={handleDeleteProduct}
-            onAdd={handleAddProduct}
+            onEdit={(p) => { setEditingProduct(p); setShowProductForm(true); }}
+            onDelete={(id) => deleteProduct(id)}
+            onAdd={() => { setEditingProduct(null); setShowProductForm(true); }}
             onSell={setSellingProduct}
             isOwner={isOwner}
           />
         )}
-        
+
         {activeTab === 'alerts' && (
           <LowStockAlerts
             products={lowStockProducts}
-            onRestock={isOwner ? handleEditProduct : undefined}
+            onRestock={isOwner ? (p) => { setEditingProduct(p); setShowProductForm(true); } : undefined}
           />
         )}
-        
+
         {activeTab === 'sales' && <SalesHistory sales={sales} />}
 
         {activeTab === 'credit' && isOwner && (
           <CreditManager
             customers={customers}
             creditSales={creditSales}
-            totalOwed={totalOwed}
-            onAddCustomer={handleAddCustomer}
-            onRecordPayment={handleRecordPayment}
+            totalOwed={totalOwedAmount}
+            onAddCustomer={async (name, phone) => {
+              const newCustomer = await addCustomer({ name, phone: phone || '', email: '' });
+              return newCustomer; // Returns the actual Customer object after the cloud saves it
+            }}
+            onRecordPayment={recordPayment}
             getCustomerTotalOwed={getCustomerTotalOwed}
           />
         )}
 
-        {activeTab === 'reports' && isOwner && (
-          <SalesReports sales={sales} />
-        )}
-
+        {activeTab === 'reports' && isOwner && <SalesReports sales={sales} />}
         {activeTab === 'settings' && <SettingsPanel />}
       </main>
 
-      {/* Bottom Navigation */}
       <Navigation
         activeTab={activeTab}
         onTabChange={setActiveTab}
         alertCount={lowStockProducts.length}
-        creditCount={pendingCredits}
+        creditCount={pendingCreditsCount}
         isOwner={isOwner}
       />
 
-      {/* Modals - Only show product form for owners */}
       {showProductForm && isOwner && (
         <ProductForm
           product={editingProduct}
           onSave={handleSaveProduct}
-          onClose={() => {
-            setShowProductForm(false);
-            setEditingProduct(null);
-          }}
+          onClose={() => { setShowProductForm(false); setEditingProduct(null); }}
         />
       )}
 
