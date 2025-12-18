@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Store, Loader2 } from 'lucide-react';
+import { Store, Loader2, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { format, subDays, addDays, isSameDay } from 'date-fns';
 import { useInventory } from '@/hooks/useInventory';
 import { useCredit } from '@/hooks/useCredit';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,13 +25,16 @@ const Index = () => {
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [sellingProduct, setSellingProduct] = useState<Product | null>(null);
+  
+  // State for filtering dashboard by date
+  const [viewDate, setViewDate] = useState(new Date());
 
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const {
     user,
-    loading: authLoading, // Renamed 'loading' to 'authLoading' to match your local variable
+    loading: authLoading,
     isOwner,
     shop,
     shopMember,
@@ -88,17 +92,36 @@ const Index = () => {
     );
   }
 
-  // --- STATS CALCULATION ---
-  const stats = getStats();
+  // --- STATS CALCULATION LOGIC ---
+  const isToday = isSameDay(viewDate, new Date());
+  const dateLabel = isToday ? "Today's" : format(viewDate, "MMM do");
+
+  const filteredSales = sales.filter(s => {
+    const saleDate = new Date(s.createdAt);
+    return isSameDay(saleDate, viewDate);
+  });
+
+  const selectedDateSales = filteredSales.reduce((sum, s) => sum + Number(s.totalAmount || 0), 0);
+  const selectedDateProfit = filteredSales.reduce((sum, s) => sum + Number(s.profit || 0), 0);
+
+  const baseStats = getStats();
+  const displayStats = {
+    ...baseStats,
+    todaySales: selectedDateSales,
+    todayProfit: selectedDateProfit,
+    totalCreditOwed: getTotalOwed()
+  };
+
   const lowStockProducts = getLowStockProducts();
   const totalOwedAmount = getTotalOwed();
   const pendingCreditsCount = creditSales.filter(cs => cs.status !== 'paid').length;
+  const filteredSalesCount = filteredSales.length;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todaySalesCount = sales.filter(s => new Date(s.createdAt) >= today).length;
+  // --- HANDLERS ---
+  const handlePrevDay = () => setViewDate(prev => subDays(prev, 1));
+  const handleNextDay = () => setViewDate(prev => addDays(prev, 1));
+  const resetToToday = () => setViewDate(new Date());
 
-  // --- ACTION HANDLERS ---
   const handleSaveProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!isOwner) return;
     if (editingProduct) {
@@ -113,12 +136,16 @@ const Index = () => {
   const handleSell = async (productId: string, quantity: number, isCredit?: boolean, customerId?: string) => {
     const sale = await recordSale(productId, quantity);
     if (sale && isCredit && customerId) {
+      // Safe mapping to handle both camelCase and snake_case from database
+      const pName = sale.productName || (sale as any).product_name;
+      const pAmount = sale.totalAmount || (sale as any).total_amount;
+
       await addCreditSale(
         customerId,
         sale.id,
-        sale.product_name || sale.productName,
+        pName,
         quantity,
-        sale.total_amount || sale.totalAmount
+        Number(pAmount)
       );
     }
     setSellingProduct(null);
@@ -128,21 +155,59 @@ const Index = () => {
     <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 bg-card/80 backdrop-blur-lg border-b border-border z-30">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center gap-3">
-          <div className="p-2 bg-primary rounded-xl text-primary-foreground"><Store className="h-6 w-6" /></div>
+          <div className="p-2 bg-primary rounded-xl text-primary-foreground">
+            <Store className="h-6 w-6" />
+          </div>
           <div className="flex-1">
             <h1 className="text-xl font-bold truncate">{shop?.name || 'My Duka'}</h1>
-            <p className="text-xs text-muted-foreground font-semibold uppercase">{isOwner ? 'Owner' : 'Staff'}</p>
+            <p className="text-xs text-muted-foreground font-semibold uppercase">
+              {isOwner ? 'Owner' : 'Staff'}
+            </p>
           </div>
           <Button variant="ghost" size="sm" onClick={signOut}>Logout</Button>
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 py-4">
+      <main className="max-w-md mx-auto px-4 py-4 space-y-4">
+        {activeTab === 'dashboard' && isOwner && (
+          <div className="flex items-center justify-between bg-card p-3 rounded-xl border border-border shadow-sm animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">
+                {isToday ? "Today's Overview" : format(viewDate, 'eeee, MMM do')}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrevDay}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs h-8 px-2" 
+                onClick={resetToToday}
+                disabled={isToday}
+              >
+                Today
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8" 
+                onClick={handleNextDay} 
+                disabled={isToday}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'dashboard' && (
           isOwner ? (
-            <OwnerDashboard stats={{ ...stats, totalCreditOwed: totalOwedAmount }} />
+            <OwnerDashboard stats={displayStats} dateLabel={dateLabel} />
           ) : (
-            <EmployeeDashboard stats={stats} todaySalesCount={todaySalesCount} />
+            <EmployeeDashboard stats={baseStats} todaySalesCount={filteredSalesCount} />
           )
         )}
 
@@ -174,14 +239,20 @@ const Index = () => {
             totalOwed={totalOwedAmount}
             onAddCustomer={async (name, phone) => {
               const newCustomer = await addCustomer({ name, phone: phone || '', email: '' });
-              return newCustomer; // Returns the actual Customer object after the cloud saves it
+              return newCustomer;
             }}
             onRecordPayment={recordPayment}
             getCustomerTotalOwed={getCustomerTotalOwed}
           />
         )}
 
-        {activeTab === 'reports' && isOwner && <SalesReports sales={sales} />}
+        {activeTab === 'reports' && isOwner && (
+          <SalesReports 
+            sales={sales} 
+            creditSales={creditSales} 
+          />
+        )}
+        
         {activeTab === 'settings' && <SettingsPanel />}
       </main>
 

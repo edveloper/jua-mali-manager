@@ -3,9 +3,10 @@ import { DashboardStats } from '@/types/inventory';
 
 interface OwnerDashboardProps {
   stats: DashboardStats;
+  dateLabel?: string; // New optional prop
 }
 
-export function OwnerDashboard({ stats }: OwnerDashboardProps) {
+export function OwnerDashboard({ stats, dateLabel = "Today's" }: OwnerDashboardProps) {
   const formatCurrency = (amount: number) => {
     return `KSh ${amount.toLocaleString()}`;
   };
@@ -15,6 +16,7 @@ export function OwnerDashboard({ stats }: OwnerDashboardProps) {
       <h2 className="text-lg font-semibold text-foreground">Owner Dashboard</h2>
       
       <div className="grid grid-cols-2 gap-3">
+        {/* PRODUCTS (Always Current) */}
         <div className="stat-card">
           <div className="flex items-center gap-2 mb-2">
             <div className="p-2 rounded-lg bg-primary/10">
@@ -25,6 +27,7 @@ export function OwnerDashboard({ stats }: OwnerDashboardProps) {
           <p className="metric-label">Products</p>
         </div>
 
+        {/* LOW STOCK (Always Current) */}
         <div className={`stat-card ${stats.lowStockCount > 0 ? 'border-warning/50 bg-warning/5' : ''}`}>
           <div className="flex items-center gap-2 mb-2">
             <div className={`p-2 rounded-lg ${stats.lowStockCount > 0 ? 'bg-warning/20' : 'bg-muted'}`}>
@@ -37,6 +40,7 @@ export function OwnerDashboard({ stats }: OwnerDashboardProps) {
           <p className="metric-label">Low Stock</p>
         </div>
 
+        {/* SALES (Time Travel Enabled) */}
         <div className="stat-card">
           <div className="flex items-center gap-2 mb-2">
             <div className="p-2 rounded-lg bg-secondary/10">
@@ -44,9 +48,10 @@ export function OwnerDashboard({ stats }: OwnerDashboardProps) {
             </div>
           </div>
           <p className="metric-value text-secondary">{formatCurrency(stats.todaySales)}</p>
-          <p className="metric-label">Today's Sales</p>
+          <p className="metric-label">{dateLabel} Sales</p>
         </div>
 
+        {/* PROFIT (Time Travel Enabled) */}
         <div className="stat-card">
           <div className="flex items-center gap-2 mb-2">
             <div className="p-2 rounded-lg bg-success/10">
@@ -54,7 +59,7 @@ export function OwnerDashboard({ stats }: OwnerDashboardProps) {
             </div>
           </div>
           <p className="metric-value text-success">{formatCurrency(stats.todayProfit)}</p>
-          <p className="metric-label">Today's Profit</p>
+          <p className="metric-label">{dateLabel} Profit</p>
         </div>
       </div>
 

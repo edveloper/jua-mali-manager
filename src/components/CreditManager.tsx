@@ -42,7 +42,7 @@ export function CreditManager({
   const handlePayment = () => {
     if (!selectedCredit || !paymentAmount) return;
     const amount = parseFloat(paymentAmount);
-    if (amount > 0) {
+    if (amount > 0 && amount <= selectedCredit.balance) {
       onRecordPayment(selectedCredit.id, amount);
       setPaymentAmount('');
       setSelectedCredit(null);
@@ -55,40 +55,42 @@ export function CreditManager({
 
   if (selectedCredit) {
     return (
-      <div className="space-y-4 animate-slide-up">
+      <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-300">
         <button
           onClick={() => setSelectedCredit(null)}
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronRight className="h-4 w-4 rotate-180" />
-          <span>Back to Credits</span>
+          <span>Back to {selectedCustomer?.name}</span>
         </button>
 
-        <div className="bg-card rounded-2xl p-4 border border-border">
+        <div className="bg-card rounded-2xl p-6 border border-border shadow-sm">
           <h3 className="font-semibold text-lg">{selectedCredit.productName}</h3>
-          <p className="text-muted-foreground text-sm">{selectedCredit.quantity} items</p>
+          <p className="text-muted-foreground text-sm">{selectedCredit.quantity} units</p>
           
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="stat-card">
-              <p className="metric-label">Total</p>
-              <p className="text-lg font-semibold">{formatCurrency(selectedCredit.amount)}</p>
+          <div className="mt-6 grid grid-cols-2 gap-4">
+            <div className="p-3 bg-muted rounded-xl">
+              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Total Sale</p>
+              <p className="text-xl font-bold">{formatCurrency(selectedCredit.amount)}</p>
             </div>
-            <div className="stat-card">
-              <p className="metric-label">Balance</p>
-              <p className="text-lg font-semibold text-warning">{formatCurrency(selectedCredit.balance)}</p>
+            <div className="p-3 bg-warning/10 rounded-xl border border-warning/20">
+              <p className="text-xs text-warning uppercase font-bold tracking-wider">Balance Due</p>
+              <p className="text-xl font-bold text-warning">{formatCurrency(selectedCredit.balance)}</p>
             </div>
           </div>
 
-          <div className="mt-4 space-y-3">
-            <Input
-              type="number"
-              placeholder="Payment amount"
-              value={paymentAmount}
-              onChange={(e) => setPaymentAmount(e.target.value)}
-              min={0}
-              max={selectedCredit.balance}
-            />
-            <div className="flex gap-2">
+          <div className="mt-6 space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Amount Received</label>
+              <Input
+                type="number"
+                placeholder="0.00"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                className="text-lg h-12"
+              />
+            </div>
+            <div className="flex gap-3">
               <Button
                 variant="outline"
                 className="flex-1"
@@ -96,8 +98,8 @@ export function CreditManager({
               >
                 Pay Full
               </Button>
-              <Button className="flex-1" onClick={handlePayment} disabled={!paymentAmount}>
-                Record Payment
+              <Button className="flex-1" onClick={handlePayment} disabled={!paymentAmount || parseFloat(paymentAmount) <= 0}>
+                Update Deni
               </Button>
             </div>
           </div>
@@ -108,165 +110,113 @@ export function CreditManager({
 
   if (selectedCustomer) {
     const customerOwed = getCustomerTotalOwed(selectedCustomer.id);
-    
     return (
-      <div className="space-y-4 animate-slide-up">
-        <button
-          onClick={() => setSelectedCustomer(null)}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-        >
+      <div className="space-y-4 animate-in fade-in">
+        <button onClick={() => setSelectedCustomer(null)} className="flex items-center gap-2 text-muted-foreground">
           <ChevronRight className="h-4 w-4 rotate-180" />
-          <span>Back to Customers</span>
+          <span>All Customers</span>
         </button>
 
         <div className="bg-card rounded-2xl p-4 border border-border">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-secondary/10 rounded-full">
-              <Users className="h-6 w-6 text-secondary" />
+            <div className="p-3 bg-primary/10 rounded-full">
+              <Users className="h-6 w-6 text-primary" />
             </div>
             <div>
               <h3 className="font-semibold text-lg">{selectedCustomer.name}</h3>
-              {selectedCustomer.phone && (
-                <p className="text-muted-foreground text-sm flex items-center gap-1">
-                  <Phone className="h-3 w-3" />
-                  {selectedCustomer.phone}
-                </p>
-              )}
+              {selectedCustomer.phone && <p className="text-muted-foreground text-sm">{selectedCustomer.phone}</p>}
             </div>
           </div>
-
-          <div className="mt-4 stat-card">
-            <p className="metric-label">Total Owed</p>
-            <p className="metric-value text-warning">{formatCurrency(customerOwed)}</p>
+          <div className="mt-4 p-3 bg-warning/5 rounded-xl border border-warning/10">
+            <p className="text-xs text-muted-foreground">Total Outstanding</p>
+            <p className="text-2xl font-bold text-warning">{formatCurrency(customerOwed)}</p>
           </div>
         </div>
 
-        <h3 className="font-semibold">Outstanding Credits</h3>
-        
-        {customerCredits.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No outstanding credits
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {customerCredits.map(credit => (
-              <button
-                key={credit.id}
-                onClick={() => setSelectedCredit(credit)}
-                className="w-full bg-card rounded-xl p-3 border border-border/50 flex items-center justify-between hover:bg-muted/50 transition-colors"
-              >
-                <div className="text-left">
-                  <p className="font-medium">{credit.productName}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {credit.quantity}x • {new Date(credit.createdAt).toLocaleDateString('en-KE')}
-                  </p>
+        <h3 className="font-semibold mt-6">Active Debts</h3>
+        <div className="space-y-2">
+          {customerCredits.map(credit => (
+            <button
+              key={credit.id}
+              onClick={() => setSelectedCredit(credit)}
+              className="w-full bg-card rounded-xl p-4 border border-border flex items-center justify-between hover:border-primary/50 transition-all"
+            >
+              <div className="text-left">
+                <p className="font-medium">{credit.productName}</p>
+                <p className="text-xs text-muted-foreground">{new Date(credit.createdAt).toLocaleDateString()}</p>
+              </div>
+              <div className="text-right flex items-center gap-3">
+                <div>
+                  <p className="font-bold text-warning">{formatCurrency(credit.balance)}</p>
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground">{credit.status}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="text-right">
-                    <p className="font-semibold text-warning">{formatCurrency(credit.balance)}</p>
-                    <span className={cn(
-                      "text-xs px-2 py-0.5 rounded-full",
-                      credit.status === 'partially_paid' ? "bg-secondary/10 text-secondary" : "bg-warning/10 text-warning"
-                    )}>
-                      {credit.status === 'partially_paid' ? 'Partial' : 'Pending'}
-                    </span>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 animate-slide-up">
-      <div className="stat-card bg-gradient-warm">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-background/20 rounded-full">
-            <Wallet className="h-6 w-6 text-primary-foreground" />
+    <div className="space-y-4 animate-in fade-in">
+      <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-6 text-white shadow-lg">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-white/20 rounded-xl">
+            <Wallet className="h-8 w-8 text-white" />
           </div>
           <div>
-            <p className="text-sm text-primary-foreground/80">Total Credit Owed</p>
-            <p className="text-2xl font-bold text-primary-foreground">{formatCurrency(totalOwed)}</p>
+            <p className="text-white/80 text-sm font-medium">Total Shop Debt (Deni)</p>
+            <p className="text-3xl font-bold">{formatCurrency(totalOwed)}</p>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold">Customers</h3>
-        <Button size="sm" onClick={() => setShowAddCustomer(true)}>
-          <Plus className="h-4 w-4 mr-1" />
-          Add Customer
+      <div className="flex items-center justify-between pt-2">
+        <h3 className="font-bold text-lg">Customers</h3>
+        <Button size="sm" onClick={() => setShowAddCustomer(true)} className="rounded-full">
+          <Plus className="h-4 w-4 mr-1" /> Add New
         </Button>
       </div>
 
       {showAddCustomer && (
-        <div className="bg-card rounded-2xl p-4 border border-border space-y-3">
-          <h4 className="font-medium">New Customer</h4>
-          <Input
-            placeholder="Customer name"
-            value={newCustomerName}
-            onChange={(e) => setNewCustomerName(e.target.value)}
-          />
-          <Input
-            placeholder="Phone number (optional)"
-            value={newCustomerPhone}
-            onChange={(e) => setNewCustomerPhone(e.target.value)}
-          />
+        <div className="bg-card rounded-2xl p-4 border-2 border-primary/20 space-y-3 shadow-xl">
+          <Input placeholder="Customer name" value={newCustomerName} onChange={(e) => setNewCustomerName(e.target.value)} />
+          <Input placeholder="Phone number" value={newCustomerPhone} onChange={(e) => setNewCustomerPhone(e.target.value)} />
           <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" onClick={() => setShowAddCustomer(false)}>
-              Cancel
-            </Button>
-            <Button className="flex-1" onClick={handleAddCustomer} disabled={!newCustomerName.trim()}>
-              Add
-            </Button>
+            <Button variant="ghost" className="flex-1" onClick={() => setShowAddCustomer(false)}>Cancel</Button>
+            <Button className="flex-1" onClick={handleAddCustomer}>Save Customer</Button>
           </div>
         </div>
       )}
 
-      {customers.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="bg-muted rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <Users className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h3 className="font-semibold text-foreground">No Customers Yet</h3>
-          <p className="text-muted-foreground mt-1">Add customers to track credit sales</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {customers.map(customer => {
-            const owed = getCustomerTotalOwed(customer.id);
-            return (
-              <button
-                key={customer.id}
-                onClick={() => setSelectedCustomer(customer)}
-                className="w-full bg-card rounded-xl p-3 border border-border/50 flex items-center justify-between hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-muted rounded-full">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium">{customer.name}</p>
-                    {customer.phone && (
-                      <p className="text-sm text-muted-foreground">{customer.phone}</p>
-                    )}
-                  </div>
+      <div className="space-y-2">
+        {customers.map(customer => {
+          const owed = getCustomerTotalOwed(customer.id);
+          return (
+            <button
+              key={customer.id}
+              onClick={() => setSelectedCustomer(customer)}
+              className="w-full bg-card rounded-xl p-4 border border-border flex items-center justify-between hover:bg-muted/50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-secondary/20 flex items-center justify-center font-bold text-secondary">
+                  {customer.name.charAt(0)}
                 </div>
-                <div className="flex items-center gap-2">
-                  {owed > 0 && (
-                    <span className="text-warning font-semibold">{formatCurrency(owed)}</span>
-                  )}
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <div className="text-left">
+                  <p className="font-semibold">{customer.name}</p>
+                  <p className="text-xs text-muted-foreground">{customer.phone || 'No phone'}</p>
                 </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
+              </div>
+              <div className="flex items-center gap-2">
+                {owed > 0 && <span className="text-warning font-bold">{formatCurrency(owed)}</span>}
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
