@@ -61,3 +61,12 @@ export interface DashboardStats {
   todayProfit: number;
   totalCreditOwed?: number;
 }
+
+export interface Expense {
+  id: string;
+  category: 'Tax' | 'Rent' | 'Salary' | 'Utilities' | 'Transport' | 'Licenses' | 'Other';
+  description: string;
+  amount: number;
+  date: string;
+  createdAt: string;
+}

@@ -1,9 +1,9 @@
-import { Package, AlertTriangle, TrendingUp, Wallet, CreditCard, DollarSign } from 'lucide-react';
+import { Package, AlertTriangle, TrendingUp, Wallet, CreditCard, DollarSign, Receipt, Coins } from 'lucide-react';
 import { DashboardStats } from '@/types/inventory';
 
 interface OwnerDashboardProps {
-  stats: DashboardStats;
-  dateLabel?: string; // New optional prop
+  stats: DashboardStats & { netProfit?: number; totalExpenses?: number }; // Added the new fields
+  dateLabel?: string;
 }
 
 export function OwnerDashboard({ stats, dateLabel = "Today's" }: OwnerDashboardProps) {
@@ -11,89 +11,112 @@ export function OwnerDashboard({ stats, dateLabel = "Today's" }: OwnerDashboardP
     return `KSh ${amount.toLocaleString()}`;
   };
 
+  const netProfit = stats.netProfit ?? 0;
+  const isLoss = netProfit < 0;
+
   return (
     <div className="space-y-4 animate-slide-up">
-      <h2 className="text-lg font-semibold text-foreground">Owner Dashboard</h2>
+      <h2 className="text-lg font-semibold text-foreground">Business Overview</h2>
       
+      {/* PRIMARY STATS: Revenue & Net Profit */}
       <div className="grid grid-cols-2 gap-3">
-        {/* PRODUCTS (Always Current) */}
-        <div className="stat-card">
+        <div className="stat-card border-primary/20 bg-primary/5">
           <div className="flex items-center gap-2 mb-2">
             <div className="p-2 rounded-lg bg-primary/10">
-              <Package className="h-4 w-4 text-primary" />
+              <Wallet className="h-4 w-4 text-primary" />
             </div>
           </div>
-          <p className="metric-value">{stats.totalProducts}</p>
-          <p className="metric-label">Products</p>
+          <p className="metric-value text-primary">{formatCurrency(stats.todaySales)}</p>
+          <p className="metric-label">{dateLabel} Revenue</p>
         </div>
 
-        {/* LOW STOCK (Always Current) */}
-        <div className={`stat-card ${stats.lowStockCount > 0 ? 'border-warning/50 bg-warning/5' : ''}`}>
+        <div className={`stat-card border-success/30 ${isLoss ? 'bg-destructive/5 border-destructive/30' : 'bg-success/5'}`}>
           <div className="flex items-center gap-2 mb-2">
-            <div className={`p-2 rounded-lg ${stats.lowStockCount > 0 ? 'bg-warning/20' : 'bg-muted'}`}>
-              <AlertTriangle className={`h-4 w-4 ${stats.lowStockCount > 0 ? 'text-warning animate-pulse-warning' : 'text-muted-foreground'}`} />
+            <div className={`p-2 rounded-lg ${isLoss ? 'bg-destructive/10' : 'bg-success/10'}`}>
+              <Coins className={`h-4 w-4 ${isLoss ? 'text-destructive' : 'text-success'}`} />
             </div>
           </div>
-          <p className={`metric-value ${stats.lowStockCount > 0 ? 'text-warning' : ''}`}>
-            {stats.lowStockCount}
+          <p className={`metric-value ${isLoss ? 'text-destructive' : 'text-success'}`}>
+            {formatCurrency(netProfit)}
           </p>
-          <p className="metric-label">Low Stock</p>
-        </div>
-
-        {/* SALES (Time Travel Enabled) */}
-        <div className="stat-card">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-2 rounded-lg bg-secondary/10">
-              <Wallet className="h-4 w-4 text-secondary" />
-            </div>
-          </div>
-          <p className="metric-value text-secondary">{formatCurrency(stats.todaySales)}</p>
-          <p className="metric-label">{dateLabel} Sales</p>
-        </div>
-
-        {/* PROFIT (Time Travel Enabled) */}
-        <div className="stat-card">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-2 rounded-lg bg-success/10">
-              <TrendingUp className="h-4 w-4 text-success" />
-            </div>
-          </div>
-          <p className="metric-value text-success">{formatCurrency(stats.todayProfit)}</p>
-          <p className="metric-label">{dateLabel} Profit</p>
+          <p className="metric-label">{dateLabel} Net Profit</p>
         </div>
       </div>
 
+      {/* SECONDARY STATS: Gross Profit & Expenses */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="stat-card">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-2 rounded-lg bg-muted text-muted-foreground">
+              <TrendingUp className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-lg font-bold">{formatCurrency(stats.todayProfit)}</p>
+          <p className="metric-label text-[10px]">Gross Profit (Markup)</p>
+        </div>
+
+        <div className="stat-card">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-2 rounded-lg bg-destructive/10 text-destructive">
+              <Receipt className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-lg font-bold text-destructive">
+            {formatCurrency(stats.totalExpenses ?? 0)}
+          </p>
+          <p className="metric-label text-[10px]">{dateLabel} Expenses</p>
+        </div>
+      </div>
+
+      {/* INVENTORY & ASSETS */}
       <div className="grid grid-cols-2 gap-3">
         <div className="stat-card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="metric-label">Total Stock Value</p>
-              <p className="text-lg font-bold text-foreground mt-1">
+              <p className="metric-label">Stock Value</p>
+              <p className="text-base font-bold text-foreground mt-1">
                 {formatCurrency(stats.totalStockValue)}
               </p>
             </div>
-            <div className="p-2 rounded-xl bg-primary/10">
-              <DollarSign className="h-5 w-5 text-primary" />
+            <div className="p-2 rounded-xl bg-blue-50">
+              <Package className="h-4 w-4 text-blue-600" />
             </div>
           </div>
         </div>
 
-        {stats.totalCreditOwed !== undefined && (
-          <div className="stat-card border-warning/30">
-            <div className="flex items-center justify-between">
+        <div className="stat-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="metric-label">Low Stock</p>
+              <p className={`text-base font-bold mt-1 ${stats.lowStockCount > 0 ? 'text-warning' : ''}`}>
+                {stats.lowStockCount} Items
+              </p>
+            </div>
+            <div className={`p-2 rounded-xl ${stats.lowStockCount > 0 ? 'bg-warning/20' : 'bg-muted'}`}>
+              <AlertTriangle className={`h-4 w-4 ${stats.lowStockCount > 0 ? 'text-warning' : 'text-muted-foreground'}`} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* CREDIT MONITORING */}
+      {stats.totalCreditOwed !== undefined && stats.totalCreditOwed > 0 && (
+        <div className="stat-card bg-warning/5 border-warning/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-warning/20">
+                <CreditCard className="h-5 w-5 text-warning" />
+              </div>
               <div>
-                <p className="metric-label">Credit Owed</p>
-                <p className="text-lg font-bold text-warning mt-1">
+                <p className="text-xs font-medium text-warning-foreground uppercase tracking-wider">Total Credit Owed to You</p>
+                <p className="text-xl font-black text-warning">
                   {formatCurrency(stats.totalCreditOwed)}
                 </p>
               </div>
-              <div className="p-2 rounded-xl bg-warning/10">
-                <CreditCard className="h-5 w-5 text-warning" />
-              </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

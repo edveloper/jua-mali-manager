@@ -1,7 +1,8 @@
-import { LayoutDashboard, Package, AlertTriangle, Users, BarChart3, Settings } from 'lucide-react';
+import { LayoutDashboard, Package, AlertTriangle, Users, BarChart3, Settings, Banknote } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type TabType = 'dashboard' | 'products' | 'alerts' | 'sales' | 'credit' | 'reports' | 'settings';
+// Added 'expenses' to TabType
+export type TabType = 'dashboard' | 'products' | 'alerts' | 'sales' | 'credit' | 'reports' | 'settings' | 'expenses';
 
 interface NavigationProps {
   activeTab: TabType;
@@ -12,10 +13,11 @@ interface NavigationProps {
 }
 
 export function Navigation({ activeTab, onTabChange, alertCount, creditCount = 0, isOwner = true }: NavigationProps) {
-  // Employee sees fewer tabs
+  // Owner sees Expenses, Employee does not
   const ownerTabs = [
     { id: 'dashboard' as TabType, label: 'Home', icon: LayoutDashboard },
     { id: 'products' as TabType, label: 'Products', icon: Package },
+    { id: 'expenses' as TabType, label: 'Expenses', icon: Banknote }, // New Tab
     { id: 'credit' as TabType, label: 'Credit', icon: Users, badge: creditCount },
     { id: 'reports' as TabType, label: 'Reports', icon: BarChart3 },
     { id: 'settings' as TabType, label: 'Settings', icon: Settings },

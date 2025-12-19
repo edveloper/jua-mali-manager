@@ -4,6 +4,7 @@ import { Store, Loader2, ChevronLeft, ChevronRight, Calendar as CalendarIcon } f
 import { format, subDays, addDays, isSameDay } from 'date-fns';
 import { useInventory } from '@/hooks/useInventory';
 import { useCredit } from '@/hooks/useCredit';
+import { useExpenses } from '@/hooks/useExpenses'; // Added
 import { useAuth } from '@/contexts/AuthContext';
 import { OwnerDashboard } from '@/components/OwnerDashboard';
 import { EmployeeDashboard } from '@/components/EmployeeDashboard';
@@ -14,6 +15,7 @@ import { LowStockAlerts } from '@/components/LowStockAlerts';
 import { SalesHistory } from '@/components/SalesHistory';
 import { CreditManager } from '@/components/CreditManager';
 import { SalesReports } from '@/components/SalesReports';
+import { ExpenseManager } from '@/components/ExpenseManager'; // Added
 import { SettingsPanel } from '@/components/SettingsPanel';
 import { Navigation, TabType } from '@/components/Navigation';
 import { Product } from '@/types/inventory';
@@ -25,8 +27,6 @@ const Index = () => {
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [sellingProduct, setSellingProduct] = useState<Product | null>(null);
-  
-  // State for filtering dashboard by date
   const [viewDate, setViewDate] = useState(new Date());
 
   const { toast } = useToast();
@@ -63,6 +63,14 @@ const Index = () => {
     getTotalOwed,
     getCustomerTotalOwed,
   } = useCredit();
+
+  // Initialize Expenses Hook
+  const { 
+    expenses, 
+    addExpense, 
+    quickAddTOT, 
+    getTotalExpenses 
+  } = useExpenses();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -103,13 +111,18 @@ const Index = () => {
 
   const selectedDateSales = filteredSales.reduce((sum, s) => sum + Number(s.totalAmount || 0), 0);
   const selectedDateProfit = filteredSales.reduce((sum, s) => sum + Number(s.profit || 0), 0);
-
+  
+  const totalExpenses = getTotalExpenses(); // Calculate spending
   const baseStats = getStats();
+  
   const displayStats = {
     ...baseStats,
     todaySales: selectedDateSales,
     todayProfit: selectedDateProfit,
-    totalCreditOwed: getTotalOwed()
+    // Net Profit Logic: $$Net Profit = Gross Profit - Expenses$$
+    netProfit: selectedDateProfit - totalExpenses,
+    totalCreditOwed: getTotalOwed(),
+    totalExpenses: totalExpenses
   };
 
   const lowStockProducts = getLowStockProducts();
@@ -136,7 +149,6 @@ const Index = () => {
   const handleSell = async (productId: string, quantity: number, isCredit?: boolean, customerId?: string) => {
     const sale = await recordSale(productId, quantity);
     if (sale && isCredit && customerId) {
-      // Safe mapping to handle both camelCase and snake_case from database
       const pName = sale.productName || (sale as any).product_name;
       const pAmount = sale.totalAmount || (sale as any).total_amount;
 
@@ -220,6 +232,15 @@ const Index = () => {
             onAdd={() => { setEditingProduct(null); setShowProductForm(true); }}
             onSell={setSellingProduct}
             isOwner={isOwner}
+          />
+        )}
+
+        {activeTab === 'expenses' && isOwner && (
+          <ExpenseManager 
+            expenses={expenses}
+            onAddExpense={addExpense}
+            onQuickAddTOT={quickAddTOT}
+            monthlySales={selectedDateSales}
           />
         )}
 
