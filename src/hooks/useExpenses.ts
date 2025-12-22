@@ -48,25 +48,35 @@ export const useExpenses = (currentMonthlySales: number = 0) => {
     }
   };
 
-  useEffect(() => { fetchExpenses(); }, [shop?.id]);
+  const deleteExpense = async (id: string) => {
+    const { error } = await (supabase.from('expenses') as any)
+      .delete()
+      .eq('id', id);
 
-  // Kenyan Quick-Add Math Logic
-  const quickAddTOT = () => {
-    const taxAmount = currentMonthlySales * 0.03; // 3% Turnover Tax
-    addExpense({
-      category: 'Tax',
-      description: `Turnover Tax (3%) for current period`,
-      amount: taxAmount,
-      date: new Date().toISOString().split('T')[0]
-    });
+    if (!error) {
+      toast({ title: "Expense deleted" });
+      setExpenses(prev => prev.filter(e => e.id !== id));
+    } else {
+      toast({ title: "Error", description: "Could not delete expense", variant: "destructive" });
+    }
   };
 
-  const quickAddSHIF = (staffSalary: number) => {
-    const shifAmount = staffSalary * 0.0275; // 2.75% SHIF
+  useEffect(() => { fetchExpenses(); }, [shop?.id]);
+
+  const quickAddTOT = () => {
+    const taxAmount = currentMonthlySales * 0.03;
+    if (taxAmount <= 0) {
+      toast({ 
+        title: "No sales yet", 
+        description: "TOT is calculated as 3% of your recorded sales.",
+        variant: "destructive" 
+      });
+      return;
+    }
     addExpense({
       category: 'Tax',
-      description: `SHIF Contribution for Staff`,
-      amount: shifAmount,
+      description: `Turnover Tax (3%)`,
+      amount: taxAmount,
       date: new Date().toISOString().split('T')[0]
     });
   };
@@ -75,8 +85,8 @@ export const useExpenses = (currentMonthlySales: number = 0) => {
     expenses, 
     isLoading, 
     addExpense, 
+    deleteExpense,
     quickAddTOT, 
-    quickAddSHIF,
     getTotalExpenses: () => expenses.reduce((sum, e) => sum + e.amount, 0)
   };
 };

@@ -29,7 +29,7 @@ export interface Customer {
   id: string;
   name: string;
   phone: string;
-  email?: string; // Ensure this is here (with ? because it's optional)
+  email?: string;
   createdAt: string;
 }
 
@@ -39,8 +39,8 @@ export interface CreditSale {
   saleId: string;
   productName: string;
   quantity: number;
-  amount: number;       // The original total
-  balance: number;      // <--- Add this: how much is left to pay
+  amount: number;
+  balance: number; 
   status: 'pending' | 'partially_paid' | 'paid';
   createdAt: string;
 }
