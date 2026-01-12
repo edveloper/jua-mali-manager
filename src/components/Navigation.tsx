@@ -1,33 +1,36 @@
-import { LayoutDashboard, Package, AlertTriangle, Users, BarChart3, Settings, Banknote } from 'lucide-react';
+import { LayoutDashboard, Package, AlertTriangle, BarChart3, Banknote, LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Added 'expenses' to TabType
-export type TabType = 'dashboard' | 'products' | 'alerts' | 'sales' | 'credit' | 'reports' | 'settings' | 'expenses';
+// Added 'contact' to the TabType union to match Index.tsx
+export type TabType = 'dashboard' | 'products' | 'alerts' | 'sales' | 'credit' | 'reports' | 'settings' | 'expenses' | 'help' | 'privacy' | 'contact';
 
 interface NavigationProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
   alertCount: number;
-  creditCount?: number;
   isOwner?: boolean;
 }
 
-export function Navigation({ activeTab, onTabChange, alertCount, creditCount = 0, isOwner = true }: NavigationProps) {
-  // Owner sees Expenses, Employee does not
-  const ownerTabs = [
-    { id: 'dashboard' as TabType, label: 'Home', icon: LayoutDashboard },
-    { id: 'products' as TabType, label: 'Products', icon: Package },
-    { id: 'expenses' as TabType, label: 'Expenses', icon: Banknote }, // New Tab
-    { id: 'credit' as TabType, label: 'Credit', icon: Users, badge: creditCount },
-    { id: 'reports' as TabType, label: 'Reports', icon: BarChart3 },
-    { id: 'settings' as TabType, label: 'Settings', icon: Settings },
+interface NavItem {
+  id: TabType;
+  label: string;
+  icon: LucideIcon;
+  badge?: number;
+}
+
+export function Navigation({ activeTab, onTabChange, alertCount, isOwner = true }: NavigationProps) {
+  
+  const ownerTabs: NavItem[] = [
+    { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
+    { id: 'products', label: 'Products', icon: Package },
+    { id: 'expenses', label: 'Expenses', icon: Banknote },
+    { id: 'reports', label: 'Reports', icon: BarChart3 },
   ];
 
-  const employeeTabs = [
-    { id: 'dashboard' as TabType, label: 'Home', icon: LayoutDashboard },
-    { id: 'products' as TabType, label: 'Products', icon: Package },
-    { id: 'alerts' as TabType, label: 'Alerts', icon: AlertTriangle, badge: alertCount },
-    { id: 'settings' as TabType, label: 'Settings', icon: Settings },
+  const employeeTabs: NavItem[] = [
+    { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
+    { id: 'products', label: 'Products', icon: Package },
+    { id: 'alerts', label: 'Alerts', icon: AlertTriangle, badge: alertCount },
   ];
 
   const tabs = isOwner ? ownerTabs : employeeTabs;
@@ -52,7 +55,7 @@ export function Navigation({ activeTab, onTabChange, alertCount, creditCount = 0
             >
               <div className="relative">
                 <Icon className="h-5 w-5" />
-                {tab.badge && tab.badge > 0 && (
+                {tab.badge !== undefined && tab.badge > 0 && (
                   <span className="absolute -top-1 -right-1 bg-warning text-warning-foreground text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
                     {tab.badge > 9 ? '9+' : tab.badge}
                   </span>
