@@ -197,7 +197,18 @@ const Index = () => {
           </div>
         )}
 
-        {activeTab === 'dashboard' && (isOwner ? <OwnerDashboard stats={displayStats} dateLabel={dateLabel} /> : <EmployeeDashboard stats={baseStats} todaySalesCount={filteredSales.length} />)}
+        {activeTab === 'dashboard' && (
+          isOwner ? (
+            <OwnerDashboard 
+              stats={displayStats} 
+              dateLabel={dateLabel} 
+              onNavigate={setActiveTab} 
+            />
+          ) : (
+            <EmployeeDashboard stats={baseStats} todaySalesCount={filteredSales.length} />
+          )
+        )}
+        
         {activeTab === 'products' && <ProductList products={products} onSearch={searchProducts} onEdit={(p) => { setEditingProduct(p); setShowProductForm(true); }} onDelete={deleteProduct} onAdd={() => { setEditingProduct(null); setShowProductForm(true); }} onSell={setSellingProduct} isOwner={isOwner} />}
         {activeTab === 'expenses' && isOwner && <ExpenseManager expenses={expenses} onAddExpense={addExpense} onDeleteExpense={deleteExpense} onQuickAddTOT={quickAddTOT} monthlySales={selectedDateSales} />}
         {activeTab === 'alerts' && <LowStockAlerts products={lowStockProducts} onRestock={isOwner ? (p) => { setEditingProduct(p); setShowProductForm(true); } : undefined} />}

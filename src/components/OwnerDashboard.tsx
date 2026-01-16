@@ -1,12 +1,14 @@
 import { Package, AlertTriangle, TrendingUp, Wallet, CreditCard, DollarSign, Receipt, Coins } from 'lucide-react';
 import { DashboardStats } from '@/types/inventory';
+import { TabType } from '@/components/Navigation';
 
 interface OwnerDashboardProps {
-  stats: DashboardStats & { netProfit?: number; totalExpenses?: number }; // Added the new fields
+  stats: DashboardStats & { netProfit?: number; totalExpenses?: number };
   dateLabel?: string;
+  onNavigate: (tab: TabType) => void; // Added for navigation
 }
 
-export function OwnerDashboard({ stats, dateLabel = "Today's" }: OwnerDashboardProps) {
+export function OwnerDashboard({ stats, dateLabel = "Today's", onNavigate }: OwnerDashboardProps) {
   const formatCurrency = (amount: number) => {
     return `KSh ${amount.toLocaleString()}`;
   };
@@ -18,9 +20,29 @@ export function OwnerDashboard({ stats, dateLabel = "Today's" }: OwnerDashboardP
     <div className="space-y-4 animate-slide-up">
       <h2 className="text-lg font-semibold text-foreground">Business Overview</h2>
       
-      {/* PRIMARY STATS: Revenue & Net Profit */}
+      {/* PRIMARY STATS: Swapped Revenue/Profit Row with Expenses/Revenue logic */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="stat-card border-primary/20 bg-primary/5">
+        {/* Expenses Card - Position 1 - Points to 'expenses' */}
+        <div 
+          className="stat-card cursor-pointer active:scale-95 transition-transform hover:bg-muted/50"
+          onClick={() => onNavigate('expenses')}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-2 rounded-lg bg-destructive/10 text-destructive">
+              <Receipt className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="metric-value text-destructive">
+            {formatCurrency(stats.totalExpenses ?? 0)}
+          </p>
+          <p className="metric-label">{dateLabel} Expenses</p>
+        </div>
+
+        {/* Revenue Card - Position 2 - Points to 'reports' */}
+        <div 
+          className="stat-card border-primary/20 bg-primary/5 cursor-pointer active:scale-95 transition-transform hover:bg-primary/10"
+          onClick={() => onNavigate('reports')}
+        >
           <div className="flex items-center gap-2 mb-2">
             <div className="p-2 rounded-lg bg-primary/10">
               <Wallet className="h-4 w-4 text-primary" />
@@ -29,8 +51,15 @@ export function OwnerDashboard({ stats, dateLabel = "Today's" }: OwnerDashboardP
           <p className="metric-value text-primary">{formatCurrency(stats.todaySales)}</p>
           <p className="metric-label">{dateLabel} Revenue</p>
         </div>
+      </div>
 
-        <div className={`stat-card border-success/30 ${isLoss ? 'bg-destructive/5 border-destructive/30' : 'bg-success/5'}`}>
+      {/* SECONDARY STATS: Profit row - Both point to 'reports' */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Net Profit Card */}
+        <div 
+          className={`stat-card border-success/30 cursor-pointer active:scale-95 transition-transform ${isLoss ? 'bg-destructive/5 border-destructive/30 hover:bg-destructive/10' : 'bg-success/5 hover:bg-success/10'}`}
+          onClick={() => onNavigate('reports')}
+        >
           <div className="flex items-center gap-2 mb-2">
             <div className={`p-2 rounded-lg ${isLoss ? 'bg-destructive/10' : 'bg-success/10'}`}>
               <Coins className={`h-4 w-4 ${isLoss ? 'text-destructive' : 'text-success'}`} />
@@ -41,11 +70,12 @@ export function OwnerDashboard({ stats, dateLabel = "Today's" }: OwnerDashboardP
           </p>
           <p className="metric-label">{dateLabel} Net Profit</p>
         </div>
-      </div>
 
-      {/* SECONDARY STATS: Gross Profit & Expenses */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="stat-card">
+        {/* Gross Profit Card */}
+        <div 
+          className="stat-card cursor-pointer active:scale-95 transition-transform hover:bg-muted/50"
+          onClick={() => onNavigate('reports')}
+        >
           <div className="flex items-center gap-2 mb-2">
             <div className="p-2 rounded-lg bg-muted text-muted-foreground">
               <TrendingUp className="h-4 w-4" />
@@ -54,23 +84,15 @@ export function OwnerDashboard({ stats, dateLabel = "Today's" }: OwnerDashboardP
           <p className="text-lg font-bold">{formatCurrency(stats.todayProfit)}</p>
           <p className="metric-label text-[10px]">Gross Profit (Markup)</p>
         </div>
-
-        <div className="stat-card">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-2 rounded-lg bg-destructive/10 text-destructive">
-              <Receipt className="h-4 w-4" />
-            </div>
-          </div>
-          <p className="text-lg font-bold text-destructive">
-            {formatCurrency(stats.totalExpenses ?? 0)}
-          </p>
-          <p className="metric-label text-[10px]">{dateLabel} Expenses</p>
-        </div>
       </div>
 
-      {/* INVENTORY & ASSETS */}
+      {/* INVENTORY & ASSETS: Both point to 'products' */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="stat-card">
+        {/* Stock Value Card */}
+        <div 
+          className="stat-card cursor-pointer active:scale-95 transition-transform hover:bg-muted/50"
+          onClick={() => onNavigate('products')}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="metric-label">Stock Value</p>
@@ -84,7 +106,11 @@ export function OwnerDashboard({ stats, dateLabel = "Today's" }: OwnerDashboardP
           </div>
         </div>
 
-        <div className="stat-card">
+        {/* Low Stock Card */}
+        <div 
+          className="stat-card cursor-pointer active:scale-95 transition-transform hover:bg-muted/50"
+          onClick={() => onNavigate('products')}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="metric-label">Low Stock</p>
@@ -99,9 +125,12 @@ export function OwnerDashboard({ stats, dateLabel = "Today's" }: OwnerDashboardP
         </div>
       </div>
 
-      {/* CREDIT MONITORING */}
+      {/* CREDIT MONITORING: Points to 'credit' */}
       {stats.totalCreditOwed !== undefined && stats.totalCreditOwed > 0 && (
-        <div className="stat-card bg-warning/5 border-warning/20">
+        <div 
+          className="stat-card bg-warning/5 border-warning/20 cursor-pointer active:scale-95 transition-transform hover:bg-warning/10"
+          onClick={() => onNavigate('credit')}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-full bg-warning/20">
