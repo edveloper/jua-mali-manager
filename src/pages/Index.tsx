@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Store, Loader2, ChevronLeft, ChevronRight, Calendar as CalendarIcon, 
-  Menu, Settings, Users, LogOut, HelpCircle, ShieldAlert, MessageSquare 
+  Menu, Settings, Users, LogOut, HelpCircle, ShieldAlert, MessageSquare,
+  Download // Added Download icon
 } from 'lucide-react';
 import { format, subDays, addDays, isSameDay } from 'date-fns';
 import { useInventory } from '@/hooks/useInventory';
 import { useCredit } from '@/hooks/useCredit';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePwaInstall } from '@/hooks/usePwaInstall'; // Added PWA Hook
 import { OwnerDashboard } from '@/components/OwnerDashboard';
 import { EmployeeDashboard } from '@/components/EmployeeDashboard';
 import { ProductList } from '@/components/ProductList';
@@ -23,7 +25,7 @@ import { SettingsPanel } from '@/components/SettingsPanel';
 import { HelpPanel } from '@/components/HelpPanel';
 import { PrivacyPanel } from '@/components/PrivacyPanel';
 import { ContactPanel } from '@/components/ContactPanel';
-import { Navigation, type TabType } from '@/components/Navigation'; // Added 'type' to avoid conflict
+import { Navigation, type TabType } from '@/components/Navigation';
 import { Product } from '@/types/inventory';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -45,6 +47,7 @@ const Index = () => {
 
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { installApp, canInstall } = usePwaInstall(); // Initialize PWA logic
 
   const { user, loading: authLoading, isOwner, shop, shopMember, signOut } = useAuth();
   
@@ -65,7 +68,6 @@ const Index = () => {
     if (!authLoading && !user) navigate('/auth', { replace: true });
   }, [user, authLoading, navigate]);
 
-  // --- Missing Functions Added Back ---
   const handleSaveProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!isOwner) return;
     if (editingProduct) {
@@ -93,7 +95,6 @@ const Index = () => {
     }
     setSellingProduct(null);
   };
-  // -----------------------------------
 
   if (authLoading || (inventoryLoading && !shopMember)) {
     return (
@@ -149,6 +150,15 @@ const Index = () => {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Business Menu</DropdownMenuLabel>
               <DropdownMenuSeparator />
+              
+              {/* PWA Download Item */}
+              {canInstall && (
+                <DropdownMenuItem onClick={installApp} className="bg-primary/10 text-primary font-semibold focus:bg-primary/20 focus:text-primary">
+                  <Download className="mr-2 h-4 w-4" />
+                  <span>Download App</span>
+                </DropdownMenuItem>
+              )}
+
               {isOwner && (
                 <DropdownMenuItem onClick={() => setActiveTab('credit')}>
                   <Users className="mr-2 h-4 w-4" />

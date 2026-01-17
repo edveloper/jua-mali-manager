@@ -12,6 +12,9 @@
     "moduleDetection": "force",
     "noEmit": true,
 
+    /* Fix for the errors you saw */
+    "types": ["node"], 
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": false,
