@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Expense } from '@/types/inventory';
 import { useToast } from '@/hooks/use-toast';
 
-export const useExpenses = (currentMonthlySales: number = 0) => {
+export const useExpenses = (currentPeriodSales: number = 0) => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { shop } = useAuth();
@@ -64,7 +64,7 @@ export const useExpenses = (currentMonthlySales: number = 0) => {
   useEffect(() => { fetchExpenses(); }, [shop?.id]);
 
   const quickAddTOT = () => {
-    const taxAmount = currentMonthlySales * 0.03;
+    const taxAmount = currentPeriodSales * 0.03;
     if (taxAmount <= 0) {
       toast({ 
         title: "No sales yet", 

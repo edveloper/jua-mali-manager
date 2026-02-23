@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Mail, Phone, Globe, MessageSquare, Bug, Lightbulb } from "lucide-react";
+import { Mail, Phone, Globe, Bug, Lightbulb, MessageSquareHeart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function ContactPanel() {
@@ -12,29 +12,30 @@ export function ContactPanel() {
 
   const handleFeedback = (type: 'Bug' | 'Feature') => {
     const subject = encodeURIComponent(`Duka Manager: ${type} Report`);
-    const body = encodeURIComponent(`Hello Eddie,\n\nI would like to report a ${type.toLowerCase()}:\n\n[Describe here]\n\nShop Name: `);
+    const body = encodeURIComponent(`Hello Eddie,\n\nI would like to report a ${type.toLowerCase()}:\n\n[Describe here]\n\nBusiness Type:\nShop Name:\nDevice/Browser:\n\nThank you.`);
     window.location.href = `mailto:${contactData.email}?subject=${subject}&body=${body}`;
   };
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold">Contact Developer</h2>
-        <p className="text-muted-foreground text-sm">Support for Ochieng's Stall (Duka Manager)</p>
+      <div className="panel-glass p-5 text-center space-y-2">
+        <p className="section-kicker">Support & Feedback</p>
+        <h2 className="text-2xl font-black">Contact Developer</h2>
+        <p className="text-muted-foreground text-sm">Get help, report issues, and suggest features for Duka Manager.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Button 
-          variant="outline" 
-          className="h-24 flex flex-col gap-2 border-destructive/20 hover:bg-destructive/5"
+        <Button
+          variant="outline"
+          className="h-24 flex flex-col gap-2 border-destructive/20 hover:bg-destructive/5 rounded-2xl"
           onClick={() => handleFeedback('Bug')}
         >
           <Bug className="h-6 w-6 text-destructive" />
-          <span>Report a Bug</span>
+          <span>Report Bug</span>
         </Button>
-        <Button 
-          variant="outline" 
-          className="h-24 flex flex-col gap-2 border-primary/20 hover:bg-primary/5"
+        <Button
+          variant="outline"
+          className="h-24 flex flex-col gap-2 border-primary/20 hover:bg-primary/5 rounded-2xl"
           onClick={() => handleFeedback('Feature')}
         >
           <Lightbulb className="h-6 w-6 text-primary" />
@@ -42,7 +43,7 @@ export function ContactPanel() {
         </Button>
       </div>
 
-      <Card className="border-border/50 shadow-sm">
+      <Card className="border-border/60 shadow-sm rounded-2xl">
         <CardContent className="pt-6 space-y-4">
           <div className="flex items-center gap-4">
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
@@ -52,8 +53,8 @@ export function ContactPanel() {
               <p className="text-[10px] text-muted-foreground uppercase font-bold">Call / WhatsApp</p>
               <p className="text-sm font-semibold">{contactData.phone}</p>
             </div>
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               className="bg-green-600 hover:bg-green-700 text-white rounded-full"
               onClick={() => window.open(`https://wa.me/${contactData.phone.replace('+', '')}`, '_blank')}
             >
@@ -67,18 +68,25 @@ export function ContactPanel() {
             </div>
             <div className="flex-1">
               <p className="text-[10px] text-muted-foreground uppercase font-bold">Email</p>
-              <a href={`mailto:${contactData.email}`} className="text-sm font-semibold">{contactData.email}</a>
+              <a href={`mailto:${contactData.email}`} className="text-sm font-semibold hover:underline">{contactData.email}</a>
             </div>
           </div>
 
           <div className="flex items-center gap-4 pt-2 border-t border-border/50">
             <Globe className="h-4 w-4 text-muted-foreground" />
-            <a href={contactData.website} target="_blank" className="text-xs text-primary hover:underline">
+            <a href={contactData.website} target="_blank" className="text-xs text-primary hover:underline" rel="noreferrer">
               Visit eddie-ezekiel.com
             </a>
           </div>
         </CardContent>
       </Card>
+
+      <div className="panel-glass p-4 flex items-start gap-2">
+        <MessageSquareHeart className="h-4 w-4 text-primary mt-0.5" />
+        <p className="text-xs text-muted-foreground">
+          Include your business profile, what you were trying to do, and screenshots for faster support.
+        </p>
+      </div>
     </div>
   );
 }

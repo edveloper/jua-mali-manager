@@ -35,12 +35,12 @@ export function EmployeeManager() {
   const fetchEmployees = async () => {
     if (!shop) return;
 
-    // 1. Fetch members with role 'attendant' (matching our DB Enum)
+    // 1. Fetch members with role 'employee' (matching DB enum)
     const { data: members, error } = await supabase
       .from('shop_members')
       .select('*')
       .eq('shop_id', shop.id)
-      .eq('role', 'attendant'); // Changed from 'employee' to 'attendant'
+      .eq('role', 'employee');
 
     if (error) {
       console.error('Error fetching employees:', error);

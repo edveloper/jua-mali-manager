@@ -1,17 +1,26 @@
-import { Package, AlertTriangle, TrendingUp, Wallet, CreditCard, DollarSign, Receipt, Coins } from 'lucide-react';
+import { Package, AlertTriangle, TrendingUp, Wallet, CreditCard, Receipt, Coins } from 'lucide-react';
 import { DashboardStats } from '@/types/inventory';
 import { TabType } from '@/components/Navigation';
 
 interface OwnerDashboardProps {
   stats: DashboardStats & { netProfit?: number; totalExpenses?: number };
   dateLabel?: string;
-  onNavigate: (tab: TabType) => void; // Added for navigation
+  onNavigate: (tab: TabType) => void;
+  offeringMode?: 'products' | 'services' | 'mixed' | string;
 }
 
-export function OwnerDashboard({ stats, dateLabel = "Today's", onNavigate }: OwnerDashboardProps) {
+export function OwnerDashboard({
+  stats,
+  dateLabel = "Today's",
+  onNavigate,
+  offeringMode = 'products'
+}: OwnerDashboardProps) {
   const formatCurrency = (amount: number) => {
     return `KSh ${amount.toLocaleString()}`;
   };
+  const stockValueLabel = offeringMode === 'services' ? 'Service Value' : offeringMode === 'mixed' ? 'Catalog Value' : 'Stock Value';
+  const lowLabel = offeringMode === 'services' ? 'Low Capacity' : 'Low Stock';
+  const lowUnit = offeringMode === 'services' ? 'Services' : offeringMode === 'mixed' ? 'Items' : 'Items';
 
   const netProfit = stats.netProfit ?? 0;
   const isLoss = netProfit < 0;
@@ -95,7 +104,6 @@ export function OwnerDashboard({ stats, dateLabel = "Today's", onNavigate }: Own
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="metric-label">Stock Value</p>
               <p className="text-base font-bold text-foreground mt-1">
                 {formatCurrency(stats.totalStockValue)}
               </p>
@@ -104,6 +112,7 @@ export function OwnerDashboard({ stats, dateLabel = "Today's", onNavigate }: Own
               <Package className="h-4 w-4 text-blue-600" />
             </div>
           </div>
+          <p className="metric-label">{stockValueLabel}</p>
         </div>
 
         {/* Low Stock Card */}
@@ -113,9 +122,9 @@ export function OwnerDashboard({ stats, dateLabel = "Today's", onNavigate }: Own
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="metric-label">Low Stock</p>
+              <p className="metric-label">{lowLabel}</p>
               <p className={`text-base font-bold mt-1 ${stats.lowStockCount > 0 ? 'text-warning' : ''}`}>
-                {stats.lowStockCount} Items
+                {stats.lowStockCount} {lowUnit}
               </p>
             </div>
             <div className={`p-2 rounded-xl ${stats.lowStockCount > 0 ? 'bg-warning/20' : 'bg-muted'}`}>

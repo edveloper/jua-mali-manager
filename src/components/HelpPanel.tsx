@@ -1,57 +1,85 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Users, Banknote, ShieldCheck, UserPlus } from "lucide-react";
+import { Package, Users, Banknote, UserPlus, Sparkles, Scissors, Download } from "lucide-react";
 
 export function HelpPanel() {
   const guides = [
     {
+      title: "Business Setup",
+      icon: <Scissors className="h-5 w-5 text-primary" />,
+      steps: [
+        "Set your Business Profile in Settings: category, offering mode (Products, Services, Mixed), and single-offering toggle.",
+        "Service businesses use capacity and session logs, while product businesses use stock and low-stock controls.",
+        "Mixed mode lets you switch catalog view between products and services."
+      ]
+    },
+    {
       title: "Team Management",
-      icon: <UserPlus className="h-5 w-5 text-purple-500" />,
+      icon: <UserPlus className="h-5 w-5 text-secondary" />,
       steps: [
-        "As an Owner, go to 'Settings' to create Employee accounts.",
-        "Employees get their own login credentials.",
-        "Employees can record sales and view alerts but cannot see your total profits or expenses."
+        "As an Owner, go to Settings to add employee accounts.",
+        "Employees can record transactions and view operational tabs.",
+        "Owner-only financial controls stay protected."
       ]
     },
     {
-      title: "Inventory & Sales",
-      icon: <Package className="h-5 w-5 text-primary" />,
+      title: "Inventory / Services",
+      icon: <Package className="h-5 w-5 text-blue-600" />,
       steps: [
-        "Add products with 'Buying Price' and 'Selling Price'.",
-        "Click any product to record a sale.",
-        "Low stock items will show up in the 'Alerts' tab for staff to see."
+        "Products track stock levels; Services track capacity and session details.",
+        "Use Alerts to spot low stock or low capacity quickly.",
+        "Record service sessions with staff name, session time, status, and notes."
       ]
     },
     {
-      title: "Credit & Debts",
-      icon: <Users className="h-5 w-5 text-blue-500" />,
+      title: "Reports + AI",
+      icon: <Sparkles className="h-5 w-5 text-amber-500" />,
       steps: [
-        "When selling, choose 'Credit' to add to the customer's debt.",
-        "Manage all debts in the 'Credit Book' via the top menu.",
-        "Record partial or full payments when customers bring cash."
+        "Reports now include Overview, Tax, Loan, and AI tabs.",
+        "Run AI Summary and AI Plan directly inside Reports.",
+        "Ask AI specific report questions from the same screen."
+      ]
+    },
+    {
+      title: "Exports & Compliance",
+      icon: <Download className="h-5 w-5 text-emerald-600" />,
+      steps: [
+        "Export Sales CSV from Reports and Expenses CSV from Expenses.",
+        "Use Tax tab estimates to prepare TOT workflows and filing records.",
+        "Use Loan tab exports when presenting turnover consistency to lenders."
+      ]
+    },
+    {
+      title: "Credit & Cashflow",
+      icon: <Users className="h-5 w-5 text-indigo-500" />,
+      steps: [
+        "Credit Book is available for product/mixed businesses.",
+        "Track pending balances and record partial/full payments.",
+        "Use reports to monitor credit impact on cashflow."
       ]
     },
     {
       title: "Business Health",
       icon: <Banknote className="h-5 w-5 text-green-600" />,
       steps: [
-        "Owners can view total daily/monthly sales and net profit.",
-        "Log 'Expenses' like rent or transport to get an accurate profit figure.",
-        "Use the 'Reports' tab for a deeper breakdown of business performance."
+        "Monitor revenue, profit, trend consistency, and top items.",
+        "Track expenses with profile-aware categories and filterable analytics.",
+        "Use one source of truth for both operations and growth planning."
       ]
     }
   ];
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
-      <div className="px-1">
-        <h2 className="text-2xl font-bold">Help Center</h2>
-        <p className="text-muted-foreground text-sm">How to manage your shop with Duka Manager</p>
+      <div className="panel-glass p-4">
+        <p className="section-kicker">Support</p>
+        <h2 className="text-2xl font-black mt-1">Help Center</h2>
+        <p className="text-muted-foreground text-sm mt-1">Practical playbook for running Duka Manager across products, services, and mixed businesses.</p>
       </div>
       <div className="grid gap-4">
         {guides.map((guide, i) => (
-          <Card key={i} className="border-border/50">
+          <Card key={i} className="border-border/60 shadow-sm rounded-2xl">
             <CardHeader className="flex flex-row items-center gap-3 pb-2">
-              {guide.icon}
+              <div className="p-2 rounded-xl bg-muted">{guide.icon}</div>
               <CardTitle className="text-lg">{guide.title}</CardTitle>
             </CardHeader>
             <CardContent>

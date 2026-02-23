@@ -10,9 +10,26 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   signIn: (email: string, password?: string) => Promise<{ data: any; error: any }>;
-  signUp: (email: string, password?: string, fullName?: string, shopName?: string) => Promise<{ data: any; error: any }>;
+  signUp: (
+    email: string,
+    password?: string,
+    fullName?: string,
+    shopName?: string,
+    profile?: {
+      businessCategory?: string;
+      offeringMode?: string;
+      singleOffering?: boolean;
+    }
+  ) => Promise<{ data: any; error: any }>;
   refreshShopData: () => Promise<void>;
   createEmployee: (email: string, password?: string, fullName?: string) => Promise<{ data: any; error: any }>;
+  updateShopProfile: (updates: {
+    name?: string;
+    business_category?: string;
+    offering_mode?: string;
+    single_offering?: boolean;
+    currency?: string;
+  }) => Promise<{ data: any; error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,6 +51,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           shops (
             id,
             name,
+            business_category,
+            offering_mode,
+            single_offering,
+            currency,
             created_at
           )
         `)
@@ -98,7 +119,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const signUp = async (email: string, password?: string, fullName?: string, shopName?: string) => {
+  const signUp = async (
+    email: string,
+    password?: string,
+    fullName?: string,
+    shopName?: string,
+    profile?: {
+      businessCategory?: string;
+      offeringMode?: string;
+      singleOffering?: boolean;
+    }
+  ) => {
     // 1. Create Auth User
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
@@ -116,7 +147,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // 2. Create Shop
       const { data: shopData, error: shopError } = await (supabase.from('shops') as any)
-        .insert([{ name: shopName || `${fullName}'s Shop` }])
+        .insert([{
+          name: shopName || `${fullName}'s Shop`,
+          business_category: profile?.businessCategory || 'retail',
+          offering_mode: profile?.offeringMode || 'products',
+          single_offering: Boolean(profile?.singleOffering),
+          currency: 'KES'
+        }])
         .select()
         .single();
 
@@ -158,7 +195,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .insert([{
           shop_id: shop.id,
           user_id: authData.user.id,
-          role: 'attendant'
+          role: 'employee'
         }]);
 
       if (memberError) throw memberError;
@@ -174,6 +211,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
   };
 
+  const updateShopProfile = async (updates: {
+    name?: string;
+    business_category?: string;
+    offering_mode?: string;
+    single_offering?: boolean;
+    currency?: string;
+  }) => {
+    if (!shop?.id || !isOwner) {
+      return { data: null, error: { message: "Only shop owners can update shop settings" } };
+    }
+
+    const { data, error } = await (supabase.from('shops') as any)
+      .update(updates)
+      .eq('id', shop.id)
+      .select()
+      .single();
+
+    if (!error) await refreshShopData();
+    return { data, error };
+  };
+
   return (
     <AuthContext.Provider 
       value={{ 
@@ -186,7 +244,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signIn,
         signUp,
         refreshShopData,
-        createEmployee
+        createEmployee,
+        updateShopProfile
       }}
     >
       {children}

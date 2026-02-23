@@ -14,20 +14,48 @@ import {
 interface SellDialogProps {
   product: Product;
   customers: Customer[];
-  onSell: (productId: string, quantity: number, isCredit?: boolean, customerId?: string) => void;
+  onSell: (
+    productId: string,
+    quantity: number,
+    isCredit?: boolean,
+    customerId?: string,
+    meta?: { staffName?: string; sessionTime?: string; notes?: string; status?: 'completed' | 'scheduled' | 'cancelled' }
+  ) => void;
   onClose: () => void;
   isOwner?: boolean;
+  offeringMode?: 'products' | 'services' | 'mixed' | string;
+  allowCredit?: boolean;
 }
 
-export function SellDialog({ product, customers, onSell, onClose, isOwner = true }: SellDialogProps) {
+export function SellDialog({ product, customers, onSell, onClose, isOwner = true, offeringMode = 'products', allowCredit = true }: SellDialogProps) {
   const [quantity, setQuantity] = useState(1);
   const [isCredit, setIsCredit] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [staffName, setStaffName] = useState('');
+  const [sessionTime, setSessionTime] = useState('');
+  const [notes, setNotes] = useState('');
+  const [sessionStatus, setSessionStatus] = useState<'completed' | 'scheduled' | 'cancelled'>('completed');
+  const actionLabel = offeringMode === 'services' ? 'Record Service' : 'Record Sale';
 
   const handleSell = () => {
     if (quantity > 0 && quantity <= product.quantity) {
-      if (isCredit && !selectedCustomerId) return;
-      onSell(product.id, quantity, isCredit, isCredit ? selectedCustomerId : undefined);
+      if (allowCredit && isCredit && !selectedCustomerId) return;
+      if (offeringMode === 'services') {
+        onSell(
+          product.id,
+          quantity,
+          false,
+          undefined,
+          {
+            staffName: staffName.trim(),
+            sessionTime: sessionTime || undefined,
+            notes: notes.trim(),
+            status: sessionStatus,
+          }
+        );
+      } else {
+        onSell(product.id, quantity, allowCredit ? isCredit : false, (allowCredit && isCredit) ? selectedCustomerId : undefined);
+      }
       onClose();
     }
   };
@@ -39,7 +67,7 @@ export function SellDialog({ product, customers, onSell, onClose, isOwner = true
     <div className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center">
       <div className="bg-card w-full max-w-md rounded-t-2xl sm:rounded-2xl animate-slide-up">
         <div className="p-4 border-b border-border flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Record Sale</h2>
+          <h2 className="text-lg font-semibold">{actionLabel}</h2>
           <Button variant="ghost" size="icon-sm" onClick={onClose}>
             <X className="h-5 w-5" />
           </Button>
@@ -83,28 +111,59 @@ export function SellDialog({ product, customers, onSell, onClose, isOwner = true
             </div>
           </div>
 
-          {/* Payment Type Toggle */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Payment Type</label>
-            <div className="flex gap-2">
-              <Button
-                variant={!isCredit ? 'default' : 'outline'}
-                className="flex-1"
-                onClick={() => setIsCredit(false)}
-              >
-                <Wallet className="h-4 w-4 mr-2" />
-                Cash
-              </Button>
-              <Button
-                variant={isCredit ? 'default' : 'outline'}
-                className="flex-1"
-                onClick={() => setIsCredit(true)}
-              >
-                <CreditCard className="h-4 w-4 mr-2" />
-                Credit
-              </Button>
+          {allowCredit && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Payment Type</label>
+              <div className="flex gap-2">
+                <Button
+                  variant={!isCredit ? 'default' : 'outline'}
+                  className="flex-1"
+                  onClick={() => setIsCredit(false)}
+                >
+                  <Wallet className="h-4 w-4 mr-2" />
+                  Cash
+                </Button>
+                <Button
+                  variant={isCredit ? 'default' : 'outline'}
+                  className="flex-1"
+                  onClick={() => setIsCredit(true)}
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Credit
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
+
+          {offeringMode === 'services' && (
+            <div className="space-y-3 rounded-xl border border-border p-3">
+              <p className="text-sm font-medium text-foreground">Service Session Details</p>
+              <Input
+                placeholder="Staff name (optional)"
+                value={staffName}
+                onChange={(e) => setStaffName(e.target.value)}
+              />
+              <Input
+                type="datetime-local"
+                value={sessionTime}
+                onChange={(e) => setSessionTime(e.target.value)}
+              />
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={sessionStatus}
+                onChange={(e) => setSessionStatus(e.target.value as 'completed' | 'scheduled' | 'cancelled')}
+              >
+                <option value="completed">Completed</option>
+                <option value="scheduled">Scheduled</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              <Input
+                placeholder="Notes (optional)"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
+          )}
 
           {/* Customer Selection for Credit */}
           {isCredit && (
@@ -143,10 +202,10 @@ export function SellDialog({ product, customers, onSell, onClose, isOwner = true
                 <span className="font-semibold text-success">KSh {profit.toLocaleString()}</span>
               </div>
             )}
-            {isCredit && (
-              <div className="flex justify-between text-warning pt-2 border-t border-border">
-                <span>Payment Type</span>
-                <span className="font-semibold">Credit Sale</span>
+          {allowCredit && isCredit && (
+            <div className="flex justify-between text-warning pt-2 border-t border-border">
+              <span>Payment Type</span>
+              <span className="font-semibold">Credit Sale</span>
               </div>
             )}
           </div>
@@ -158,10 +217,10 @@ export function SellDialog({ product, customers, onSell, onClose, isOwner = true
             <Button 
               className="flex-1" 
               onClick={handleSell}
-              disabled={isCredit && !selectedCustomerId}
+              disabled={allowCredit && isCredit && !selectedCustomerId}
             >
               <ShoppingCart className="h-4 w-4 mr-2" />
-              {isCredit ? 'Credit Sale' : 'Complete Sale'}
+              {isCredit ? 'Credit Sale' : (offeringMode === 'services' ? 'Complete Service' : 'Complete Sale')}
             </Button>
           </div>
         </div>

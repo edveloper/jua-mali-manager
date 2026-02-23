@@ -12,12 +12,16 @@ interface ProductListProps {
   onAdd: () => void;
   onSell: (product: Product) => void;
   isOwner?: boolean;
+  offeringMode?: 'products' | 'services' | 'mixed' | string;
 }
 
-export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSell, isOwner = true }: ProductListProps) {
+export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSell, isOwner = true, offeringMode = 'products' }: ProductListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   
   const displayProducts = searchQuery ? onSearch(searchQuery) : products;
+  const itemLabel = offeringMode === 'services' ? 'service' : offeringMode === 'mixed' ? 'item' : 'product';
+  const itemLabelPlural = offeringMode === 'services' ? 'services' : offeringMode === 'mixed' ? 'items' : 'products';
+  const sellAction = offeringMode === 'services' ? 'Record Service' : 'Sell';
   
   const formatCurrency = (amount: number) => `KSh ${amount.toLocaleString()}`;
 
@@ -29,7 +33,7 @@ export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSel
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search products or scan barcode..."
+            placeholder={offeringMode === 'services' ? 'Search services...' : `Search ${itemLabelPlural} or scan barcode...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -46,11 +50,11 @@ export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSel
         {displayProducts.length === 0 ? (
           <div className="text-center py-12">
             <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">No products found</p>
+            <p className="text-muted-foreground">No {itemLabelPlural} found</p>
             {isOwner && (
               <Button variant="outline" className="mt-4" onClick={onAdd}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add First Product
+                Add First {itemLabel.charAt(0).toUpperCase() + itemLabel.slice(1)}
               </Button>
             )}
           </div>
@@ -90,7 +94,7 @@ export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSel
                   <p className={`text-lg font-bold ${isLowStock(product) ? 'text-warning' : 'text-foreground'}`}>
                     {product.quantity}
                   </p>
-                  <p className="text-xs text-muted-foreground">in stock</p>
+                  <p className="text-xs text-muted-foreground">{offeringMode === 'services' ? 'available' : 'in stock'}</p>
                 </div>
               </div>
               
@@ -102,7 +106,7 @@ export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSel
                   onClick={() => onSell(product)}
                   disabled={product.quantity === 0}
                 >
-                  Sell
+                  {sellAction}
                 </Button>
                 {isOwner && (
                   <>

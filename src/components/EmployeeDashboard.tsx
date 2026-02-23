@@ -5,10 +5,14 @@ import { useAuth } from '@/contexts/AuthContext';
 interface EmployeeDashboardProps {
   stats: DashboardStats;
   todaySalesCount: number;
+  offeringMode?: 'products' | 'services' | 'mixed' | string;
 }
 
-export function EmployeeDashboard({ stats, todaySalesCount }: EmployeeDashboardProps) {
+export function EmployeeDashboard({ stats, todaySalesCount, offeringMode = 'products' }: EmployeeDashboardProps) {
   const { user, shop } = useAuth();
+  const catalogLabel = offeringMode === 'services' ? 'Services Available' : offeringMode === 'mixed' ? 'Items Available' : 'Products Available';
+  const lowLabel = offeringMode === 'services' ? 'Low Availability' : 'Low Stock Items';
+  const salesLabel = offeringMode === 'services' ? 'Services Recorded Today' : 'Sales Made Today';
 
   return (
     <div className="space-y-4 animate-slide-up">
@@ -35,7 +39,7 @@ export function EmployeeDashboard({ stats, todaySalesCount }: EmployeeDashboardP
             </div>
           </div>
           <p className="metric-value">{stats.totalProducts}</p>
-          <p className="metric-label">Products Available</p>
+          <p className="metric-label">{catalogLabel}</p>
         </div>
 
         <div className={`stat-card ${stats.lowStockCount > 0 ? 'border-warning/50 bg-warning/5' : ''}`}>
@@ -47,13 +51,13 @@ export function EmployeeDashboard({ stats, todaySalesCount }: EmployeeDashboardP
           <p className={`metric-value ${stats.lowStockCount > 0 ? 'text-warning' : ''}`}>
             {stats.lowStockCount}
           </p>
-          <p className="metric-label">Low Stock Items</p>
+          <p className="metric-label">{lowLabel}</p>
         </div>
 
         <div className="stat-card col-span-2">
           <div className="flex items-center justify-between">
             <div>
-              <p className="metric-label">Sales Made Today</p>
+              <p className="metric-label">{salesLabel}</p>
               <p className="text-2xl font-bold text-foreground mt-1">
                 {todaySalesCount}
               </p>
@@ -67,7 +71,7 @@ export function EmployeeDashboard({ stats, todaySalesCount }: EmployeeDashboardP
 
       <div className="stat-card bg-muted/50">
         <p className="text-sm text-muted-foreground text-center">
-          As an employee, you can record sales and view products. 
+          As an employee, you can record transactions and view your catalog. 
           Contact the shop owner for inventory changes.
         </p>
       </div>

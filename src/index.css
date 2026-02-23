@@ -98,6 +98,10 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Plus Jakarta Sans', sans-serif;
+    background-image:
+      radial-gradient(circle at 20% 0%, hsl(var(--primary) / 0.08), transparent 38%),
+      radial-gradient(circle at 100% 10%, hsl(var(--secondary) / 0.09), transparent 36%),
+      linear-gradient(180deg, hsl(var(--background)), hsl(var(--background)));
   }
 }
 
@@ -111,7 +115,7 @@
   }
 
   .stat-card {
-    @apply bg-card rounded-xl p-4 shadow-sm border border-border/50 transition-all duration-200 hover:shadow-md;
+    @apply bg-card/90 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-border/50 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5;
   }
 
   .metric-value {
@@ -120,5 +124,17 @@
 
   .metric-label {
     @apply text-sm text-muted-foreground font-medium;
+  }
+
+  .panel-glass {
+    @apply bg-card/80 backdrop-blur-md border border-border/60 shadow-sm rounded-2xl;
+  }
+
+  .section-kicker {
+    @apply text-[10px] uppercase tracking-[0.14em] font-semibold text-muted-foreground;
+  }
+
+  .soft-divider {
+    @apply border-t border-border/60;
   }
 }

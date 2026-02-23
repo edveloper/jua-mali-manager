@@ -1,14 +1,14 @@
 import { LayoutDashboard, Package, AlertTriangle, BarChart3, Banknote, LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Added 'contact' to the TabType union to match Index.tsx
-export type TabType = 'dashboard' | 'products' | 'alerts' | 'sales' | 'credit' | 'reports' | 'settings' | 'expenses' | 'help' | 'privacy' | 'contact';
+export type TabType = 'dashboard' | 'products' | 'alerts' | 'credit' | 'reports' | 'settings' | 'expenses' | 'help' | 'privacy' | 'contact';
 
 interface NavigationProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
   alertCount: number;
   isOwner?: boolean;
+  offeringMode?: 'products' | 'services' | 'mixed' | string;
 }
 
 interface NavItem {
@@ -18,18 +18,19 @@ interface NavItem {
   badge?: number;
 }
 
-export function Navigation({ activeTab, onTabChange, alertCount, isOwner = true }: NavigationProps) {
+export function Navigation({ activeTab, onTabChange, alertCount, isOwner = true, offeringMode = 'products' }: NavigationProps) {
+  const catalogLabel = offeringMode === 'services' ? 'Services' : offeringMode === 'mixed' ? 'Catalog' : 'Products';
   
   const ownerTabs: NavItem[] = [
     { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
-    { id: 'products', label: 'Products', icon: Package },
+    { id: 'products', label: catalogLabel, icon: Package },
     { id: 'expenses', label: 'Expenses', icon: Banknote },
     { id: 'reports', label: 'Reports', icon: BarChart3 },
   ];
 
   const employeeTabs: NavItem[] = [
     { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
-    { id: 'products', label: 'Products', icon: Package },
+    { id: 'products', label: catalogLabel, icon: Package },
     { id: 'alerts', label: 'Alerts', icon: AlertTriangle, badge: alertCount },
   ];
 

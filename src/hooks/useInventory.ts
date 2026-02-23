@@ -130,29 +130,20 @@ export const useInventory = () => {
 
   const recordSale = async (productId: string, quantity: number) => {
     if (!shop?.id) return;
-    const product = products.find(p => p.id === productId);
-    if (!product || product.quantity < quantity) return null;
 
     try {
-      const { data: saleData, error: saleError } = await (supabase.from('sales') as any).insert([{
-        shop_id: shop.id,
-        product_id: productId,
-        product_name: product.name,
-        quantity: quantity,
-        total_amount: product.sellingPrice * quantity,
-        cost_price_at_sale: product.costPrice || 0
-      }]).select().single();
-
-      if (saleError) throw saleError;
-
-      await (supabase.from('products') as any)
-        .update({ stock_level: product.quantity - quantity })
-        .eq('id', productId);
+      const { data, error } = await (supabase.rpc('record_product_sale_atomic' as any, {
+        p_shop_id: shop.id,
+        p_product_id: productId,
+        p_quantity: quantity,
+      }) as any);
+      if (error) throw error;
 
       await fetchProducts();
       await fetchSales();
-      return saleData;
+      return Array.isArray(data) ? data[0] : data;
     } catch (error: any) {
+      toast({ title: "Sale failed", description: error.message, variant: "destructive" });
       return null;
     }
   };

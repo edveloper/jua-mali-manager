@@ -9,9 +9,13 @@ interface ProductFormProps {
   product?: Product | null;
   onSave: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onClose: () => void;
+  offeringMode?: 'products' | 'services' | 'mixed' | string;
 }
 
-export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
+export function ProductForm({ product, onSave, onClose, offeringMode = 'products' }: ProductFormProps) {
+  const itemLabel = offeringMode === 'services' ? 'Service' : offeringMode === 'mixed' ? 'Item' : 'Product';
+  const costLabel = offeringMode === 'services' ? 'Direct Cost (KSh)' : 'Cost Price (KSh)';
+  const sellLabel = offeringMode === 'services' ? 'Service Price (KSh)' : 'Selling Price (KSh)';
   const [formData, setFormData] = useState({
     name: '',
     barcode: '',
@@ -19,6 +23,7 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
     sellingPrice: '',
     quantity: '',
     lowStockThreshold: '5',
+    durationMinutes: '0',
     category: '',
   });
 
@@ -31,6 +36,7 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
         sellingPrice: product.sellingPrice.toString(),
         quantity: product.quantity.toString(),
         lowStockThreshold: product.lowStockThreshold.toString(),
+        durationMinutes: String(product.durationMinutes || 0),
         category: product.category || '',
       });
     }
@@ -46,6 +52,7 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
       sellingPrice: parseFloat(formData.sellingPrice) || 0,
       quantity: parseInt(formData.quantity) || 0,
       lowStockThreshold: parseInt(formData.lowStockThreshold) || 5,
+      durationMinutes: parseInt(formData.durationMinutes) || 0,
       category: formData.category || undefined,
     });
   };
@@ -57,7 +64,7 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
       <div className="bg-card w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto animate-slide-up">
         <div className="sticky top-0 bg-card p-4 border-b border-border flex items-center justify-between">
           <h2 className="text-lg font-semibold">
-            {product ? 'Edit Product' : 'Add Product'}
+            {product ? `Edit ${itemLabel}` : `Add ${itemLabel}`}
           </h2>
           <Button variant="ghost" size="icon-sm" onClick={onClose}>
             <X className="h-5 w-5" />
@@ -66,33 +73,35 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
         
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Product Name *</Label>
+            <Label htmlFor="name">{itemLabel} Name *</Label>
             <Input
               id="name"
-              placeholder="e.g., Unga wa Ngano (2kg)"
+              placeholder={offeringMode === 'services' ? 'e.g., Haircut + Wash' : 'e.g., Unga wa Ngano (2kg)'}
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="barcode">Barcode (Optional)</Label>
-            <div className="relative">
-              <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="barcode"
-                placeholder="Scan or enter barcode"
-                value={formData.barcode}
-                onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                className="pl-10"
-              />
+          {offeringMode !== 'services' && (
+            <div className="space-y-2">
+              <Label htmlFor="barcode">Barcode (Optional)</Label>
+              <div className="relative">
+                <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="barcode"
+                  placeholder="Scan or enter barcode"
+                  value={formData.barcode}
+                  onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                  className="pl-10"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="costPrice">Cost Price (KSh) *</Label>
+              <Label htmlFor="costPrice">{costLabel} *</Label>
               <Input
                 id="costPrice"
                 type="number"
@@ -104,7 +113,7 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="sellingPrice">Selling Price (KSh) *</Label>
+              <Label htmlFor="sellingPrice">{sellLabel} *</Label>
               <Input
                 id="sellingPrice"
                 type="number"
@@ -127,7 +136,7 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="quantity">Quantity *</Label>
+              <Label htmlFor="quantity">{offeringMode === 'services' ? 'Daily Slots / Units *' : 'Quantity *'}</Label>
               <Input
                 id="quantity"
                 type="number"
@@ -139,7 +148,7 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lowStockThreshold">Low Stock Alert</Label>
+              <Label htmlFor="lowStockThreshold">{offeringMode === 'services' ? 'Low Availability Alert' : 'Low Stock Alert'}</Label>
               <Input
                 id="lowStockThreshold"
                 type="number"
@@ -151,11 +160,25 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
             </div>
           </div>
 
+          {offeringMode === 'services' && (
+            <div className="space-y-2">
+              <Label htmlFor="durationMinutes">Duration (minutes)</Label>
+              <Input
+                id="durationMinutes"
+                type="number"
+                min="0"
+                placeholder="30"
+                value={formData.durationMinutes}
+                onChange={(e) => setFormData({ ...formData, durationMinutes: e.target.value })}
+              />
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="category">Category (Optional)</Label>
             <Input
               id="category"
-              placeholder="e.g., Food, Dairy, Electronics"
+              placeholder={offeringMode === 'services' ? 'e.g., Grooming, Printing, Transport' : 'e.g., Food, Dairy, Electronics'}
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
             />
@@ -166,7 +189,7 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
               Cancel
             </Button>
             <Button type="submit" className="flex-1">
-              {product ? 'Update' : 'Add Product'}
+              {product ? `Update ${itemLabel}` : `Add ${itemLabel}`}
             </Button>
           </div>
         </form>

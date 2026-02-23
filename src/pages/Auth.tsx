@@ -17,6 +17,9 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [shopName, setShopName] = useState('');
+  const [businessCategory, setBusinessCategory] = useState('retail');
+  const [offeringMode, setOfferingMode] = useState<'products' | 'services' | 'mixed'>('products');
+  const [singleOffering, setSingleOffering] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { signIn, signUp, user, loading: isLoading } = useAuth();
@@ -63,7 +66,11 @@ export default function Auth() {
           setIsSubmitting(false);
           return;
         }
-        const { error } = await signUp(emailToUse, password, fullName, shopName);
+        const { error } = await signUp(emailToUse, password, fullName, shopName, {
+          businessCategory,
+          offeringMode,
+          singleOffering,
+        });
         if (error) {
           toast({ title: 'Sign Up Failed', description: error.message, variant: 'destructive' });
         } else {
@@ -124,6 +131,44 @@ export default function Auth() {
                        <Input className="pl-10" value={shopName} onChange={(e) => setShopName(e.target.value)} placeholder="e.g. Best Price Duka" required />
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label>Business Category</Label>
+                    <select
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      value={businessCategory}
+                      onChange={(e) => setBusinessCategory(e.target.value)}
+                    >
+                      <option value="retail">Retail Shop / Duka</option>
+                      <option value="barbershop_salon">Barbershop / Salon</option>
+                      <option value="computer_center">Computer Center / Cyber</option>
+                      <option value="transport">Transport / Matatu</option>
+                      <option value="food_hospitality">Food / Hospitality</option>
+                      <option value="repair_services">Repair Services</option>
+                      <option value="health_beauty">Health / Beauty Services</option>
+                      <option value="education_training">Education / Training</option>
+                      <option value="other_services">Other Service Business</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>What do you mainly sell?</Label>
+                    <select
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      value={offeringMode}
+                      onChange={(e) => setOfferingMode(e.target.value as 'products' | 'services' | 'mixed')}
+                    >
+                      <option value="products">Products Only</option>
+                      <option value="services">Services Only</option>
+                      <option value="mixed">Products + Services</option>
+                    </select>
+                  </div>
+                  <label className="flex items-center justify-between rounded-md border border-input px-3 py-2 text-sm">
+                    <span>Single main product/service business</span>
+                    <input
+                      type="checkbox"
+                      checked={singleOffering}
+                      onChange={(e) => setSingleOffering(e.target.checked)}
+                    />
+                  </label>
                 </>
               )}
 

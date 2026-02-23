@@ -2,6 +2,7 @@ export interface Product {
   id: string;
   name: string;
   barcode?: string;
+  durationMinutes?: number;
   costPrice: number;
   sellingPrice: number;
   quantity: number;
@@ -9,6 +10,33 @@ export interface Product {
   category?: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface Service {
+  id: string;
+  name: string;
+  category?: string;
+  costPrice: number;
+  sellingPrice: number;
+  quantity: number;
+  lowStockThreshold: number;
+  durationMinutes?: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface ServiceSale {
+  id: string;
+  serviceId: string;
+  serviceName: string;
+  quantity: number;
+  totalAmount: number;
+  profit: number;
+  staffName?: string;
+  sessionTime?: string;
+  notes?: string;
+  status?: 'completed' | 'scheduled' | 'cancelled';
+  createdAt: Date | string;
 }
 
 export interface Sale {
@@ -64,7 +92,7 @@ export interface DashboardStats {
 
 export interface Expense {
   id: string;
-  category: 'Tax' | 'Rent' | 'Salary' | 'Utilities' | 'Transport' | 'Licenses' | 'Other';
+  category: string;
   description: string;
   amount: number;
   date: string;
