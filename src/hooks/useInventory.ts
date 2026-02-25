@@ -1,18 +1,25 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Product, Sale, DashboardStats } from '@/types/inventory';
+import { Product, Sale, DashboardStats, StockMovement } from '@/types/inventory';
 import { useToast } from '@/hooks/use-toast';
 
 export const useInventory = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { shop, isOwner } = useAuth();
   const { toast } = useToast();
 
   const fetchProducts = async () => {
-    if (!shop?.id) return;
+    if (!shop?.id) {
+      setProducts([]);
+      setSales([]);
+      setStockMovements([]);
+      setIsLoading(false);
+      return;
+    }
     try {
       setIsLoading(true);
       const { data, error } = await (supabase.from('products') as any)
@@ -21,7 +28,7 @@ export const useInventory = () => {
         .order('name', { ascending: true });
 
       if (error) throw error;
-      
+
       setProducts((data || []).map((p: any) => ({
         id: p.id,
         name: p.name,
@@ -59,7 +66,7 @@ export const useInventory = () => {
           productId: s.product_id,
           productName: s.product_name,
           quantity: qty,
-          totalAmount: totalAmount,
+          totalAmount,
           profit: totalAmount - (costAtSale * qty),
           createdAt: s.created_at
         };
@@ -69,9 +76,38 @@ export const useInventory = () => {
     }
   };
 
+  const fetchStockMovements = async () => {
+    if (!shop?.id) return;
+    try {
+      const { data, error } = await (supabase.from('stock_movements') as any)
+        .select('*')
+        .eq('shop_id', shop.id)
+        .order('happened_at', { ascending: false });
+
+      if (error) throw error;
+
+      setStockMovements((data || []).map((m: any) => ({
+        id: m.id,
+        productId: m.product_id,
+        productName: m.product_name || 'Unknown',
+        movementType: m.movement_type,
+        reason: m.reason,
+        quantity: Number(m.quantity || 0),
+        unitCost: Number(m.unit_cost || 0),
+        totalCost: Number(m.total_cost || 0),
+        notes: m.notes || '',
+        happenedAt: m.happened_at,
+        expenseId: m.expense_id || null,
+      })));
+    } catch (error: any) {
+      console.error("Stock movements error:", error);
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
     fetchSales();
+    fetchStockMovements();
   }, [shop?.id]);
 
   const addProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> & { unit?: string }) => {
@@ -148,6 +184,38 @@ export const useInventory = () => {
     }
   };
 
+  const restockProduct = async (
+    productId: string,
+    quantity: number,
+    unitCost: number,
+    happenedAt: string,
+    allocationMode: 'cash' | 'accrual',
+    notes?: string
+  ) => {
+    if (!shop?.id || !isOwner) return null;
+
+    try {
+      const { data, error } = await (supabase.rpc('record_product_restock_atomic' as any, {
+        p_shop_id: shop.id,
+        p_product_id: productId,
+        p_quantity: quantity,
+        p_unit_cost: unitCost,
+        p_happened_at: `${happenedAt}T12:00:00`,
+        p_notes: notes || null,
+        p_allocation_mode: allocationMode,
+      }) as any);
+      if (error) throw error;
+
+      toast({ title: "Restock recorded" });
+      await fetchProducts();
+      await fetchStockMovements();
+      return Array.isArray(data) ? data[0] : data;
+    } catch (error: any) {
+      toast({ title: "Restock failed", description: error.message, variant: "destructive" });
+      return null;
+    }
+  };
+
   const getStats = (): DashboardStats => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -162,17 +230,20 @@ export const useInventory = () => {
     };
   };
 
-  return { 
-    products, 
-    sales, 
-    isLoading, 
+  return {
+    products,
+    sales,
+    stockMovements,
+    isLoading,
     addProduct,
     updateProduct,
     deleteProduct,
-    recordSale, 
-    getStats, 
+    recordSale,
+    restockProduct,
+    getStats,
     getLowStockProducts: () => products.filter(p => p.quantity <= p.lowStockThreshold),
+    getRestockMovements: () => stockMovements.filter((m) => m.reason === 'restock' && m.movementType === 'in'),
     searchProducts: (q: string) => products.filter(p => p.name.toLowerCase().includes(q.toLowerCase())),
-    refreshProducts: fetchProducts 
+    refreshProducts: fetchProducts
   };
 };

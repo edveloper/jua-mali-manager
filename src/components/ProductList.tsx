@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Plus, Package, AlertTriangle, Edit2, Trash2 } from 'lucide-react';
+import { Search, Plus, Package, AlertTriangle, Edit2, Trash2, PackagePlus } from 'lucide-react';
 import { Product } from '@/types/inventory';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -11,11 +11,12 @@ interface ProductListProps {
   onDelete: (id: string) => void;
   onAdd: () => void;
   onSell: (product: Product) => void;
+  onRestock?: (product: Product) => void;
   isOwner?: boolean;
   offeringMode?: 'products' | 'services' | 'mixed' | string;
 }
 
-export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSell, isOwner = true, offeringMode = 'products' }: ProductListProps) {
+export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSell, onRestock, isOwner = true, offeringMode = 'products' }: ProductListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   
   const displayProducts = searchQuery ? onSearch(searchQuery) : products;
@@ -110,6 +111,11 @@ export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSel
                 </Button>
                 {isOwner && (
                   <>
+                    {offeringMode !== 'services' && onRestock && (
+                      <Button variant="ghost" size="icon-sm" onClick={() => onRestock(product)} title="Restock">
+                        <PackagePlus className="h-4 w-4 text-primary" />
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon-sm" onClick={() => onEdit(product)}>
                       <Edit2 className="h-4 w-4" />
                     </Button>

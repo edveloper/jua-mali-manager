@@ -18,10 +18,46 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@Lovable" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <style>
+      #app-boot-loading {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(160deg, #f8f7f5 0%, #efe7df 100%);
+        color: #4a2b1d;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      }
+      #app-boot-loading .inner {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+        letter-spacing: 0.01em;
+      }
+      #app-boot-loading .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #c85a2e;
+        animation: pulse 1.1s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 0.3; transform: scale(0.9); }
+        50% { opacity: 1; transform: scale(1.1); }
+      }
+    </style>
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="app-boot-loading">
+        <div class="inner">
+          <span class="dot"></span>
+          <span>Loading Duka Manager...</span>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

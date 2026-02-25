@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid
 } from 'recharts';
 import { Wallet, CreditCard, Calendar as CalendarIcon, ArrowRight, Download, Sparkles, FileText, Landmark, Banknote } from 'lucide-react';
-import { Sale, CreditSale, Product } from '@/types/inventory';
+import { Sale, CreditSale, Product, StockMovement, ServiceSale } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, startOfDay, endOfDay, subDays, isWithinInterval } from 'date-fns';
@@ -13,6 +13,9 @@ import { Input } from '@/components/ui/input';
 interface SalesReportsProps {
   sales: Sale[];
   creditSales: CreditSale[];
+  getExpenseTotalForRange: (start: Date | string, end: Date | string, basis?: 'cash' | 'accrual') => number;
+  stockPurchases?: StockMovement[];
+  serviceSessions?: ServiceSale[];
   offeringMode?: 'products' | 'services' | 'mixed' | string;
   businessCategory?: string;
   singleOffering?: boolean;
@@ -28,6 +31,9 @@ const isTimeoutError = (message: string) => message.toLowerCase().includes('time
 export function SalesReports({
   sales,
   creditSales = [],
+  getExpenseTotalForRange,
+  stockPurchases = [],
+  serviceSessions = [],
   offeringMode = 'products',
   businessCategory = 'retail',
   singleOffering = false,
@@ -36,6 +42,7 @@ export function SalesReports({
   const [rangeType, setRangeType] = useState<RangeType>('7d');
   const [customStart, setCustomStart] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
   const [customEnd, setCustomEnd] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [expenseBasis, setExpenseBasis] = useState<'cash' | 'accrual'>('accrual');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiText, setAiText] = useState('');
   const [aiQuestion, setAiQuestion] = useState('');
@@ -58,6 +65,16 @@ export function SalesReports({
     return { fSales, fCredits, start, end };
   }, [sales, creditSales, rangeType, customStart, customEnd]);
 
+  const filteredStockPurchases = useMemo(
+    () => stockPurchases.filter((m) => isWithinInterval(new Date(m.happenedAt), { start: filteredData.start, end: filteredData.end })),
+    [stockPurchases, filteredData.start, filteredData.end]
+  );
+
+  const filteredServiceSessions = useMemo(
+    () => serviceSessions.filter((s) => isWithinInterval(new Date(s.createdAt), { start: filteredData.start, end: filteredData.end })),
+    [serviceSessions, filteredData.start, filteredData.end]
+  );
+
   const stats = useMemo(() => {
     const totalRevenue = filteredData.fSales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
     const totalProfit = filteredData.fSales.reduce((sum, s) => sum + (s.profit || 0), 0);
@@ -65,6 +82,8 @@ export function SalesReports({
     const cashRevenue = totalRevenue - creditIssued;
     const estimatedTOT = totalRevenue * 0.03;
     const avgTicket = filteredData.fSales.length ? totalRevenue / filteredData.fSales.length : 0;
+    const totalExpenses = getExpenseTotalForRange(filteredData.start, filteredData.end, expenseBasis);
+    const netAfterExpenses = totalProfit - totalExpenses;
 
     const byProduct = new Map<string, { qty: number; revenue: number; profit: number }>();
     for (const s of filteredData.fSales) {
@@ -94,9 +113,52 @@ export function SalesReports({
     const consistencyScore = avg > 0 ? Math.max(0, Math.min(100, Math.round(100 - (stdDev / avg) * 100))) : 0;
 
     return {
-      totalRevenue, totalProfit, cashRevenue, creditIssued, estimatedTOT, avgTicket, topItems, trendData, consistencyScore
+      totalRevenue, totalProfit, cashRevenue, creditIssued, estimatedTOT, avgTicket, topItems, trendData, consistencyScore, totalExpenses, netAfterExpenses
     };
-  }, [filteredData]);
+  }, [filteredData, getExpenseTotalForRange, expenseBasis]);
+
+  const operationsStats = useMemo(() => {
+    const totalRestockSpend = filteredStockPurchases.reduce((sum, row) => sum + Number(row.totalCost || 0), 0);
+    const totalRestockUnits = filteredStockPurchases.reduce((sum, row) => sum + Number(row.quantity || 0), 0);
+    const purchasedSkuCount = new Set(filteredStockPurchases.map((row) => row.productId)).size;
+    const avgUnitCost = totalRestockUnits > 0 ? totalRestockSpend / totalRestockUnits : 0;
+
+    const byProduct = new Map<string, { qty: number; spend: number }>();
+    for (const row of filteredStockPurchases) {
+      const key = row.productName || 'Unknown';
+      const current = byProduct.get(key) || { qty: 0, spend: 0 };
+      current.qty += Number(row.quantity || 0);
+      current.spend += Number(row.totalCost || 0);
+      byProduct.set(key, current);
+    }
+    const topPurchased = [...byProduct.entries()]
+      .map(([name, row]) => ({ name, qty: row.qty, spend: row.spend }))
+      .sort((a, b) => b.spend - a.spend)
+      .slice(0, 5);
+
+    const spendByDay = new Map<string, number>();
+    for (const row of filteredStockPurchases) {
+      const day = format(new Date(row.happenedAt), 'MM-dd');
+      spendByDay.set(day, (spendByDay.get(day) || 0) + Number(row.totalCost || 0));
+    }
+    const spendTrend = [...spendByDay.entries()].map(([day, spend]) => ({ day, spend }));
+
+    const totalServiceRevenue = filteredServiceSessions.reduce((sum, row) => sum + Number(row.totalAmount || 0), 0);
+    const completedSessions = filteredServiceSessions.filter((row) => row.status === 'completed').length;
+    const scheduledSessions = filteredServiceSessions.filter((row) => row.status === 'scheduled').length;
+
+    return {
+      totalRestockSpend,
+      totalRestockUnits,
+      purchasedSkuCount,
+      avgUnitCost,
+      topPurchased,
+      spendTrend,
+      totalServiceRevenue,
+      completedSessions,
+      scheduledSessions,
+    };
+  }, [filteredStockPurchases, filteredServiceSessions]);
 
   const exportSalesCsv = () => {
     const headers = ['date', 'item', 'quantity', 'total_amount', 'profit'];
@@ -127,7 +189,9 @@ export function SalesReports({
       `Business category: ${businessCategory}`,
       `Single offering: ${singleOffering ? 'Yes' : 'No'}`,
       `Total turnover: ${formatCurrency(stats.totalRevenue)}`,
+      `Total expenses (${expenseBasis} basis): ${formatCurrency(stats.totalExpenses)}`,
       `Gross profit: ${formatCurrency(stats.totalProfit)}`,
+      `Net after expenses: ${formatCurrency(stats.netAfterExpenses)}`,
       `Average ticket: ${formatCurrency(stats.avgTicket)}`,
       `Consistency score: ${stats.consistencyScore}/100`,
       `Estimated TOT (3%): ${formatCurrency(stats.estimatedTOT)}`
@@ -137,6 +201,127 @@ export function SalesReports({
     const a = document.createElement('a');
     a.href = url;
     a.download = `loan-readiness-${format(new Date(), 'yyyy-MM-dd')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportStockPurchasesCsv = () => {
+    const headers = ['date', 'product', 'quantity', 'unit_cost', 'total_cost', 'notes'];
+    const rows = filteredStockPurchases.map((p) => [
+      csvEscape(format(new Date(p.happenedAt), 'yyyy-MM-dd HH:mm')),
+      csvEscape(p.productName),
+      csvEscape(p.quantity),
+      csvEscape(p.unitCost),
+      csvEscape(p.totalCost),
+      csvEscape(p.notes || ''),
+    ].join(','));
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stock-purchases-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportStockPurchasesExcel = () => {
+    const headers = ['Date', 'Product', 'Quantity', 'Unit Cost', 'Total Cost', 'Notes'];
+    const rows = filteredStockPurchases.map((p) => [
+      format(new Date(p.happenedAt), 'yyyy-MM-dd HH:mm'),
+      p.productName,
+      String(p.quantity),
+      String(p.unitCost),
+      String(p.totalCost),
+      p.notes || '',
+    ].join('\t'));
+    const content = [headers.join('\t'), ...rows].join('\n');
+    const blob = new Blob([content], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stock-purchases-${format(new Date(), 'yyyy-MM-dd')}.xls`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportServiceSessionsCsv = () => {
+    const headers = ['date', 'service', 'quantity', 'amount', 'profit', 'staff', 'status', 'notes'];
+    const rows = filteredServiceSessions.map((s) => [
+      csvEscape(format(new Date(s.createdAt), 'yyyy-MM-dd HH:mm')),
+      csvEscape(s.serviceName),
+      csvEscape(s.quantity),
+      csvEscape(s.totalAmount),
+      csvEscape(s.profit),
+      csvEscape(s.staffName || ''),
+      csvEscape(s.status || ''),
+      csvEscape(s.notes || ''),
+    ].join(','));
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `service-sessions-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportServiceSessionsExcel = () => {
+    const headers = ['Date', 'Service', 'Quantity', 'Amount', 'Profit', 'Staff', 'Status', 'Notes'];
+    const rows = filteredServiceSessions.map((s) => [
+      format(new Date(s.createdAt), 'yyyy-MM-dd HH:mm'),
+      s.serviceName,
+      String(s.quantity),
+      String(s.totalAmount),
+      String(s.profit),
+      s.staffName || '',
+      s.status || '',
+      s.notes || '',
+    ].join('\t'));
+    const content = [headers.join('\t'), ...rows].join('\n');
+    const blob = new Blob([content], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `service-sessions-${format(new Date(), 'yyyy-MM-dd')}.xls`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportOperationsSummaryTxt = () => {
+    const lines = [
+      'Duka Manager Operations Summary',
+      `Period: ${format(filteredData.start, 'MMM d, yyyy')} - ${format(filteredData.end, 'MMM d, yyyy')}`,
+      `Business mode: ${offeringMode}`,
+      '',
+      'Inventory Operations',
+      `Restock spend: ${formatCurrency(operationsStats.totalRestockSpend)}`,
+      `Units purchased: ${operationsStats.totalRestockUnits}`,
+      `Purchased SKUs: ${operationsStats.purchasedSkuCount}`,
+      `Average unit cost: ${formatCurrency(operationsStats.avgUnitCost)}`,
+      '',
+      'Service Operations',
+      `Sessions: ${filteredServiceSessions.length}`,
+      `Completed sessions: ${operationsStats.completedSessions}`,
+      `Scheduled sessions: ${operationsStats.scheduledSessions}`,
+      `Service revenue: ${formatCurrency(operationsStats.totalServiceRevenue)}`,
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `operations-summary-${format(new Date(), 'yyyy-MM-dd')}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -154,7 +339,7 @@ export function SalesReports({
           totalStockValue: 0,
           lowStockCount: lowStockProducts.length,
           totalCreditOwed: filteredData.fCredits.reduce((s, c) => s + Number(c.balance || 0), 0),
-          totalExpenses: 0,
+          totalExpenses: stats.totalExpenses,
         },
         businessProfile: {
           category: businessCategory,
@@ -247,6 +432,7 @@ export function SalesReports({
           totals: {
             revenue: stats.totalRevenue,
             profit: stats.totalProfit,
+            expenses: stats.totalExpenses,
             creditIssued: stats.creditIssued,
             consistencyScore: stats.consistencyScore,
           },
@@ -316,16 +502,49 @@ export function SalesReports({
           </p>
         </div>
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="stat-card">
+          <p className="metric-label">Total Expenses</p>
+          <p className="text-lg font-bold text-destructive">{formatCurrency(stats.totalExpenses)}</p>
+          <p className="text-[10px] text-muted-foreground mt-1">{expenseBasis} basis</p>
+        </div>
+        <div className={`stat-card ${stats.netAfterExpenses < 0 ? 'border-destructive/30 bg-destructive/5' : 'border-success/30 bg-success/5'}`}>
+          <p className="metric-label">Net After Expenses</p>
+          <p className={`text-lg font-bold ${stats.netAfterExpenses < 0 ? 'text-destructive' : 'text-success'}`}>
+            {formatCurrency(stats.netAfterExpenses)}
+          </p>
+          <p className="text-[10px] text-muted-foreground mt-1">Gross profit - expenses</p>
+        </div>
+      </div>
 
       <Tabs defaultValue="overview">
         <TabsList className="w-full">
           <TabsTrigger value="overview" className="flex-1">Overview</TabsTrigger>
+          <TabsTrigger value="operations" className="flex-1">Ops</TabsTrigger>
           <TabsTrigger value="tax" className="flex-1">Tax</TabsTrigger>
           <TabsTrigger value="loan" className="flex-1">Loan</TabsTrigger>
           <TabsTrigger value="ai" className="flex-1">AI</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4 pt-2">
+          <div className="flex gap-2 bg-muted p-1 rounded-lg">
+            <Button
+              variant={expenseBasis === 'accrual' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setExpenseBasis('accrual')}
+              className="flex-1 text-xs"
+            >
+              Expenses: Accrual
+            </Button>
+            <Button
+              variant={expenseBasis === 'cash' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setExpenseBasis('cash')}
+              className="flex-1 text-xs"
+            >
+              Expenses: Cash
+            </Button>
+          </div>
           <div className="bg-card rounded-2xl p-4 border border-border">
             <h3 className="font-semibold mb-4 flex items-center gap-2">
               <Wallet className="h-4 w-4 text-primary" /> Revenue Split
@@ -385,6 +604,101 @@ export function SalesReports({
               <Download className="h-4 w-4 mr-2" /> Export Sales CSV
             </Button>
           </div>
+        </TabsContent>
+
+        <TabsContent value="operations" className="space-y-4 pt-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="stat-card">
+              <p className="metric-label">Restock Spend</p>
+              <p className="text-lg font-bold text-destructive">{formatCurrency(operationsStats.totalRestockSpend)}</p>
+            </div>
+            <div className="stat-card">
+              <p className="metric-label">Units Purchased</p>
+              <p className="text-lg font-bold">{operationsStats.totalRestockUnits}</p>
+            </div>
+            <div className="stat-card">
+              <p className="metric-label">Purchased SKUs</p>
+              <p className="text-lg font-bold">{operationsStats.purchasedSkuCount}</p>
+            </div>
+            <div className="stat-card">
+              <p className="metric-label">Avg Unit Cost</p>
+              <p className="text-lg font-bold">{formatCurrency(operationsStats.avgUnitCost)}</p>
+            </div>
+          </div>
+
+          {offeringMode !== 'services' && (
+            <>
+              <div className="bg-card rounded-2xl p-4 border border-border">
+                <h3 className="font-semibold mb-3">Restock Spend Trend</h3>
+                <div className="h-44">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={operationsStats.spendTrend}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="day" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip formatter={(v) => formatCurrency(v as number)} />
+                      <Line type="monotone" dataKey="spend" stroke="#dc2626" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="bg-card rounded-2xl p-4 border border-border">
+                <h3 className="font-semibold mb-2">Top Purchased Items</h3>
+                <div className="space-y-2">
+                  {operationsStats.topPurchased.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No stock purchases in selected range.</p>
+                  ) : operationsStats.topPurchased.map((row) => (
+                    <div key={row.name} className="flex justify-between text-sm">
+                      <span className="truncate pr-2">{row.name} ({row.qty})</span>
+                      <span className="font-semibold">{formatCurrency(row.spend)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-card rounded-2xl p-4 border border-border space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold">Stock Purchase Exports</h3>
+                  <p className="text-xs text-muted-foreground">{filteredStockPurchases.length} entries</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={exportStockPurchasesCsv} disabled={filteredStockPurchases.length === 0}>
+                    <Download className="h-4 w-4 mr-2" /> Purchases CSV
+                  </Button>
+                  <Button variant="outline" className="flex-1" onClick={exportStockPurchasesExcel} disabled={filteredStockPurchases.length === 0}>
+                    <Download className="h-4 w-4 mr-2" /> Purchases Excel
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {offeringMode !== 'products' && (
+            <div className="bg-card rounded-2xl p-4 border border-border space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">Service Session Exports</h3>
+                <p className="text-xs text-muted-foreground">
+                  {filteredServiceSessions.length} sessions | {formatCurrency(operationsStats.totalServiceRevenue)}
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Completed: {operationsStats.completedSessions} | Scheduled: {operationsStats.scheduledSessions}
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={exportServiceSessionsCsv} disabled={filteredServiceSessions.length === 0}>
+                  <Download className="h-4 w-4 mr-2" /> Sessions CSV
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={exportServiceSessionsExcel} disabled={filteredServiceSessions.length === 0}>
+                  <Download className="h-4 w-4 mr-2" /> Sessions Excel
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <Button variant="outline" className="w-full" onClick={exportOperationsSummaryTxt}>
+            <FileText className="h-4 w-4 mr-2" /> Export Operations Summary
+          </Button>
         </TabsContent>
 
         <TabsContent value="tax" className="pt-2 space-y-4">
@@ -451,3 +765,4 @@ export function SalesReports({
     </div>
   );
 }
+

@@ -12,7 +12,12 @@ export const useCredit = () => {
   const { toast } = useToast();
 
   const fetchData = async () => {
-    if (!shop?.id) return;
+    if (!shop?.id) {
+      setCustomers([]);
+      setCreditSales([]);
+      setIsLoading(false);
+      return;
+    }
     try {
       setIsLoading(true);
       const { data: custData } = await (supabase.from('customers') as any).select('*').eq('shop_id', shop.id);

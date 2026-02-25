@@ -16,6 +16,7 @@ import { EmployeeDashboard } from '@/components/EmployeeDashboard';
 import { ProductList } from '@/components/ProductList';
 import { ProductForm } from '@/components/ProductForm';
 import { SellDialog } from '@/components/SellDialog';
+import { RestockDialog } from '@/components/RestockDialog';
 import { LowStockAlerts } from '@/components/LowStockAlerts';
 import { CreditManager } from '@/components/CreditManager';
 import { SalesReports } from '@/components/SalesReports';
@@ -48,7 +49,9 @@ const Index = () => {
   const [editingCatalogKind, setEditingCatalogKind] = useState<CatalogKind>('products');
   const [sellingProduct, setSellingProduct] = useState<Product | null>(null);
   const [sellingCatalogKind, setSellingCatalogKind] = useState<CatalogKind>('products');
+  const [restockingProduct, setRestockingProduct] = useState<Product | null>(null);
   const [viewDate, setViewDate] = useState(new Date());
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
 
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -57,9 +60,9 @@ const Index = () => {
   const { user, loading: authLoading, isOwner, shop, shopMember, signOut } = useAuth();
 
   const {
-    products, sales, isLoading: inventoryLoading,
+    products, sales, stockMovements, isLoading: inventoryLoading,
     addProduct, updateProduct, deleteProduct,
-    recordSale, getLowStockProducts, getStats, searchProducts
+    recordSale, restockProduct, getLowStockProducts, getStats, searchProducts
   } = useInventory();
 
   const {
@@ -146,17 +149,38 @@ const Index = () => {
     ? currentMonthServiceSales
     : (isMixedMode ? currentMonthProductSales + currentMonthServiceSales : currentMonthProductSales);
 
-  const { expenses, addExpense, deleteExpense, quickAddTOT, getTotalExpenses } = useExpenses(currentMonthSales);
+  const { expenses, addExpense, deleteExpense, quickAddTOT, getAccruedExpensesForDate, getExpenseTotalForRange } = useExpenses(currentMonthSales);
 
   const loadingData = isServicesMode
     ? servicesLoading
     : (isMixedMode ? (inventoryLoading || servicesLoading) : inventoryLoading);
 
-  if (authLoading || (loadingData && !shopMember)) {
+  const isAppLoading = authLoading || (loadingData && !shopMember);
+
+  useEffect(() => {
+    if (!isAppLoading) {
+      setLoadingTimedOut(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setLoadingTimedOut(true), 15000);
+    return () => window.clearTimeout(timer);
+  }, [isAppLoading]);
+
+  if (isAppLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
-        <p className="text-muted-foreground animate-pulse">Loading Duka Manager...</p>
+        {!loadingTimedOut ? (
+          <>
+            <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
+            <p className="text-muted-foreground animate-pulse">Loading Duka Manager...</p>
+          </>
+        ) : (
+          <div className="panel-glass p-5 max-w-sm text-center space-y-3">
+            <p className="font-semibold">Still loading...</p>
+            <p className="text-sm text-muted-foreground">Connection or session sync is taking longer than expected.</p>
+            <Button className="w-full" onClick={() => window.location.reload()}>Reload App</Button>
+          </div>
+        )}
       </div>
     );
   }
@@ -180,7 +204,7 @@ const Index = () => {
   const filteredSales = reportSales.filter((s) => isSameDay(new Date(s.createdAt), viewDate));
   const selectedDateSales = filteredSales.reduce((sum, s) => sum + Number(s.totalAmount || 0), 0);
   const selectedDateProfit = filteredSales.reduce((sum, s) => sum + Number(s.profit || 0), 0);
-  const totalExpenses = getTotalExpenses();
+  const totalExpenses = getAccruedExpensesForDate(viewDate);
 
   const totalCreditOwed = isServicesMode ? 0 : getTotalOwed();
   const displayStats = {
@@ -396,6 +420,7 @@ const Index = () => {
               setSellingCatalogKind(isServicesCatalog ? 'services' : 'products');
               setSellingProduct(p);
             }}
+            onRestock={(!isServicesCatalog && isOwner) ? (p) => setRestockingProduct(p) : undefined}
             isOwner={isOwner}
             offeringMode={currentOfferingLabel}
           />
@@ -443,6 +468,9 @@ const Index = () => {
             <SalesReports
               sales={reportSales}
               creditSales={offeringMode === 'services' ? [] : creditSales}
+              getExpenseTotalForRange={getExpenseTotalForRange}
+              stockPurchases={stockMovements.filter((m) => m.reason === 'restock' && m.movementType === 'in')}
+              serviceSessions={serviceSales}
               offeringMode={offeringMode}
               businessCategory={shop?.business_category || 'retail'}
               singleOffering={Boolean(shop?.single_offering)}
@@ -476,6 +504,16 @@ const Index = () => {
           isOwner={isOwner}
           offeringMode={sellingCatalogKind === 'services' ? 'services' : 'products'}
           allowCredit={sellingCatalogKind !== 'services'}
+        />
+      )}
+      {restockingProduct && (
+        <RestockDialog
+          product={restockingProduct}
+          onRestock={async (productId, quantity, unitCost, happenedAt, allocationMode, notes) => {
+            await restockProduct(productId, quantity, unitCost, happenedAt, allocationMode, notes);
+            setRestockingProduct(null);
+          }}
+          onClose={() => setRestockingProduct(null)}
         />
       )}
 

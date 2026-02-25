@@ -112,6 +112,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (!loading) return;
+    const timeout = window.setTimeout(() => {
+      console.warn('Auth loading timeout reached, releasing loading state.');
+      setLoading(false);
+    }, 12000);
+    return () => window.clearTimeout(timeout);
+  }, [loading]);
+
   const signIn = async (email: string, password?: string) => {
     return await supabase.auth.signInWithPassword({
       email,

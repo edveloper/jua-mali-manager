@@ -12,7 +12,12 @@ export const useServices = () => {
   const { toast } = useToast();
 
   const fetchServices = async () => {
-    if (!shop?.id) return;
+    if (!shop?.id) {
+      setServices([]);
+      setServiceSales([]);
+      setIsLoading(false);
+      return;
+    }
     try {
       setIsLoading(true);
       const { data, error } = await (supabase.from('services') as any)

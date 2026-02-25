@@ -96,5 +96,36 @@ export interface Expense {
   description: string;
   amount: number;
   date: string;
+  expenseType: 'one_off' | 'variable' | 'recurring';
+  recurrenceUnit: 'none' | 'daily' | 'weekly' | 'monthly' | 'annual';
+  allocationMode: 'cash' | 'accrual';
+  effectiveFrom?: string | null;
+  effectiveTo?: string | null;
   createdAt: string;
+}
+
+export interface ExpenseDraft {
+  category: string;
+  description: string;
+  amount: number;
+  date: string;
+  expenseType: 'one_off' | 'variable' | 'recurring';
+  recurrenceUnit: 'none' | 'daily' | 'weekly' | 'monthly' | 'annual';
+  allocationMode: 'cash' | 'accrual';
+  effectiveFrom?: string | null;
+  effectiveTo?: string | null;
+}
+
+export interface StockMovement {
+  id: string;
+  productId: string;
+  productName: string;
+  movementType: 'in' | 'out' | 'adjustment';
+  reason: 'restock' | 'sale' | 'damage' | 'return' | 'manual_adjustment';
+  quantity: number;
+  unitCost: number;
+  totalCost: number;
+  notes?: string;
+  happenedAt: string;
+  expenseId?: string | null;
 }
