@@ -131,6 +131,30 @@ export const useInventory = () => {
     }
   };
 
+  const bulkImportProducts = async (rows: Array<Omit<Product, 'id' | 'createdAt' | 'updatedAt'> & { unit?: string }>) => {
+    if (!shop?.id || !isOwner || rows.length === 0) return { inserted: 0, error: null as any };
+    try {
+      const payload = rows.map((row) => ({
+        shop_id: shop.id,
+        name: row.name,
+        category: row.category,
+        cost_price: row.costPrice,
+        price: row.sellingPrice,
+        stock_level: row.quantity,
+        min_stock_level: row.lowStockThreshold,
+        unit: row.unit || 'pcs'
+      }));
+      const { error } = await (supabase.from('products') as any).insert(payload);
+      if (error) throw error;
+      await fetchProducts();
+      toast({ title: `Imported ${rows.length} products` });
+      return { inserted: rows.length, error: null as any };
+    } catch (error: any) {
+      toast({ title: "Import failed", description: error.message, variant: "destructive" });
+      return { inserted: 0, error };
+    }
+  };
+
   const updateProduct = async (id: string, updates: Partial<Product> & { unit?: string }) => {
     if (!isOwner) return;
     try {
@@ -236,6 +260,7 @@ export const useInventory = () => {
     stockMovements,
     isLoading,
     addProduct,
+    bulkImportProducts,
     updateProduct,
     deleteProduct,
     recordSale,

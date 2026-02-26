@@ -61,13 +61,13 @@ const Index = () => {
 
   const {
     products, sales, stockMovements, isLoading: inventoryLoading,
-    addProduct, updateProduct, deleteProduct,
+    addProduct, bulkImportProducts, updateProduct, deleteProduct,
     recordSale, restockProduct, getLowStockProducts, getStats, searchProducts
   } = useInventory();
 
   const {
     services, serviceSales, isLoading: servicesLoading,
-    addService, updateService, deleteService,
+    addService, bulkImportServices, updateService, deleteService,
     recordServiceSale, getLowAvailabilityServices, getStats: getServiceStats, searchServices
   } = useServices();
 
@@ -204,7 +204,7 @@ const Index = () => {
   const filteredSales = reportSales.filter((s) => isSameDay(new Date(s.createdAt), viewDate));
   const selectedDateSales = filteredSales.reduce((sum, s) => sum + Number(s.totalAmount || 0), 0);
   const selectedDateProfit = filteredSales.reduce((sum, s) => sum + Number(s.profit || 0), 0);
-  const totalExpenses = getAccruedExpensesForDate(viewDate);
+  const totalExpenses = getAccruedExpensesForDate(viewDate, { includeInventoryPurchases: false });
 
   const totalCreditOwed = isServicesMode ? 0 : getTotalOwed();
   const displayStats = {
@@ -224,6 +224,12 @@ const Index = () => {
 
   const totalOwedAmount = totalCreditOwed;
   const pendingCreditsCount = creditSales.filter((cs) => cs.status !== 'paid').length;
+
+  const productMissingCostCount = products.filter((p) => Number(p.costPrice || 0) <= 0).length;
+  const productMissingPriceCount = products.filter((p) => Number(p.sellingPrice || 0) <= 0).length;
+  const serviceMissingCostCount = services.filter((s) => Number(s.costPrice || 0) <= 0).length;
+  const serviceMissingPriceCount = services.filter((s) => Number(s.sellingPrice || 0) <= 0).length;
+  const hasDataCompletionTasks = (productMissingCostCount + productMissingPriceCount + serviceMissingCostCount + serviceMissingPriceCount) > 0;
 
   const handleSaveProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!isOwner) return;
@@ -383,12 +389,29 @@ const Index = () => {
 
         {activeTab === 'dashboard' && (
           isOwner ? (
-            <OwnerDashboard
-              stats={displayStats}
-              dateLabel={dateLabel}
-              onNavigate={setActiveTab}
-              offeringMode={offeringMode}
-            />
+            <div className="space-y-3">
+              {hasDataCompletionTasks && (
+                <div className="panel-glass p-4 border border-warning/40 bg-warning/5">
+                  <p className="text-sm font-semibold">Data Completion Needed</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Missing key fields from imported items can distort profit and reports.
+                  </p>
+                  <div className="text-xs mt-2 space-y-1">
+                    {productMissingCostCount > 0 && <p>{productMissingCostCount} products missing cost price.</p>}
+                    {productMissingPriceCount > 0 && <p>{productMissingPriceCount} products missing selling price.</p>}
+                    {serviceMissingCostCount > 0 && <p>{serviceMissingCostCount} services missing direct cost.</p>}
+                    {serviceMissingPriceCount > 0 && <p>{serviceMissingPriceCount} services missing service price.</p>}
+                  </div>
+                  <Button size="sm" className="mt-3" onClick={() => setActiveTab('products')}>Review Catalog Data</Button>
+                </div>
+              )}
+              <OwnerDashboard
+                stats={displayStats}
+                dateLabel={dateLabel}
+                onNavigate={setActiveTab}
+                offeringMode={offeringMode}
+              />
+            </div>
           ) : (
             <EmployeeDashboard stats={baseStats} todaySalesCount={filteredSales.length} offeringMode={offeringMode} />
           )
@@ -469,6 +492,7 @@ const Index = () => {
               sales={reportSales}
               creditSales={offeringMode === 'services' ? [] : creditSales}
               getExpenseTotalForRange={getExpenseTotalForRange}
+              expenses={expenses}
               stockPurchases={stockMovements.filter((m) => m.reason === 'restock' && m.movementType === 'in')}
               serviceSessions={serviceSales}
               offeringMode={offeringMode}
@@ -479,7 +503,12 @@ const Index = () => {
             {(isServicesMode || isMixedMode) && <ServiceSessionHistory sessions={serviceSales} />}
           </div>
         )}
-        {activeTab === 'settings' && <SettingsPanel />}
+        {activeTab === 'settings' && (
+          <SettingsPanel
+            onImportProducts={bulkImportProducts}
+            onImportServices={bulkImportServices}
+          />
+        )}
         {activeTab === 'help' && <HelpPanel />}
         {activeTab === 'privacy' && <PrivacyPanel />}
         {activeTab === 'contact' && <ContactPanel />}

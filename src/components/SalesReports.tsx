@@ -1,9 +1,9 @@
 ﻿import { useMemo, useState } from 'react';
 import {
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid
+  ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend
 } from 'recharts';
-import { Wallet, CreditCard, Calendar as CalendarIcon, ArrowRight, Download, Sparkles, FileText, Landmark, Banknote } from 'lucide-react';
-import { Sale, CreditSale, Product, StockMovement, ServiceSale } from '@/types/inventory';
+import { CreditCard, Calendar as CalendarIcon, ArrowRight, Download, Sparkles, FileText, Landmark, Banknote } from 'lucide-react';
+import { Sale, CreditSale, Product, StockMovement, ServiceSale, Expense } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, startOfDay, endOfDay, subDays, isWithinInterval } from 'date-fns';
@@ -13,7 +13,13 @@ import { Input } from '@/components/ui/input';
 interface SalesReportsProps {
   sales: Sale[];
   creditSales: CreditSale[];
-  getExpenseTotalForRange: (start: Date | string, end: Date | string, basis?: 'cash' | 'accrual') => number;
+  getExpenseTotalForRange: (
+    start: Date | string,
+    end: Date | string,
+    basis?: 'cash' | 'accrual',
+    options?: { includeInventoryPurchases?: boolean }
+   ) => number;
+  expenses?: Expense[];
   stockPurchases?: StockMovement[];
   serviceSessions?: ServiceSale[];
   offeringMode?: 'products' | 'services' | 'mixed' | string;
@@ -27,11 +33,16 @@ type RangeType = '7d' | '30d' | 'thisMonth' | 'custom';
 const formatCurrency = (amount: number) => `KSh ${amount.toLocaleString()}`;
 const csvEscape = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
 const isTimeoutError = (message: string) => message.toLowerCase().includes('timeout');
+const isInventoryPurchaseCategory = (category?: string | null) => {
+  const normalized = String(category || '').toLowerCase();
+  return normalized.includes('stock purchase') || normalized.includes('inventory purchase');
+};
 
 export function SalesReports({
   sales,
   creditSales = [],
   getExpenseTotalForRange,
+  expenses = [],
   stockPurchases = [],
   serviceSessions = [],
   offeringMode = 'products',
@@ -43,6 +54,7 @@ export function SalesReports({
   const [customStart, setCustomStart] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
   const [customEnd, setCustomEnd] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [expenseBasis, setExpenseBasis] = useState<'cash' | 'accrual'>('accrual');
+  const [docTab, setDocTab] = useState<'all' | 'loan' | 'visa'>('all');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiText, setAiText] = useState('');
   const [aiQuestion, setAiQuestion] = useState('');
@@ -75,6 +87,11 @@ export function SalesReports({
     [serviceSessions, filteredData.start, filteredData.end]
   );
 
+  const filteredExpenses = useMemo(
+    () => expenses.filter((e) => isWithinInterval(new Date(e.date), { start: filteredData.start, end: filteredData.end })),
+    [expenses, filteredData.start, filteredData.end]
+  );
+
   const stats = useMemo(() => {
     const totalRevenue = filteredData.fSales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
     const totalProfit = filteredData.fSales.reduce((sum, s) => sum + (s.profit || 0), 0);
@@ -82,8 +99,17 @@ export function SalesReports({
     const cashRevenue = totalRevenue - creditIssued;
     const estimatedTOT = totalRevenue * 0.03;
     const avgTicket = filteredData.fSales.length ? totalRevenue / filteredData.fSales.length : 0;
-    const totalExpenses = getExpenseTotalForRange(filteredData.start, filteredData.end, expenseBasis);
+    const avgDailySales = filteredData.fSales.length
+      ? totalRevenue / Math.max(1, new Set(filteredData.fSales.map((s) => format(new Date(s.createdAt), 'yyyy-MM-dd'))).size)
+      : 0;
+    const totalExpenses = getExpenseTotalForRange(
+      filteredData.start,
+      filteredData.end,
+      expenseBasis,
+      { includeInventoryPurchases: false }
+    );
     const netAfterExpenses = totalProfit - totalExpenses;
+    const operatingMargin = totalRevenue > 0 ? (netAfterExpenses / totalRevenue) * 100 : 0;
 
     const byProduct = new Map<string, { qty: number; revenue: number; profit: number }>();
     for (const s of filteredData.fSales) {
@@ -113,9 +139,72 @@ export function SalesReports({
     const consistencyScore = avg > 0 ? Math.max(0, Math.min(100, Math.round(100 - (stdDev / avg) * 100))) : 0;
 
     return {
-      totalRevenue, totalProfit, cashRevenue, creditIssued, estimatedTOT, avgTicket, topItems, trendData, consistencyScore, totalExpenses, netAfterExpenses
+      totalRevenue, totalProfit, cashRevenue, creditIssued, estimatedTOT, avgTicket, avgDailySales, topItems, trendData, consistencyScore, totalExpenses, netAfterExpenses, operatingMargin
     };
   }, [filteredData, getExpenseTotalForRange, expenseBasis]);
+
+  const expenseStats = useMemo(() => {
+    const operatingByCategory = new Map<string, number>();
+    let operatingExpenseTotal = 0;
+    let inventoryAsExpenseTotal = 0;
+
+    for (const e of filteredExpenses) {
+      const amount = Number(e.amount || 0);
+      const key = e.category || 'Other';
+      if (isInventoryPurchaseCategory(key)) {
+        inventoryAsExpenseTotal += amount;
+        continue;
+      }
+      operatingExpenseTotal += amount;
+      operatingByCategory.set(key, (operatingByCategory.get(key) || 0) + amount);
+    }
+
+    const operatingCategorySpend = [...operatingByCategory.entries()]
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 8);
+
+    const purchasesTotal = filteredStockPurchases.reduce((sum, row) => sum + Number(row.totalCost || 0), 0);
+    const purchasesCombinedTotal = purchasesTotal + inventoryAsExpenseTotal;
+    const totalOutflow = operatingExpenseTotal + purchasesCombinedTotal;
+    const outflowBreakdown = [
+      { name: 'Operating expenses', amount: operatingExpenseTotal },
+      { name: 'Purchases/restock', amount: purchasesCombinedTotal },
+    ];
+
+    const dayMap = new Map<string, { operating: number; purchases: number }>();
+    for (const e of filteredExpenses) {
+      const day = format(new Date(e.date), 'MM-dd');
+      const row = dayMap.get(day) || { operating: 0, purchases: 0 };
+      if (isInventoryPurchaseCategory(e.category)) {
+        row.purchases += Number(e.amount || 0);
+      } else {
+        row.operating += Number(e.amount || 0);
+      }
+      dayMap.set(day, row);
+    }
+    for (const p of filteredStockPurchases) {
+      const day = format(new Date(p.happenedAt), 'MM-dd');
+      const row = dayMap.get(day) || { operating: 0, purchases: 0 };
+      row.purchases += Number(p.totalCost || 0);
+      dayMap.set(day, row);
+    }
+    const outflowTrend = [...dayMap.entries()].map(([day, values]) => ({
+      day,
+      operating: values.operating,
+      purchases: values.purchases,
+      total: values.operating + values.purchases,
+    }));
+
+    return {
+      operatingCategorySpend,
+      operatingExpenseTotal,
+      purchasesCombinedTotal,
+      totalOutflow,
+      outflowBreakdown,
+      outflowTrend,
+    };
+  }, [filteredExpenses, filteredStockPurchases]);
 
   const operationsStats = useMemo(() => {
     const totalRestockSpend = filteredStockPurchases.reduce((sum, row) => sum + Number(row.totalCost || 0), 0);
@@ -189,7 +278,7 @@ export function SalesReports({
       `Business category: ${businessCategory}`,
       `Single offering: ${singleOffering ? 'Yes' : 'No'}`,
       `Total turnover: ${formatCurrency(stats.totalRevenue)}`,
-      `Total expenses (${expenseBasis} basis): ${formatCurrency(stats.totalExpenses)}`,
+      `Operating expenses (${expenseBasis} basis): ${formatCurrency(stats.totalExpenses)}`,
       `Gross profit: ${formatCurrency(stats.totalProfit)}`,
       `Net after expenses: ${formatCurrency(stats.netAfterExpenses)}`,
       `Average ticket: ${formatCurrency(stats.avgTicket)}`,
@@ -297,6 +386,167 @@ export function SalesReports({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const exportExpensesCsv = () => {
+    const headers = ['date', 'category', 'description', 'amount', 'type', 'allocation_mode'];
+    const rows = filteredExpenses.map((e) => [
+      csvEscape(format(new Date(e.date), 'yyyy-MM-dd')),
+      csvEscape(e.category || ''),
+      csvEscape(e.description || ''),
+      csvEscape(Number(e.amount || 0)),
+      csvEscape(e.expenseType || 'one_off'),
+      csvEscape(e.allocationMode || 'cash'),
+    ].join(','));
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `expenses-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportExpensesExcel = () => {
+    const headers = ['Date', 'Category', 'Description', 'Amount', 'Type', 'Allocation Mode'];
+    const rows = filteredExpenses.map((e) => [
+      format(new Date(e.date), 'yyyy-MM-dd'),
+      e.category || '',
+      e.description || '',
+      String(Number(e.amount || 0)),
+      e.expenseType || 'one_off',
+      e.allocationMode || 'cash',
+    ].join('\t'));
+    const content = [headers.join('\t'), ...rows].join('\n');
+    const blob = new Blob([content], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `expenses-${format(new Date(), 'yyyy-MM-dd')}.xls`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const buildStyledDocument = (title: string, subtitle: string, body: string) => `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>${title}</title>
+  <style>
+    body{font-family:Segoe UI,Arial,sans-serif;margin:24px;color:#1f2937;background:#fff}
+    .header{border-bottom:2px solid #e5e7eb;padding-bottom:12px;margin-bottom:16px}
+    .title{font-size:22px;font-weight:700;color:#111827}
+    .sub{font-size:12px;color:#6b7280;margin-top:4px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+    .card{border:1px solid #e5e7eb;border-radius:10px;padding:10px}
+    .label{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em}
+    .value{font-size:18px;font-weight:700;margin-top:4px}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border:1px solid #e5e7eb;padding:8px;font-size:12px;text-align:left}
+    th{background:#f9fafb}
+    h3{margin:16px 0 8px;font-size:14px}
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">${title}</div>
+    <div class="sub">${subtitle}</div>
+  </div>
+  ${body}
+</body>
+</html>`;
+
+  const downloadHtmlDoc = (fileName: string, html: string) => {
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportLoanPackHtml = () => {
+    const body = `
+      <div class="grid">
+        <div class="card"><div class="label">Turnover</div><div class="value">${formatCurrency(stats.totalRevenue)}</div></div>
+        <div class="card"><div class="label">Gross Profit</div><div class="value">${formatCurrency(stats.totalProfit)}</div></div>
+        <div class="card"><div class="label">Operating Expenses</div><div class="value">${formatCurrency(stats.totalExpenses)}</div></div>
+        <div class="card"><div class="label">Net After Expenses</div><div class="value">${formatCurrency(stats.netAfterExpenses)}</div></div>
+      </div>
+      <h3>Top Selling Items</h3>
+      <table><thead><tr><th>Item</th><th>Revenue</th><th>Qty</th></tr></thead><tbody>
+      ${stats.topItems.map((t) => `<tr><td>${t.name}</td><td>${formatCurrency(t.revenue)}</td><td>${t.qty}</td></tr>`).join('')}
+      </tbody></table>
+      <h3>Operational Snapshot</h3>
+      <table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody>
+      <tr><td>Consistency Score</td><td>${stats.consistencyScore}/100</td></tr>
+      <tr><td>Average Ticket</td><td>${formatCurrency(stats.avgTicket)}</td></tr>
+      <tr><td>Average Daily Sales</td><td>${formatCurrency(stats.avgDailySales)}</td></tr>
+      <tr><td>Restock Spend</td><td>${formatCurrency(operationsStats.totalRestockSpend)}</td></tr>
+      </tbody></table>`;
+    const html = buildStyledDocument(
+      'Duka Manager Loan Application Pack',
+      `Period: ${format(filteredData.start, 'MMM d, yyyy')} - ${format(filteredData.end, 'MMM d, yyyy')}`,
+      body
+    );
+    downloadHtmlDoc(`loan-pack-${format(new Date(), 'yyyy-MM-dd')}.html`, html);
+  };
+
+  const exportVisaPackHtml = () => {
+    const body = `
+      <div class="grid">
+        <div class="card"><div class="label">Total Sales</div><div class="value">${formatCurrency(stats.totalRevenue)}</div></div>
+        <div class="card"><div class="label">Operating Margin</div><div class="value">${stats.operatingMargin.toFixed(1)}%</div></div>
+        <div class="card"><div class="label">Business Type</div><div class="value">${String(offeringMode).toUpperCase()}</div></div>
+        <div class="card"><div class="label">Estimated Tax (TOT)</div><div class="value">${formatCurrency(stats.estimatedTOT)}</div></div>
+      </div>
+      <h3>Sales List</h3>
+      <table><thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Amount</th></tr></thead><tbody>
+      ${filteredData.fSales.map((s) => `<tr><td>${format(new Date(s.createdAt), 'yyyy-MM-dd')}</td><td>${s.productName}</td><td>${s.quantity}</td><td>${formatCurrency(Number(s.totalAmount || 0))}</td></tr>`).join('')}
+      </tbody></table>`;
+    const html = buildStyledDocument(
+      'Duka Manager Visa Financial Summary',
+      `Period: ${format(filteredData.start, 'MMM d, yyyy')} - ${format(filteredData.end, 'MMM d, yyyy')}`,
+      body
+    );
+    downloadHtmlDoc(`visa-financial-summary-${format(new Date(), 'yyyy-MM-dd')}.html`, html);
+  };
+
+  const exportFullDossierHtml = () => {
+    const body = `
+      <div class="grid">
+        <div class="card"><div class="label">Turnover</div><div class="value">${formatCurrency(stats.totalRevenue)}</div></div>
+        <div class="card"><div class="label">Gross Profit</div><div class="value">${formatCurrency(stats.totalProfit)}</div></div>
+        <div class="card"><div class="label">Operating Expenses</div><div class="value">${formatCurrency(stats.totalExpenses)}</div></div>
+        <div class="card"><div class="label">Net After Expenses</div><div class="value">${formatCurrency(stats.netAfterExpenses)}</div></div>
+      </div>
+      <h3>Operating Expense Categories</h3>
+      <table><thead><tr><th>Category</th><th>Amount</th></tr></thead><tbody>
+      ${expenseStats.operatingCategorySpend.map((e) => `<tr><td>${e.name}</td><td>${formatCurrency(e.amount)}</td></tr>`).join('')}
+      </tbody></table>
+      <h3>Purchases</h3>
+      <table><thead><tr><th>Date</th><th>Product</th><th>Qty</th><th>Total Cost</th></tr></thead><tbody>
+      ${filteredStockPurchases.map((p) => `<tr><td>${format(new Date(p.happenedAt), 'yyyy-MM-dd')}</td><td>${p.productName}</td><td>${p.quantity}</td><td>${formatCurrency(Number(p.totalCost || 0))}</td></tr>`).join('')}
+      </tbody></table>
+      <h3>Sales</h3>
+      <table><thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Amount</th></tr></thead><tbody>
+      ${filteredData.fSales.map((s) => `<tr><td>${format(new Date(s.createdAt), 'yyyy-MM-dd')}</td><td>${s.productName}</td><td>${s.quantity}</td><td>${formatCurrency(Number(s.totalAmount || 0))}</td></tr>`).join('')}
+      </tbody></table>`;
+    const html = buildStyledDocument(
+      'Duka Manager Complete Business Dossier',
+      `Period: ${format(filteredData.start, 'MMM d, yyyy')} - ${format(filteredData.end, 'MMM d, yyyy')}`,
+      body
+    );
+    downloadHtmlDoc(`duka-dossier-${format(new Date(), 'yyyy-MM-dd')}.html`, html);
   };
 
   const exportOperationsSummaryTxt = () => {
@@ -448,8 +698,6 @@ export function SalesReports({
     }
   };
 
-  const COLORS = ['#10b981', '#f59e0b'];
-
   return (
     <div className="space-y-6 animate-slide-up pb-10">
       <div className="space-y-3">
@@ -504,7 +752,7 @@ export function SalesReports({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="stat-card">
-          <p className="metric-label">Total Expenses</p>
+          <p className="metric-label">Operating Expenses</p>
           <p className="text-lg font-bold text-destructive">{formatCurrency(stats.totalExpenses)}</p>
           <p className="text-[10px] text-muted-foreground mt-1">{expenseBasis} basis</p>
         </div>
@@ -521,6 +769,7 @@ export function SalesReports({
         <TabsList className="w-full">
           <TabsTrigger value="overview" className="flex-1">Overview</TabsTrigger>
           <TabsTrigger value="operations" className="flex-1">Ops</TabsTrigger>
+          <TabsTrigger value="docs" className="flex-1">Docs</TabsTrigger>
           <TabsTrigger value="tax" className="flex-1">Tax</TabsTrigger>
           <TabsTrigger value="loan" className="flex-1">Loan</TabsTrigger>
           <TabsTrigger value="ai" className="flex-1">AI</TabsTrigger>
@@ -546,32 +795,7 @@ export function SalesReports({
             </Button>
           </div>
           <div className="bg-card rounded-2xl p-4 border border-border">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-primary" /> Revenue Split
-            </h3>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'Cash', value: stats.cashRevenue },
-                      { name: 'Credit', value: stats.creditIssued }
-                    ]}
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {COLORS.map((color, i) => <Cell key={i} fill={color} />)}
-                  </Pie>
-                  <Tooltip formatter={(v) => formatCurrency(v as number)} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="bg-card rounded-2xl p-4 border border-border">
-            <h3 className="font-semibold mb-3">Sales Trend</h3>
+            <h3 className="font-semibold mb-3">1. Sales Momentum</h3>
             <div className="h-44">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={stats.trendData}>
@@ -582,6 +806,83 @@ export function SalesReports({
                   <Line type="monotone" dataKey="revenue" stroke="#16a34a" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="stat-card">
+              <p className="metric-label">2. Profitability</p>
+              <p className="text-lg font-bold">{formatCurrency(stats.totalProfit)}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Gross profit in range</p>
+            </div>
+            <div className={`stat-card ${stats.netAfterExpenses < 0 ? 'border-destructive/30 bg-destructive/5' : 'border-success/30 bg-success/5'}`}>
+              <p className="metric-label">Net After Ops Costs</p>
+              <p className={`text-lg font-bold ${stats.netAfterExpenses < 0 ? 'text-destructive' : 'text-success'}`}>
+                {formatCurrency(stats.netAfterExpenses)}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-1">After operating expenses only</p>
+            </div>
+          </div>
+
+          <div className="bg-card rounded-2xl p-4 border border-border">
+            <h3 className="font-semibold mb-3">3. Cost Structure (Purchases vs Expenses)</h3>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className="rounded-lg border border-border p-3">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Operating Expenses</p>
+                <p className="text-base font-bold text-destructive mt-1">{formatCurrency(expenseStats.operatingExpenseTotal)}</p>
+              </div>
+              <div className="rounded-lg border border-border p-3">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Purchases / Restock</p>
+                <p className="text-base font-bold text-amber-600 mt-1">{formatCurrency(expenseStats.purchasesCombinedTotal)}</p>
+              </div>
+            </div>
+            <div className="h-52">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={expenseStats.outflowBreakdown}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip formatter={(v) => formatCurrency(v as number)} />
+                  <Bar dataKey="amount" fill="#ea580c" name="Amount" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="bg-card rounded-2xl p-4 border border-border">
+            <h3 className="font-semibold mb-3">4. Operating Expense Categories</h3>
+            <div className="h-52">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={expenseStats.operatingCategorySpend}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip formatter={(v) => formatCurrency(v as number)} />
+                  <Legend />
+                  <Bar dataKey="amount" fill="#dc2626" name="Operating expense" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="stat-card">
+              <p className="metric-label">5. Credit Risk</p>
+              <p className="text-lg font-bold">{formatCurrency(stats.creditIssued)}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Credit issued in range</p>
+            </div>
+            <div className="stat-card">
+              <p className="metric-label">Cash Collected</p>
+              <p className="text-lg font-bold">{formatCurrency(stats.cashRevenue)}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Revenue less credit issued</p>
+            </div>
+            <div className="stat-card">
+              <p className="metric-label">Avg Daily Sales</p>
+              <p className="text-lg font-bold">{formatCurrency(stats.avgDailySales)}</p>
+            </div>
+            <div className="stat-card">
+              <p className="metric-label">Operating Margin</p>
+              <p className="text-lg font-bold">{stats.operatingMargin.toFixed(1)}%</p>
             </div>
           </div>
 
@@ -596,6 +897,25 @@ export function SalesReports({
                   <span className="font-semibold">{formatCurrency(t.revenue)}</span>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="bg-card rounded-2xl p-4 border border-border">
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-primary" /> Outflow Trend
+            </h3>
+            <div className="h-44">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={expenseStats.outflowTrend}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="day" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip formatter={(v) => formatCurrency(v as number)} />
+                  <Legend />
+                  <Line type="monotone" dataKey="operating" stroke="#dc2626" strokeWidth={2} dot={false} name="Operating" />
+                  <Line type="monotone" dataKey="purchases" stroke="#d97706" strokeWidth={2} dot={false} name="Purchases" />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
@@ -701,6 +1021,50 @@ export function SalesReports({
           </Button>
         </TabsContent>
 
+        <TabsContent value="docs" className="space-y-4 pt-2">
+          <div className="flex gap-2 bg-muted p-1 rounded-lg">
+            <Button variant={docTab === 'all' ? 'secondary' : 'ghost'} size="sm" className="flex-1 text-xs" onClick={() => setDocTab('all')}>All</Button>
+            <Button variant={docTab === 'loan' ? 'secondary' : 'ghost'} size="sm" className="flex-1 text-xs" onClick={() => setDocTab('loan')}>Loan</Button>
+            <Button variant={docTab === 'visa' ? 'secondary' : 'ghost'} size="sm" className="flex-1 text-xs" onClick={() => setDocTab('visa')}>Visa</Button>
+          </div>
+
+          {(docTab === 'all' || docTab === 'loan') && (
+            <div className="bg-card rounded-2xl p-4 border border-border space-y-3">
+              <h3 className="font-semibold">Loan Application Documents</h3>
+              <Button variant="outline" className="w-full" onClick={exportLoanPackHtml}>
+                <FileText className="h-4 w-4 mr-2" /> Download Loan Pack (HTML)
+              </Button>
+              <Button variant="outline" className="w-full" onClick={exportLoanSummaryTxt}>
+                <FileText className="h-4 w-4 mr-2" /> Download Loan Summary (TXT)
+              </Button>
+            </div>
+          )}
+
+          {(docTab === 'all' || docTab === 'visa') && (
+            <div className="bg-card rounded-2xl p-4 border border-border space-y-3">
+              <h3 className="font-semibold">Visa Financial Documents</h3>
+              <Button variant="outline" className="w-full" onClick={exportVisaPackHtml}>
+                <FileText className="h-4 w-4 mr-2" /> Download Visa Financial Summary (HTML)
+              </Button>
+            </div>
+          )}
+
+          <div className="bg-card rounded-2xl p-4 border border-border space-y-3">
+            <h3 className="font-semibold">Period Lists & Dossier</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" onClick={exportSalesCsv}><Download className="h-4 w-4 mr-2" /> Sales CSV</Button>
+              <Button variant="outline" onClick={exportExpensesCsv}><Download className="h-4 w-4 mr-2" /> Expenses CSV</Button>
+              <Button variant="outline" onClick={exportStockPurchasesCsv} disabled={filteredStockPurchases.length === 0}><Download className="h-4 w-4 mr-2" /> Purchases CSV</Button>
+              <Button variant="outline" onClick={exportStockPurchasesExcel} disabled={filteredStockPurchases.length === 0}><Download className="h-4 w-4 mr-2" /> Purchases XLS</Button>
+              <Button variant="outline" onClick={exportExpensesExcel}><Download className="h-4 w-4 mr-2" /> Expenses XLS</Button>
+              <Button variant="outline" onClick={exportServiceSessionsCsv} disabled={filteredServiceSessions.length === 0}><Download className="h-4 w-4 mr-2" /> Sessions CSV</Button>
+            </div>
+            <Button className="w-full" onClick={exportFullDossierHtml}>
+              <FileText className="h-4 w-4 mr-2" /> Download Complete Business Dossier (HTML)
+            </Button>
+          </div>
+        </TabsContent>
+
         <TabsContent value="tax" className="pt-2 space-y-4">
           <div className="stat-card bg-primary/5 border-primary/20">
             <div className="flex justify-between items-start">
@@ -765,4 +1129,7 @@ export function SalesReports({
     </div>
   );
 }
+
+
+
 

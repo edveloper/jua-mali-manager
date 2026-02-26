@@ -105,6 +105,30 @@ export const useServices = () => {
     }
   };
 
+  const bulkImportServices = async (rows: Array<Omit<Service, 'id' | 'createdAt' | 'updatedAt'>>) => {
+    if (!shop?.id || !isOwner || rows.length === 0) return { inserted: 0, error: null as any };
+    try {
+      const payload = rows.map((row) => ({
+        shop_id: shop.id,
+        name: row.name,
+        category: row.category,
+        cost_per_service: row.costPrice,
+        price: row.sellingPrice,
+        capacity: row.quantity,
+        min_capacity_level: row.lowStockThreshold,
+        duration_minutes: row.durationMinutes || null,
+      }));
+      const { error } = await (supabase.from('services') as any).insert(payload);
+      if (error) throw error;
+      await fetchServices();
+      toast({ title: `Imported ${rows.length} services` });
+      return { inserted: rows.length, error: null as any };
+    } catch (error: any) {
+      toast({ title: "Service import failed", description: error.message, variant: "destructive" });
+      return { inserted: 0, error };
+    }
+  };
+
   const updateService = async (id: string, updates: Partial<Service>) => {
     if (!isOwner) return;
     try {
@@ -187,6 +211,7 @@ export const useServices = () => {
     serviceSales,
     isLoading,
     addService,
+    bulkImportServices,
     updateService,
     deleteService,
     recordServiceSale,

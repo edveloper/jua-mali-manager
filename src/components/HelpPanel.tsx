@@ -8,6 +8,7 @@ export function HelpPanel() {
       icon: <Sparkles className="h-5 w-5 text-primary" />,
       steps: [
         "Create your shop profile: business category, offering mode (Products, Services, Mixed), and single-offering if applicable.",
+        "Open Settings > Catalog Import to upload CSV/XLSX starter stock/service data.",
         "Add your first catalog items and set realistic low-stock/low-capacity thresholds.",
         "Run one test transaction (sale or service), then check Dashboard and Reports to confirm totals.",
         "Use Products > Restock to record purchases so stock and expense reports stay aligned."

@@ -17,6 +17,9 @@ import {
 
 type ExpenseBasis = 'cash' | 'accrual';
 type RecurrenceUnit = 'daily' | 'weekly' | 'monthly' | 'annual';
+type ExpenseComputeOptions = {
+  includeInventoryPurchases?: boolean;
+};
 
 const toDateOnly = (value: Date | string) => {
   if (typeof value === 'string') return value.split('T')[0];
@@ -26,6 +29,11 @@ const toDateOnly = (value: Date | string) => {
 const parseDate = (value?: string | null) => {
   if (!value) return null;
   return startOfDay(new Date(`${value}T00:00:00`));
+};
+
+const isInventoryPurchaseExpense = (expense: Expense) => {
+  const category = String(expense.category || '').toLowerCase();
+  return category.includes('stock purchase') || category.includes('inventory purchase');
 };
 
 const isWithinEffectiveWindow = (target: Date, expense: Expense) => {
@@ -196,16 +204,20 @@ export const useExpenses = (currentPeriodSales: number = 0) => {
     });
   };
 
-  const getCashExpensesForDate = (date: Date | string) => {
-    const day = startOfDay(new Date(typeof date === 'string' ? `${date}T00:00:00` : date));
-    return expenses.reduce((sum, expense) => (
-      occursOnDay(expense, day) ? sum + expense.amount : sum
-    ), 0);
-  };
-
-  const getAccruedExpensesForDate = (date: Date | string) => {
+  const getCashExpensesForDate = (date: Date | string, options: ExpenseComputeOptions = {}) => {
+    const includeInventoryPurchases = options.includeInventoryPurchases ?? true;
     const day = startOfDay(new Date(typeof date === 'string' ? `${date}T00:00:00` : date));
     return expenses.reduce((sum, expense) => {
+      if (!includeInventoryPurchases && isInventoryPurchaseExpense(expense)) return sum;
+      return occursOnDay(expense, day) ? sum + expense.amount : sum;
+    }, 0);
+  };
+
+  const getAccruedExpensesForDate = (date: Date | string, options: ExpenseComputeOptions = {}) => {
+    const includeInventoryPurchases = options.includeInventoryPurchases ?? true;
+    const day = startOfDay(new Date(typeof date === 'string' ? `${date}T00:00:00` : date));
+    return expenses.reduce((sum, expense) => {
+      if (!includeInventoryPurchases && isInventoryPurchaseExpense(expense)) return sum;
       if (expense.allocationMode === 'cash') {
         return occursOnDay(expense, day) ? sum + expense.amount : sum;
       }
@@ -213,16 +225,21 @@ export const useExpenses = (currentPeriodSales: number = 0) => {
     }, 0);
   };
 
-  const getExpenseTotalForRange = (start: Date | string, end: Date | string, basis: ExpenseBasis = 'cash') => {
+  const getExpenseTotalForRange = (
+    start: Date | string,
+    end: Date | string,
+    basis: ExpenseBasis = 'cash',
+    options: ExpenseComputeOptions = {}
+  ) => {
     const rangeStart = startOfDay(new Date(typeof start === 'string' ? `${start}T00:00:00` : start));
     const rangeEnd = endOfDay(new Date(typeof end === 'string' ? `${end}T00:00:00` : end));
     const days = eachDayOfInterval({ start: rangeStart, end: rangeEnd });
 
     if (basis === 'cash') {
-      return days.reduce((sum, day) => sum + getCashExpensesForDate(day), 0);
+      return days.reduce((sum, day) => sum + getCashExpensesForDate(day, options), 0);
     }
 
-    return days.reduce((sum, day) => sum + getAccruedExpensesForDate(day), 0);
+    return days.reduce((sum, day) => sum + getAccruedExpensesForDate(day, options), 0);
   };
 
   return { 

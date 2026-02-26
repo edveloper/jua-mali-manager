@@ -7,8 +7,30 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { aiClient } from '@/lib/aiClient';
+import { CatalogImportPanel } from './CatalogImportPanel';
 
-export function SettingsPanel() {
+interface SettingsPanelProps {
+  onImportProducts?: (rows: Array<{
+    name: string;
+    category?: string;
+    costPrice: number;
+    sellingPrice: number;
+    quantity: number;
+    lowStockThreshold: number;
+    durationMinutes?: number;
+  }>) => Promise<{ inserted: number; error: any }>;
+  onImportServices?: (rows: Array<{
+    name: string;
+    category?: string;
+    costPrice: number;
+    sellingPrice: number;
+    quantity: number;
+    lowStockThreshold: number;
+    durationMinutes?: number;
+  }>) => Promise<{ inserted: number; error: any }>;
+}
+
+export function SettingsPanel({ onImportProducts, onImportServices }: SettingsPanelProps) {
   const { user, shop, signOut, isOwner, updateShopProfile } = useAuth();
   const { toast } = useToast();
   const [shopName, setShopName] = useState('');
@@ -201,6 +223,14 @@ export function SettingsPanel() {
             </p>
           )}
         </div>
+      )}
+
+      {isOwner && onImportProducts && onImportServices && (
+        <CatalogImportPanel
+          offeringMode={(offeringMode as 'products' | 'services' | 'mixed')}
+          onImportProducts={onImportProducts}
+          onImportServices={onImportServices}
+        />
       )}
 
       {isOwner && <EmployeeManager />}
