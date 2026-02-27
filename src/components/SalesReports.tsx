@@ -766,13 +766,13 @@ export function SalesReports({
       </div>
 
       <Tabs defaultValue="overview">
-        <TabsList className="w-full">
-          <TabsTrigger value="overview" className="flex-1">Overview</TabsTrigger>
-          <TabsTrigger value="operations" className="flex-1">Ops</TabsTrigger>
-          <TabsTrigger value="docs" className="flex-1">Docs</TabsTrigger>
-          <TabsTrigger value="tax" className="flex-1">Tax</TabsTrigger>
-          <TabsTrigger value="loan" className="flex-1">Loan</TabsTrigger>
-          <TabsTrigger value="ai" className="flex-1">AI</TabsTrigger>
+        <TabsList className="w-full h-auto grid grid-cols-3 sm:grid-cols-6 gap-1 p-1">
+          <TabsTrigger value="overview" className="min-w-0 px-2 text-xs sm:text-sm">Overview</TabsTrigger>
+          <TabsTrigger value="operations" className="min-w-0 px-2 text-xs sm:text-sm">Ops</TabsTrigger>
+          <TabsTrigger value="docs" className="min-w-0 px-2 text-xs sm:text-sm">Docs</TabsTrigger>
+          <TabsTrigger value="tax" className="min-w-0 px-2 text-xs sm:text-sm">Tax</TabsTrigger>
+          <TabsTrigger value="loan" className="min-w-0 px-2 text-xs sm:text-sm">Loan</TabsTrigger>
+          <TabsTrigger value="ai" className="min-w-0 px-2 text-xs sm:text-sm">AI</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4 pt-2">
@@ -982,12 +982,12 @@ export function SalesReports({
                   <h3 className="font-semibold">Stock Purchase Exports</h3>
                   <p className="text-xs text-muted-foreground">{filteredStockPurchases.length} entries</p>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1" onClick={exportStockPurchasesCsv} disabled={filteredStockPurchases.length === 0}>
-                    <Download className="h-4 w-4 mr-2" /> Purchases CSV
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Button variant="outline" className="w-full justify-start text-left h-auto py-2 whitespace-normal break-words" onClick={exportStockPurchasesCsv} disabled={filteredStockPurchases.length === 0}>
+                    <Download className="h-4 w-4 mr-2 shrink-0" /> Purchases CSV
                   </Button>
-                  <Button variant="outline" className="flex-1" onClick={exportStockPurchasesExcel} disabled={filteredStockPurchases.length === 0}>
-                    <Download className="h-4 w-4 mr-2" /> Purchases Excel
+                  <Button variant="outline" className="w-full justify-start text-left h-auto py-2 whitespace-normal break-words" onClick={exportStockPurchasesExcel} disabled={filteredStockPurchases.length === 0}>
+                    <Download className="h-4 w-4 mr-2 shrink-0" /> Purchases Excel
                   </Button>
                 </div>
               </div>
@@ -1005,19 +1005,19 @@ export function SalesReports({
               <p className="text-xs text-muted-foreground">
                 Completed: {operationsStats.completedSessions} | Scheduled: {operationsStats.scheduledSessions}
               </p>
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={exportServiceSessionsCsv} disabled={filteredServiceSessions.length === 0}>
-                  <Download className="h-4 w-4 mr-2" /> Sessions CSV
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button variant="outline" className="w-full justify-start text-left h-auto py-2 whitespace-normal break-words" onClick={exportServiceSessionsCsv} disabled={filteredServiceSessions.length === 0}>
+                  <Download className="h-4 w-4 mr-2 shrink-0" /> Sessions CSV
                 </Button>
-                <Button variant="outline" className="flex-1" onClick={exportServiceSessionsExcel} disabled={filteredServiceSessions.length === 0}>
-                  <Download className="h-4 w-4 mr-2" /> Sessions Excel
+                <Button variant="outline" className="w-full justify-start text-left h-auto py-2 whitespace-normal break-words" onClick={exportServiceSessionsExcel} disabled={filteredServiceSessions.length === 0}>
+                  <Download className="h-4 w-4 mr-2 shrink-0" /> Sessions Excel
                 </Button>
               </div>
             </div>
           )}
 
-          <Button variant="outline" className="w-full" onClick={exportOperationsSummaryTxt}>
-            <FileText className="h-4 w-4 mr-2" /> Export Operations Summary
+          <Button variant="outline" className="w-full justify-start text-left h-auto py-2 whitespace-normal break-words" onClick={exportOperationsSummaryTxt}>
+            <FileText className="h-4 w-4 mr-2 shrink-0" /> Export Operations Summary
           </Button>
         </TabsContent>
 
@@ -1031,11 +1031,11 @@ export function SalesReports({
           {(docTab === 'all' || docTab === 'loan') && (
             <div className="bg-card rounded-2xl p-4 border border-border space-y-3">
               <h3 className="font-semibold">Loan Application Documents</h3>
-              <Button variant="outline" className="w-full" onClick={exportLoanPackHtml}>
-                <FileText className="h-4 w-4 mr-2" /> Download Loan Pack (HTML)
+              <Button variant="outline" className="w-full justify-start text-left h-auto py-2 whitespace-normal break-words" onClick={exportLoanPackHtml}>
+                <FileText className="h-4 w-4 mr-2 shrink-0" /> Download Loan Pack (HTML)
               </Button>
-              <Button variant="outline" className="w-full" onClick={exportLoanSummaryTxt}>
-                <FileText className="h-4 w-4 mr-2" /> Download Loan Summary (TXT)
+              <Button variant="outline" className="w-full justify-start text-left h-auto py-2 whitespace-normal break-words" onClick={exportLoanSummaryTxt}>
+                <FileText className="h-4 w-4 mr-2 shrink-0" /> Download Loan Summary (TXT)
               </Button>
             </div>
           )}
@@ -1043,24 +1043,24 @@ export function SalesReports({
           {(docTab === 'all' || docTab === 'visa') && (
             <div className="bg-card rounded-2xl p-4 border border-border space-y-3">
               <h3 className="font-semibold">Visa Financial Documents</h3>
-              <Button variant="outline" className="w-full" onClick={exportVisaPackHtml}>
-                <FileText className="h-4 w-4 mr-2" /> Download Visa Financial Summary (HTML)
+              <Button variant="outline" className="w-full justify-start text-left h-auto py-2 whitespace-normal break-words" onClick={exportVisaPackHtml}>
+                <FileText className="h-4 w-4 mr-2 shrink-0" /> Download Visa Financial Summary (HTML)
               </Button>
             </div>
           )}
 
           <div className="bg-card rounded-2xl p-4 border border-border space-y-3">
             <h3 className="font-semibold">Period Lists & Dossier</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" onClick={exportSalesCsv}><Download className="h-4 w-4 mr-2" /> Sales CSV</Button>
-              <Button variant="outline" onClick={exportExpensesCsv}><Download className="h-4 w-4 mr-2" /> Expenses CSV</Button>
-              <Button variant="outline" onClick={exportStockPurchasesCsv} disabled={filteredStockPurchases.length === 0}><Download className="h-4 w-4 mr-2" /> Purchases CSV</Button>
-              <Button variant="outline" onClick={exportStockPurchasesExcel} disabled={filteredStockPurchases.length === 0}><Download className="h-4 w-4 mr-2" /> Purchases XLS</Button>
-              <Button variant="outline" onClick={exportExpensesExcel}><Download className="h-4 w-4 mr-2" /> Expenses XLS</Button>
-              <Button variant="outline" onClick={exportServiceSessionsCsv} disabled={filteredServiceSessions.length === 0}><Download className="h-4 w-4 mr-2" /> Sessions CSV</Button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <Button variant="outline" className="w-full justify-start text-left h-auto py-2 whitespace-normal break-words" onClick={exportSalesCsv}><Download className="h-4 w-4 mr-2 shrink-0" /> Sales CSV</Button>
+              <Button variant="outline" className="w-full justify-start text-left h-auto py-2 whitespace-normal break-words" onClick={exportExpensesCsv}><Download className="h-4 w-4 mr-2 shrink-0" /> Expenses CSV</Button>
+              <Button variant="outline" className="w-full justify-start text-left h-auto py-2 whitespace-normal break-words" onClick={exportStockPurchasesCsv} disabled={filteredStockPurchases.length === 0}><Download className="h-4 w-4 mr-2 shrink-0" /> Purchases CSV</Button>
+              <Button variant="outline" className="w-full justify-start text-left h-auto py-2 whitespace-normal break-words" onClick={exportStockPurchasesExcel} disabled={filteredStockPurchases.length === 0}><Download className="h-4 w-4 mr-2 shrink-0" /> Purchases XLS</Button>
+              <Button variant="outline" className="w-full justify-start text-left h-auto py-2 whitespace-normal break-words" onClick={exportExpensesExcel}><Download className="h-4 w-4 mr-2 shrink-0" /> Expenses XLS</Button>
+              <Button variant="outline" className="w-full justify-start text-left h-auto py-2 whitespace-normal break-words" onClick={exportServiceSessionsCsv} disabled={filteredServiceSessions.length === 0}><Download className="h-4 w-4 mr-2 shrink-0" /> Sessions CSV</Button>
             </div>
-            <Button className="w-full" onClick={exportFullDossierHtml}>
-              <FileText className="h-4 w-4 mr-2" /> Download Complete Business Dossier (HTML)
+            <Button className="w-full justify-start text-left h-auto py-2 whitespace-normal break-words" onClick={exportFullDossierHtml}>
+              <FileText className="h-4 w-4 mr-2 shrink-0" /> Download Complete Business Dossier (HTML)
             </Button>
           </div>
         </TabsContent>
