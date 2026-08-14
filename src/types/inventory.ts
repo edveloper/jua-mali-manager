@@ -95,7 +95,12 @@ export interface CreditPayment {
 export interface DashboardStats {
   totalProducts: number;
   lowStockCount: number;
+  /** Inventory on hand valued at what it cost you. This is the asset figure. */
   totalStockValue: number;
+  /** What that same stock would bring in if it all sold at list price. */
+  totalStockRetailValue?: number;
+  /** Services only: remaining capacity valued at service price. Not an asset. */
+  totalCapacityValue?: number;
   todaySales: number;
   todayProfit: number;
   totalCreditOwed?: number;

@@ -200,7 +200,11 @@ export const useServices = () => {
     return {
       totalProducts: services.length,
       lowStockCount: services.filter((s) => s.quantity <= s.lowStockThreshold).length,
-      totalStockValue: services.reduce((sum, s) => sum + (s.sellingPrice * s.quantity), 0),
+      // A service holds no inventory, so it contributes nothing to the value of
+      // stock on hand. Remaining capacity is potential revenue, tracked apart.
+      totalStockValue: 0,
+      totalStockRetailValue: 0,
+      totalCapacityValue: services.reduce((sum, s) => sum + (s.sellingPrice * s.quantity), 0),
       todaySales: todayData.reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0),
       todayProfit: todayData.reduce((sum, s) => sum + (Number(s.profit) || 0), 0),
     };

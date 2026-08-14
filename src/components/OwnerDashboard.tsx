@@ -18,7 +18,15 @@ export function OwnerDashboard({
   const formatCurrency = (amount: number) => {
     return `KSh ${amount.toLocaleString()}`;
   };
-  const stockValueLabel = offeringMode === 'services' ? 'Service Value' : offeringMode === 'mixed' ? 'Catalog Value' : 'Stock Value';
+  // Services hold no stock, so in services-only mode the tile shows remaining
+  // capacity at service price instead -- potential revenue, clearly labelled as
+  // such rather than dressed up as an asset.
+  const isServicesOnly = offeringMode === 'services';
+  const stockValueLabel = isServicesOnly ? 'Capacity Value' : 'Stock Value (at cost)';
+  const stockValueAmount = isServicesOnly
+    ? (stats.totalCapacityValue ?? 0)
+    : stats.totalStockValue;
+  const stockRetailAmount = stats.totalStockRetailValue ?? 0;
   const lowLabel = offeringMode === 'services' ? 'Low Capacity' : 'Low Stock';
   const lowUnit = offeringMode === 'services' ? 'Services' : offeringMode === 'mixed' ? 'Items' : 'Items';
 
@@ -105,7 +113,7 @@ export function OwnerDashboard({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-base font-bold text-foreground mt-1">
-                {formatCurrency(stats.totalStockValue)}
+                {formatCurrency(stockValueAmount)}
               </p>
             </div>
             <div className="p-2 rounded-xl bg-blue-50">
@@ -113,6 +121,11 @@ export function OwnerDashboard({
             </div>
           </div>
           <p className="metric-label">{stockValueLabel}</p>
+          {!isServicesOnly && stockRetailAmount > 0 && (
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Worth {formatCurrency(stockRetailAmount)} if it all sells
+            </p>
+          )}
         </div>
 
         {/* Low Stock Card */}

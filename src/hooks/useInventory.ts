@@ -262,7 +262,10 @@ export const useInventory = () => {
     return {
       totalProducts: products.length,
       lowStockCount: products.filter(p => p.quantity <= p.lowStockThreshold).length,
-      totalStockValue: products.reduce((sum, p) => sum + (p.sellingPrice * p.quantity), 0),
+      // Stock on hand is worth what you paid for it, not what you hope to sell
+      // it for. Valuing it at retail books the profit before the sale happens.
+      totalStockValue: products.reduce((sum, p) => sum + (p.costPrice * p.quantity), 0),
+      totalStockRetailValue: products.reduce((sum, p) => sum + (p.sellingPrice * p.quantity), 0),
       todaySales: todaySalesData.reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0),
       todayProfit: todaySalesData.reduce((sum, s) => sum + (Number(s.profit) || 0), 0)
     };

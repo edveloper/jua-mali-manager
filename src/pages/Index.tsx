@@ -205,7 +205,10 @@ const Index = () => {
       ? {
           totalProducts: productStats.totalProducts + serviceStats.totalProducts,
           lowStockCount: productStats.lowStockCount + serviceStats.lowStockCount,
-          totalStockValue: productStats.totalStockValue + serviceStats.totalStockValue,
+          // Services add nothing to stock value, so this stays a pure asset figure.
+          totalStockValue: productStats.totalStockValue,
+          totalStockRetailValue: productStats.totalStockRetailValue,
+          totalCapacityValue: serviceStats.totalCapacityValue,
           todaySales: productStats.todaySales + serviceStats.todaySales,
           todayProfit: productStats.todayProfit + serviceStats.todayProfit,
         }
