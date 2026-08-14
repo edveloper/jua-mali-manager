@@ -287,24 +287,52 @@ const Index = () => {
   const handleSell = async (
     itemId: string,
     quantity: number,
-    isCredit?: boolean,
-    customerId?: string,
-    meta?: { staffName?: string; sessionTime?: string; notes?: string; status?: 'completed' | 'scheduled' | 'cancelled' },
-    unitPrice?: number
+    options?: {
+      isCredit?: boolean;
+      customerId?: string;
+      newCustomer?: { name: string; phone: string };
+      meta?: { staffName?: string; sessionTime?: string; notes?: string; status?: 'completed' | 'scheduled' | 'cancelled' };
+      unitPrice?: number;
+    }
   ) => {
+    const { isCredit, customerId, newCustomer, meta, unitPrice } = options || {};
+
     if (sellingCatalogKind === 'services') {
       await recordServiceSale(itemId, quantity, meta);
       setSellingProduct(null);
-      return;
+      return true;
+    }
+
+    // Resolve the customer BEFORE the sale. If we created them afterwards and it
+    // failed, stock would already be gone and the sale would look like cash.
+    let resolvedCustomerId = customerId;
+    if (isCredit && !resolvedCustomerId && newCustomer?.name) {
+      const created = await addCustomer({
+        name: newCustomer.name,
+        phone: newCustomer.phone || '',
+        email: '',
+      });
+      resolvedCustomerId = created?.id;
+    }
+
+    if (isCredit && !resolvedCustomerId) {
+      toast({
+        title: 'Could not save the customer',
+        description: 'Nothing was recorded. Check your connection and try again.',
+        variant: 'destructive',
+      });
+      return false;
     }
 
     const sale = await recordSale(itemId, quantity, unitPrice);
-    if (sale && isCredit && customerId) {
+    if (!sale) return false;
+
+    if (isCredit && resolvedCustomerId) {
       const pName = sale.productName || (sale as any).product_name;
       const pAmount = sale.totalAmount || (sale as any).total_amount;
 
       await addCreditSale(
-        customerId,
+        resolvedCustomerId,
         sale.id,
         pName,
         quantity,
@@ -312,6 +340,7 @@ const Index = () => {
       );
     }
     setSellingProduct(null);
+    return true;
   };
 
   const currentCatalogProducts = isServicesCatalog ? services.map(serviceToCatalogItem) : products;

@@ -3,25 +3,23 @@ import { X, Minus, Plus, ShoppingCart, CreditCard, Wallet } from 'lucide-react';
 import { Product, Customer } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 interface SellDialogProps {
   product: Product;
   customers: Customer[];
+  /** Return false to keep the dialog open (e.g. the sale could not be saved). */
   onSell: (
     productId: string,
     quantity: number,
-    isCredit?: boolean,
-    customerId?: string,
-    meta?: { staffName?: string; sessionTime?: string; notes?: string; status?: 'completed' | 'scheduled' | 'cancelled' },
-    unitPrice?: number
-  ) => void;
+    options?: {
+      isCredit?: boolean;
+      customerId?: string;
+      /** Typed in on the spot rather than picked from the credit book. */
+      newCustomer?: { name: string; phone: string };
+      meta?: { staffName?: string; sessionTime?: string; notes?: string; status?: 'completed' | 'scheduled' | 'cancelled' };
+      unitPrice?: number;
+    }
+  ) => void | boolean | Promise<void | boolean>;
   onClose: () => void;
   isOwner?: boolean;
   offeringMode?: 'products' | 'services' | 'mixed' | string;
@@ -34,6 +32,9 @@ export function SellDialog({ product, customers, onSell, onClose, isOwner = true
   const [quantity, setQuantity] = useState(1);
   const [isCredit, setIsCredit] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [customerQuery, setCustomerQuery] = useState('');
+  const [newCustomerPhone, setNewCustomerPhone] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [staffName, setStaffName] = useState('');
   const [sessionTime, setSessionTime] = useState('');
   const [notes, setNotes] = useState('');
@@ -69,37 +70,60 @@ export function SellDialog({ product, customers, onSell, onClose, isOwner = true
         ? `Highest allowed: KSh ${maxPrice.toLocaleString()}`
         : '';
 
+  // Customer can be picked from the credit book or typed in from scratch.
+  const trimmedQuery = customerQuery.trim();
+  const selectedCustomer = customers.find((c) => c.id === selectedCustomerId) || null;
+
+  const customerMatches = trimmedQuery
+    ? customers
+        .filter((c) =>
+          c.name.toLowerCase().includes(trimmedQuery.toLowerCase()) ||
+          (c.phone || '').includes(trimmedQuery)
+        )
+        .slice(0, 4)
+    : [];
+
+  // Typing an existing name exactly resolves to that customer rather than
+  // silently creating a second one with the same name.
+  const exactMatch = customers.find(
+    (c) => c.name.trim().toLowerCase() === trimmedQuery.toLowerCase()
+  );
+  const resolvedCustomer = selectedCustomer || (trimmedQuery ? exactMatch : null) || null;
+  const isNewCustomer = Boolean(trimmedQuery) && !resolvedCustomer;
+  const hasCustomer = Boolean(resolvedCustomer) || isNewCustomer;
+
   const canSubmit =
+    !isSubmitting &&
     quantity > 0 &&
     quantity <= product.quantity &&
     !priceError &&
-    !(allowCredit && isCredit && !selectedCustomerId);
+    !(allowCredit && isCredit && !hasCustomer);
 
-  const handleSell = () => {
+  const handleSell = async () => {
     if (!canSubmit) return;
-    if (offeringMode === 'services') {
-      onSell(
-        product.id,
-        quantity,
-        false,
-        undefined,
-        {
-          staffName: staffName.trim(),
-          sessionTime: sessionTime || undefined,
-          notes: notes.trim(),
-          status: sessionStatus,
-        }
-      );
-    } else {
-      onSell(
-        product.id,
-        quantity,
-        allowCredit ? isCredit : false,
-        (allowCredit && isCredit) ? selectedCustomerId : undefined,
-        undefined,
-        isPriceable ? effectivePrice : undefined
-      );
-    }
+    setIsSubmitting(true);
+
+    const result = offeringMode === 'services'
+      ? await onSell(product.id, quantity, {
+          meta: {
+            staffName: staffName.trim(),
+            sessionTime: sessionTime || undefined,
+            notes: notes.trim(),
+            status: sessionStatus,
+          },
+        })
+      : await onSell(product.id, quantity, {
+          isCredit: allowCredit ? isCredit : false,
+          customerId: (allowCredit && isCredit && resolvedCustomer) ? resolvedCustomer.id : undefined,
+          newCustomer: (allowCredit && isCredit && isNewCustomer)
+            ? { name: trimmedQuery, phone: newCustomerPhone.trim() }
+            : undefined,
+          unitPrice: isPriceable ? effectivePrice : undefined,
+        });
+
+    setIsSubmitting(false);
+    // Stay open on failure so nothing typed is lost.
+    if (result === false) return;
     onClose();
   };
 
@@ -242,28 +266,77 @@ export function SellDialog({ product, customers, onSell, onClose, isOwner = true
             </div>
           )}
 
-          {/* Customer Selection for Credit */}
-          {isCredit && (
+          {/* Customer for a credit sale: search the credit book, or just type a
+              new name. No need to leave the sale to add someone first. */}
+          {allowCredit && isCredit && (
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Select Customer</label>
-              <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a customer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.length === 0 ? (
-                    <div className="p-2 text-sm text-muted-foreground text-center">
-                      No customers yet. Add one in Credit tab.
+              <label htmlFor="credit-customer" className="text-sm font-medium text-foreground">
+                Who is taking it on credit?
+              </label>
+
+              {resolvedCustomer ? (
+                <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{resolvedCustomer.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {resolvedCustomer.phone || 'No phone number'}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedCustomerId('');
+                      setCustomerQuery('');
+                      setNewCustomerPhone('');
+                    }}
+                  >
+                    Change
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <Input
+                    id="credit-customer"
+                    placeholder="Customer name"
+                    value={customerQuery}
+                    onChange={(e) => setCustomerQuery(e.target.value)}
+                    autoComplete="off"
+                  />
+
+                  {customerMatches.length > 0 && (
+                    <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
+                      {customerMatches.map((customer) => (
+                        <button
+                          key={customer.id}
+                          type="button"
+                          onClick={() => setSelectedCustomerId(customer.id)}
+                          className="w-full text-left px-3 py-2 hover:bg-muted transition-colors"
+                        >
+                          <span className="text-sm font-medium">{customer.name}</span>
+                          {customer.phone && (
+                            <span className="text-xs text-muted-foreground ml-2">{customer.phone}</span>
+                          )}
+                        </button>
+                      ))}
                     </div>
-                  ) : (
-                    customers.map(customer => (
-                      <SelectItem key={customer.id} value={customer.id}>
-                        {customer.name}
-                      </SelectItem>
-                    ))
                   )}
-                </SelectContent>
-              </Select>
+
+                  {isNewCustomer && (
+                    <div className="space-y-2">
+                      <Input
+                        placeholder="Phone number (optional)"
+                        type="tel"
+                        value={newCustomerPhone}
+                        onChange={(e) => setNewCustomerPhone(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        New customer. {trimmedQuery} will be added to your credit book.
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 
@@ -305,7 +378,9 @@ export function SellDialog({ product, customers, onSell, onClose, isOwner = true
               disabled={!canSubmit}
             >
               <ShoppingCart className="h-4 w-4 mr-2" />
-              {isCredit ? 'Credit Sale' : (offeringMode === 'services' ? 'Complete Service' : 'Complete Sale')}
+              {isSubmitting
+                ? 'Saving...'
+                : isCredit ? 'Credit Sale' : (offeringMode === 'services' ? 'Complete Service' : 'Complete Sale')}
             </Button>
           </div>
         </div>
