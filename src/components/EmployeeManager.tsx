@@ -3,6 +3,7 @@ import { UserPlus, Users, Phone, Lock, User, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +15,7 @@ interface Employee {
   role: string;
   email: string;
   full_name: string;
+  permissions: Record<string, boolean>;
 }
 
 export function EmployeeManager() {
@@ -68,8 +70,9 @@ export function EmployeeManager() {
           user_id: member.user_id,
           role: member.role,
           // Fallback to 'No Email' or 'Unknown' if profile doesn't exist yet
-          email: profile?.email || 'Invited User', 
+          email: profile?.email || 'Invited User',
           full_name: profile?.full_name || 'New Staff',
+          permissions: (member as any).permissions || {},
         };
       });
 
@@ -114,6 +117,37 @@ export function EmployeeManager() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleTogglePermission = async (employee: Employee, key: string, enabled: boolean) => {
+    const next = { ...employee.permissions, [key]: enabled };
+
+    // Optimistic: a switch that lags behind the thumb feels broken on a phone.
+    setEmployees((prev) =>
+      prev.map((e) => (e.id === employee.id ? { ...e, permissions: next } : e))
+    );
+
+    const { error } = await (supabase.from('shop_members') as any)
+      .update({ permissions: next })
+      .eq('id', employee.id);
+
+    if (error) {
+      setEmployees((prev) =>
+        prev.map((e) => (e.id === employee.id ? { ...e, permissions: employee.permissions } : e))
+      );
+      toast({
+        title: 'Could not save',
+        description: error.message || 'Permission was not changed.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    toast({
+      title: enabled
+        ? `${employee.full_name} can now set prices`
+        : `${employee.full_name} can no longer set prices`,
+    });
   };
 
   const handleRemoveEmployee = async (employeeId: string, employeeName: string) => {
@@ -230,24 +264,41 @@ export function EmployeeManager() {
           </div>
         ) : (
           employees.map((employee) => (
-            <div key={employee.id} className="stat-card flex items-center justify-between p-4 bg-card rounded-lg border shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                  {employee.full_name.charAt(0).toUpperCase()}
+            <div key={employee.id} className="stat-card p-4 bg-card rounded-lg border shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                    {employee.full_name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground leading-none mb-1">{employee.full_name}</p>
+                    <p className="text-sm text-muted-foreground">{toDisplayIdentity(employee.email)}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium text-foreground leading-none mb-1">{employee.full_name}</p>
-                  <p className="text-sm text-muted-foreground">{toDisplayIdentity(employee.email)}</p>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemoveEmployee(employee.id, employee.full_name)}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRemoveEmployee(employee.id, employee.full_name)}
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+
+              <label className="flex items-center justify-between gap-3 pt-3 border-t border-border/50 cursor-pointer">
+                <span className="text-sm">
+                  Can agree a price with the customer
+                  <span className="block text-xs text-muted-foreground">
+                    Only within the range you set on each item.
+                  </span>
+                </span>
+                <Switch
+                  checked={employee.permissions?.override_price === true}
+                  onCheckedChange={(checked) =>
+                    handleTogglePermission(employee, 'override_price', checked)
+                  }
+                />
+              </label>
             </div>
           ))
         )}

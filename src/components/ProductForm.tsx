@@ -21,6 +21,8 @@ export function ProductForm({ product, onSave, onClose, offeringMode = 'products
     barcode: '',
     costPrice: '',
     sellingPrice: '',
+    minPrice: '',
+    maxPrice: '',
     quantity: '',
     lowStockThreshold: '5',
     durationMinutes: '0',
@@ -34,6 +36,8 @@ export function ProductForm({ product, onSave, onClose, offeringMode = 'products
         barcode: product.barcode || '',
         costPrice: product.costPrice.toString(),
         sellingPrice: product.sellingPrice.toString(),
+        minPrice: product.minPrice === null || product.minPrice === undefined ? '' : String(product.minPrice),
+        maxPrice: product.maxPrice === null || product.maxPrice === undefined ? '' : String(product.maxPrice),
         quantity: product.quantity.toString(),
         lowStockThreshold: product.lowStockThreshold.toString(),
         durationMinutes: String(product.durationMinutes || 0),
@@ -42,14 +46,29 @@ export function ProductForm({ product, onSave, onClose, offeringMode = 'products
     }
   }, [product]);
 
+  // Blank means "no limit on this side", which is why these aren't parseFloat|0.
+  const optionalNumber = (value: string) => {
+    if (value.trim() === '') return null;
+    const parsed = parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const minPriceValue = optionalNumber(formData.minPrice);
+  const maxPriceValue = optionalNumber(formData.maxPrice);
+  const bandInverted =
+    minPriceValue !== null && maxPriceValue !== null && minPriceValue > maxPriceValue;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+    if (bandInverted) return;
+
     onSave({
       name: formData.name,
       barcode: formData.barcode || undefined,
       costPrice: parseFloat(formData.costPrice) || 0,
       sellingPrice: parseFloat(formData.sellingPrice) || 0,
+      minPrice: minPriceValue,
+      maxPrice: maxPriceValue,
       quantity: parseInt(formData.quantity) || 0,
       lowStockThreshold: parseInt(formData.lowStockThreshold) || 5,
       durationMinutes: parseInt(formData.durationMinutes) || 0,
@@ -126,6 +145,37 @@ export function ProductForm({ product, onSave, onClose, offeringMode = 'products
             </div>
           </div>
 
+          {offeringMode !== 'services' && (
+            <div className="space-y-2 rounded-xl border border-border p-3">
+              <Label>Negotiable price range (Optional)</Label>
+              <p className="text-xs text-muted-foreground">
+                If staff are allowed to agree a price with the customer, set how low and
+                how high they may go. Leave blank to keep the price fixed.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  type="number"
+                  placeholder="Lowest"
+                  value={formData.minPrice}
+                  onChange={(e) => setFormData({ ...formData, minPrice: e.target.value })}
+                  min="0"
+                />
+                <Input
+                  type="number"
+                  placeholder="Highest"
+                  value={formData.maxPrice}
+                  onChange={(e) => setFormData({ ...formData, maxPrice: e.target.value })}
+                  min="0"
+                />
+              </div>
+              {bandInverted && (
+                <p className="text-xs text-destructive">
+                  The lowest price cannot be higher than the highest.
+                </p>
+              )}
+            </div>
+          )}
+
           {profit !== 0 && (
             <div className={`p-3 rounded-lg ${profit > 0 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
               <p className="text-sm font-medium">
@@ -188,7 +238,7 @@ export function ProductForm({ product, onSave, onClose, offeringMode = 'products
             <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" className="flex-1">
+            <Button type="submit" className="flex-1" disabled={bandInverted}>
               {product ? `Update ${itemLabel}` : `Add ${itemLabel}`}
             </Button>
           </div>

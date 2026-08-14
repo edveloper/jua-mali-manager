@@ -2,11 +2,16 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 
+/** Permission keys stored in shop_members.permissions. Owners implicitly hold all. */
+export type ShopPermission = 'override_price';
+
 interface AuthContextType {
   user: User | null;
   shop: any | null;
   shopMember: any | null;
   isOwner: boolean;
+  /** Owners get everything; employees only what the owner has switched on. */
+  can: (permission: ShopPermission) => boolean;
   loading: boolean;
   signOut: () => Promise<void>;
   signIn: (email: string, password?: string) => Promise<{ data: any; error: any }>;
@@ -47,6 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('shop_members')
         .select(`
           role,
+          permissions,
           created_at,
           shops (
             id,
@@ -228,6 +234,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
   };
 
+  // Mirrors public.member_can() in the database. This is only for hiding UI --
+  // the RPC re-checks it server-side, so a tampered client gains nothing.
+  const can = (permission: ShopPermission) => {
+    if (isOwner) return true;
+    return shopMember?.permissions?.[permission] === true;
+  };
+
   const updateShopProfile = async (updates: {
     name?: string;
     business_category?: string;
@@ -252,11 +265,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider 
       value={{ 
-        user: currentUser, 
-        shop, 
-        shopMember, 
-        isOwner, 
-        loading, 
+        user: currentUser,
+        shop,
+        shopMember,
+        isOwner,
+        can,
+        loading,
         signOut, 
         signIn,
         signUp,

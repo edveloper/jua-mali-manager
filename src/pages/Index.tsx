@@ -57,7 +57,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { installApp, canInstall } = usePwaInstall();
 
-  const { user, loading: authLoading, isOwner, shop, shopMember, signOut } = useAuth();
+  const { user, loading: authLoading, isOwner, can, shop, shopMember, signOut } = useAuth();
 
   const {
     products, sales, stockMovements, isLoading: inventoryLoading,
@@ -273,7 +273,8 @@ const Index = () => {
     quantity: number,
     isCredit?: boolean,
     customerId?: string,
-    meta?: { staffName?: string; sessionTime?: string; notes?: string; status?: 'completed' | 'scheduled' | 'cancelled' }
+    meta?: { staffName?: string; sessionTime?: string; notes?: string; status?: 'completed' | 'scheduled' | 'cancelled' },
+    unitPrice?: number
   ) => {
     if (sellingCatalogKind === 'services') {
       await recordServiceSale(itemId, quantity, meta);
@@ -281,7 +282,7 @@ const Index = () => {
       return;
     }
 
-    const sale = await recordSale(itemId, quantity);
+    const sale = await recordSale(itemId, quantity, unitPrice);
     if (sale && isCredit && customerId) {
       const pName = sale.productName || (sale as any).product_name;
       const pAmount = sale.totalAmount || (sale as any).total_amount;
@@ -533,6 +534,7 @@ const Index = () => {
           isOwner={isOwner}
           offeringMode={sellingCatalogKind === 'services' ? 'services' : 'products'}
           allowCredit={sellingCatalogKind !== 'services'}
+          canOverridePrice={can('override_price')}
         />
       )}
       {restockingProduct && (

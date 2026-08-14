@@ -5,6 +5,10 @@ export interface Product {
   durationMinutes?: number;
   costPrice: number;
   sellingPrice: number;
+  /** Owner-set floor for negotiated prices. null = unbounded. */
+  minPrice?: number | null;
+  /** Owner-set ceiling for negotiated prices. null = unbounded. */
+  maxPrice?: number | null;
   quantity: number;
   lowStockThreshold: number;
   category?: string;
@@ -46,6 +50,10 @@ export interface Sale {
   quantity: number;
   unitPrice: number;
   costPrice: number;
+  /** What the catalog price was at the time, so premium/discount is reportable. */
+  listPriceAtSale?: number;
+  priceSource?: 'list' | 'override';
+  soldBy?: string | null;
   totalAmount: number;
   profit: number;
   isCredit?: boolean;

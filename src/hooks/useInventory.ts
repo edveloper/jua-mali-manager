@@ -35,6 +35,8 @@ export const useInventory = () => {
         category: p.category || 'General',
         costPrice: Number(p.cost_price || 0),
         sellingPrice: Number(p.price),
+        minPrice: p.min_price === null || p.min_price === undefined ? null : Number(p.min_price),
+        maxPrice: p.max_price === null || p.max_price === undefined ? null : Number(p.max_price),
         quantity: p.stock_level,
         lowStockThreshold: p.min_stock_level,
         unit: p.unit || 'pcs',
@@ -66,6 +68,11 @@ export const useInventory = () => {
           productId: s.product_id,
           productName: s.product_name,
           quantity: qty,
+          unitPrice: Number(s.unit_price ?? (qty > 0 ? totalAmount / qty : 0)),
+          costPrice: costAtSale,
+          listPriceAtSale: Number(s.list_price_at_sale ?? 0),
+          priceSource: s.price_source || 'list',
+          soldBy: s.sold_by || null,
           totalAmount,
           profit: totalAmount - (costAtSale * qty),
           createdAt: s.created_at
@@ -119,6 +126,8 @@ export const useInventory = () => {
         category: productData.category,
         cost_price: productData.costPrice,
         price: productData.sellingPrice,
+        min_price: productData.minPrice ?? null,
+        max_price: productData.maxPrice ?? null,
         stock_level: productData.quantity,
         min_stock_level: productData.lowStockThreshold,
         unit: productData.unit || 'pcs'
@@ -164,6 +173,8 @@ export const useInventory = () => {
           category: updates.category,
           cost_price: updates.costPrice,
           price: updates.sellingPrice,
+          min_price: updates.minPrice ?? null,
+          max_price: updates.maxPrice ?? null,
           stock_level: updates.quantity,
           min_stock_level: updates.lowStockThreshold,
           unit: updates.unit
@@ -188,7 +199,9 @@ export const useInventory = () => {
     }
   };
 
-  const recordSale = async (productId: string, quantity: number) => {
+  // unitPrice is the negotiated price per unit. Omit it to sell at the catalog
+  // price; the RPC re-checks permission and the owner's band either way.
+  const recordSale = async (productId: string, quantity: number, unitPrice?: number) => {
     if (!shop?.id) return;
 
     try {
@@ -196,6 +209,7 @@ export const useInventory = () => {
         p_shop_id: shop.id,
         p_product_id: productId,
         p_quantity: quantity,
+        p_unit_price: unitPrice ?? null,
       }) as any);
       if (error) throw error;
 
