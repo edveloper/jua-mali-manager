@@ -12,19 +12,14 @@ interface ExpenseManagerProps {
   onDeleteExpense: (id: string) => Promise<void>;
   onQuickAddTOT: () => void;
   monthlySales: number;
-  offeringMode?: 'products' | 'services' | 'mixed' | string;
   businessCategory?: string;
-  singleOffering?: boolean;
 }
 
 type RangeType = '7d' | '30d' | 'month' | 'all';
 type ExpenseTypeFilter = 'all' | 'one_off' | 'variable' | 'recurring';
 
-const categoryByBusiness = (businessCategory: string, offeringMode: string): string[] => {
+const categoryByBusiness = (businessCategory: string): string[] => {
   const common = ['Tax', 'Rent', 'Utilities', 'Transport', 'Salary', 'Licenses', 'Other'];
-  if (offeringMode === 'services') {
-    return ['Wages', 'Consumables', 'Commission', 'Maintenance', 'Marketing', ...common];
-  }
   if (businessCategory === 'transport') {
     return ['Fuel', 'Route Fees', 'Vehicle Maintenance', 'Parking', 'Insurance', ...common];
   }
@@ -54,9 +49,7 @@ export function ExpenseManager({
   onDeleteExpense,
   onQuickAddTOT,
   monthlySales,
-  offeringMode = 'products',
-  businessCategory = 'retail',
-  singleOffering = false
+  businessCategory = 'retail'
 }: ExpenseManagerProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showRules, setShowRules] = useState(false);
@@ -75,8 +68,8 @@ export function ExpenseManager({
   const [search, setSearch] = useState('');
 
   const categories = useMemo(
-    () => categoryByBusiness(businessCategory, offeringMode),
-    [businessCategory, offeringMode]
+    () => categoryByBusiness(businessCategory),
+    [businessCategory]
   );
 
   const filteredExpenses = useMemo(() => {
@@ -112,7 +105,7 @@ export function ExpenseManager({
       total,
       tax,
       count: filteredExpenses.length,
-      topCategory: topCategory ? `${topCategory[0]} (${formatCurrency(topCategory[1])})` : 'N/A',
+      topCategory: topCategory ? `${topCategory[0]} (${formatCurrency(topCategory[1])})` : 'Nothing yet',
       netAfterTax: monthlySales - total,
     };
   }, [filteredExpenses, monthlySales]);
@@ -145,12 +138,6 @@ export function ExpenseManager({
   };
 
   const quickTemplates = useMemo(() => {
-    if (offeringMode === 'services') {
-      return [
-        { description: 'Daily consumables', category: 'Consumables' },
-        { description: 'Staff wages / commission', category: 'Wages' },
-      ];
-    }
     if (businessCategory === 'transport') {
       return [
         { description: 'Fuel top-up', category: 'Fuel' },
@@ -161,7 +148,7 @@ export function ExpenseManager({
       { description: 'Shop utilities', category: 'Utilities' },
       { description: 'Staff wages', category: 'Wages' },
     ];
-  }, [offeringMode, businessCategory]);
+  }, [businessCategory]);
 
   const handleExportCsv = () => {
     const headers = ['date', 'category', 'description', 'amount', 'expense_type', 'recurrence_unit', 'allocation_mode', 'effective_from', 'effective_to'];
@@ -194,36 +181,36 @@ export function ExpenseManager({
       <Card className="p-4 border border-primary/20 bg-primary/5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-bold text-primary">Expense Rules</p>
+            <p className="text-sm amount text-primary">Expense Rules</p>
             <p className="text-xs text-muted-foreground">
               Understand how expenses impact Home and Reports before saving entries.
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={() => setShowRules((v) => !v)}>
-            {showRules ? 'Hide Rules' : 'Show Rules'}
+            {showRules ? 'Hide' : 'How this works'}
           </Button>
         </div>
         {showRules && (
           <div className="mt-3 space-y-3 text-xs">
             <div className="rounded-lg border border-border bg-card p-3">
-              <p className="font-semibold mb-1">Home tab (daily view)</p>
+              <p className="font-semibold mb-1">Spreading a big bill out</p>
               <p className="text-muted-foreground">
-                Uses accrued daily expense. Cash-mode entries hit only on their recorded date. Accrual recurring entries are spread by day.
+                Rent of 9,000 paid on the 1st can either land entirely on the 1st, or count as 300 a day all month. Spreading it stops one day looking terrible and the rest looking better than they are.
               </p>
             </div>
             <div className="rounded-lg border border-border bg-card p-3">
-              <p className="font-semibold mb-1">Reports tab (period view)</p>
+              <p className="font-semibold mb-1">Which way to use</p>
               <p className="text-muted-foreground">
-                You can switch basis:
+                Both are useful, for different questions:
               </p>
-              <p className="text-muted-foreground mt-1">Cash: recognizes expense when it occurs.</p>
-              <p className="text-muted-foreground">Accrual: spreads recurring accrual entries across days in the selected range.</p>
+              <p className="text-muted-foreground mt-1">On the day paid: answers "what left my pocket today".</p>
+              <p className="text-muted-foreground">Spread out: answers "is this shop actually making money on a normal day".</p>
             </div>
             <div className="rounded-lg border border-border bg-card p-3">
-              <p className="font-semibold mb-1">Recommended setup</p>
-              <p className="text-muted-foreground">One-off: permits, repairs, penalties, emergency spend.</p>
-              <p className="text-muted-foreground">Variable: fuel, stock top-up, ad boost, transport.</p>
-              <p className="text-muted-foreground">Recurring: rent, salary, subscriptions, internet, annual license.</p>
+              <p className="font-semibold mb-1">Which type to pick</p>
+              <p className="text-muted-foreground">One-off: a permit, a repair, a fine.</p>
+              <p className="text-muted-foreground">Variable: fuel, transport, airtime — changes week to week.</p>
+              <p className="text-muted-foreground">Recurring: rent, wages, internet — same bill every time.</p>
             </div>
             <div className="rounded-lg border border-border bg-card p-3">
               <p className="font-semibold mb-1">Examples by business type</p>
@@ -243,8 +230,8 @@ export function ExpenseManager({
           onClick={onQuickAddTOT}
         >
           <Landmark className="h-6 w-6 text-primary mb-1" />
-          <span className="text-sm font-bold text-primary">Pay TOT (3%)</span>
-          <span className="text-[10px] text-muted-foreground">Est: {formatCurrency(monthlySales * 0.03)}</span>
+          <span className="text-sm amount text-primary">Record turnover tax</span>
+          <span className="text-[10px] text-muted-foreground">About {formatCurrency(monthlySales * 0.03)} this month</span>
         </Button>
 
         <Button
@@ -253,26 +240,26 @@ export function ExpenseManager({
           onClick={() => setShowAddForm(true)}
         >
           <Plus className="h-6 w-6 text-muted-foreground mb-1" />
-          <span className="text-sm font-bold">Add Expense</span>
-          <span className="text-[10px] text-muted-foreground">{singleOffering ? 'Single-offering cost focus' : 'Detailed business expense'}</span>
+          <span className="text-sm amount">Add expense</span>
+          <span className="text-[10px] text-muted-foreground">Rent, wages, transport</span>
         </Button>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="stat-card">
-          <p className="metric-label">Filtered Total</p>
-          <p className="text-lg font-bold text-destructive">-{formatCurrency(totals.total)}</p>
+        <div className="sheet">
+          <p className="sheet-heading">Total shown</p>
+          <p className="text-lg amount text-destructive">-{formatCurrency(totals.total)}</p>
         </div>
-        <div className="stat-card">
-          <p className="metric-label">Tax Spend</p>
-          <p className="text-lg font-bold">{formatCurrency(totals.tax)}</p>
+        <div className="sheet">
+          <p className="sheet-heading">Of that, tax</p>
+          <p className="text-lg amount">{formatCurrency(totals.tax)}</p>
         </div>
-        <div className="stat-card">
-          <p className="metric-label">Top Category</p>
+        <div className="sheet">
+          <p className="sheet-heading">Biggest cost</p>
           <p className="text-xs font-semibold">{totals.topCategory}</p>
         </div>
-        <div className="stat-card">
-          <p className="metric-label">Net vs Sales</p>
+        <div className="sheet">
+          <p className="sheet-heading">Sales less these</p>
           <p className={`text-sm font-bold ${totals.netAfterTax < 0 ? 'text-destructive' : 'text-success'}`}>
             {formatCurrency(totals.netAfterTax)}
           </p>
@@ -287,7 +274,7 @@ export function ExpenseManager({
               <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddForm(false)}>Cancel</Button>
             </div>
 
-            {offeringMode !== 'services' && (
+            {(
               <p className="text-xs text-muted-foreground rounded-lg bg-muted p-2">
                 Buying stock? Record it under <span className="font-medium text-foreground">Products &rarr; Restock</span> instead,
                 so your stock levels and unit costs update along with the money.
@@ -468,13 +455,13 @@ export function ExpenseManager({
           </div>
         ) : (
           filteredExpenses.map((expense) => (
-            <div key={expense.id} className="group relative flex items-center justify-between p-4 bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+            <div key={expense.id} className="group relative flex items-center justify-between p-4 bg-card border border-border rounded-lg overflow-hidden">
               <div className="flex items-center gap-4">
                 <div className="p-2.5 bg-muted rounded-xl text-muted-foreground">
                   {expense.category.toLowerCase().includes('tax') ? <Landmark className="h-4 w-4" /> : <Receipt className="h-4 w-4" />}
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-foreground">{expense.description}</p>
+                  <p className="text-sm amount text-foreground">{expense.description}</p>
                   <p className="text-[10px] text-muted-foreground font-medium">
                     {expense.category} | {expenseTypeLabel(expense.expenseType)} | {expense.allocationMode} | {format(new Date(expense.date), 'MMM d, yyyy')}
                   </p>

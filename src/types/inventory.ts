@@ -53,6 +53,8 @@ export interface Sale {
   listPriceAtSale?: number;
   priceSource?: 'list' | 'override';
   soldBy?: string | null;
+  /** Set when the sale was cancelled. Voided sales are excluded from all totals. */
+  voidedAt?: string | null;
   totalAmount: number;
   profit: number;
   isCredit?: boolean;

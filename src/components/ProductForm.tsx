@@ -9,13 +9,9 @@ interface ProductFormProps {
   product?: Product | null;
   onSave: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onClose: () => void;
-  offeringMode?: 'products' | 'services' | 'mixed' | string;
 }
 
-export function ProductForm({ product, onSave, onClose, offeringMode = 'products' }: ProductFormProps) {
-  const itemLabel = offeringMode === 'services' ? 'Service' : offeringMode === 'mixed' ? 'Item' : 'Product';
-  const costLabel = offeringMode === 'services' ? 'Direct Cost (KSh)' : 'Cost Price (KSh)';
-  const sellLabel = offeringMode === 'services' ? 'Service Price (KSh)' : 'Selling Price (KSh)';
+export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
   const [formData, setFormData] = useState({
     name: '',
     costPrice: '',
@@ -77,10 +73,10 @@ export function ProductForm({ product, onSave, onClose, offeringMode = 'products
 
   return (
     <div className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center">
-      <div className="bg-card w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto animate-slide-up">
+      <div className="bg-card w-full max-w-md rounded-t-2xl sm:rounded-lg max-h-[90vh] overflow-y-auto animate-slide-up">
         <div className="sticky top-0 bg-card p-4 border-b border-border flex items-center justify-between">
           <h2 className="text-lg font-semibold">
-            {product ? `Edit ${itemLabel}` : `Add ${itemLabel}`}
+            {product ? 'Edit product' : 'Add product'}
           </h2>
           <Button variant="ghost" size="icon-sm" onClick={onClose}>
             <X className="h-5 w-5" />
@@ -89,10 +85,10 @@ export function ProductForm({ product, onSave, onClose, offeringMode = 'products
         
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">{itemLabel} Name *</Label>
+            <Label htmlFor="name">Product name *</Label>
             <Input
               id="name"
-              placeholder={offeringMode === 'services' ? 'e.g., Haircut + Wash' : 'e.g., Unga wa Ngano (2kg)'}
+              placeholder="e.g. Unga wa Ngano (2kg)"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
@@ -101,7 +97,7 @@ export function ProductForm({ product, onSave, onClose, offeringMode = 'products
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="costPrice">{costLabel} *</Label>
+              <Label htmlFor="costPrice">What it costs you *</Label>
               <Input
                 id="costPrice"
                 type="number"
@@ -113,7 +109,7 @@ export function ProductForm({ product, onSave, onClose, offeringMode = 'products
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="sellingPrice">{sellLabel} *</Label>
+              <Label htmlFor="sellingPrice">What you sell it for *</Label>
               <Input
                 id="sellingPrice"
                 type="number"
@@ -126,7 +122,7 @@ export function ProductForm({ product, onSave, onClose, offeringMode = 'products
             </div>
           </div>
 
-          {offeringMode !== 'services' && (
+          {(
             <div className="space-y-2 rounded-xl border border-border p-3">
               <Label>Negotiable price range (Optional)</Label>
               <p className="text-xs text-muted-foreground">
@@ -167,7 +163,7 @@ export function ProductForm({ product, onSave, onClose, offeringMode = 'products
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="quantity">{offeringMode === 'services' ? 'Daily Slots / Units *' : 'Quantity *'}</Label>
+              <Label htmlFor="quantity">How many you have *</Label>
               <Input
                 id="quantity"
                 type="number"
@@ -179,7 +175,7 @@ export function ProductForm({ product, onSave, onClose, offeringMode = 'products
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lowStockThreshold">{offeringMode === 'services' ? 'Low Availability Alert' : 'Low Stock Alert'}</Label>
+              <Label htmlFor="lowStockThreshold">Warn me at</Label>
               <Input
                 id="lowStockThreshold"
                 type="number"
@@ -191,25 +187,12 @@ export function ProductForm({ product, onSave, onClose, offeringMode = 'products
             </div>
           </div>
 
-          {offeringMode === 'services' && (
-            <div className="space-y-2">
-              <Label htmlFor="durationMinutes">Duration (minutes)</Label>
-              <Input
-                id="durationMinutes"
-                type="number"
-                min="0"
-                placeholder="30"
-                value={formData.durationMinutes}
-                onChange={(e) => setFormData({ ...formData, durationMinutes: e.target.value })}
-              />
-            </div>
-          )}
 
           <div className="space-y-2">
             <Label htmlFor="category">Category (Optional)</Label>
             <Input
               id="category"
-              placeholder={offeringMode === 'services' ? 'e.g., Grooming, Printing, Transport' : 'e.g., Food, Dairy, Electronics'}
+              placeholder="e.g. Food, Dairy, Soap"
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
             />
@@ -220,7 +203,7 @@ export function ProductForm({ product, onSave, onClose, offeringMode = 'products
               Cancel
             </Button>
             <Button type="submit" className="flex-1" disabled={bandInverted}>
-              {product ? `Update ${itemLabel}` : `Add ${itemLabel}`}
+              {product ? 'Save changes' : 'Add product'}
             </Button>
           </div>
         </form>

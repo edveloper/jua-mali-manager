@@ -78,14 +78,14 @@ export function HelpPanel() {
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
-      <div className="panel-glass p-4">
-        <p className="section-kicker">Help</p>
+      <div className="sheet p-4">
+        <p className="sheet-heading">Help</p>
         <h2 className="text-2xl font-black mt-1">How this works</h2>
         <p className="text-muted-foreground text-sm mt-1">The short version of everything.</p>
       </div>
       <div className="grid gap-4">
         {guides.map((guide, i) => (
-          <Card key={i} className="border-border/60 shadow-sm rounded-2xl">
+          <Card key={i} className="border-border/60 rounded-lg">
             <CardHeader className="flex flex-row items-center gap-3 pb-2">
               <div className="p-2 rounded-xl bg-muted">{guide.icon}</div>
               <CardTitle className="text-lg">{guide.title}</CardTitle>

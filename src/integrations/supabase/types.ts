@@ -189,6 +189,9 @@ export type Database = {
           list_price_at_sale: number | null;
           price_source: string;
           sold_by: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
+          void_reason: string | null;
           created_at: string | null;
         };
         Insert: {
@@ -203,6 +206,9 @@ export type Database = {
           list_price_at_sale?: number | null;
           price_source?: string;
           sold_by?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          void_reason?: string | null;
           created_at?: string | null;
         };
         Update: {
@@ -217,6 +223,9 @@ export type Database = {
           list_price_at_sale?: number | null;
           price_source?: string;
           sold_by?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          void_reason?: string | null;
           created_at?: string | null;
         };
         Relationships: [
@@ -741,6 +750,17 @@ export type Database = {
       shares_shop_with: {
         Args: { p_viewer: string; p_target: string };
         Returns: boolean;
+      };
+
+      void_sale_atomic: {
+        Args: { p_shop_id: string; p_sale_id: string; p_reason?: string | null };
+        Returns: {
+          id: string;
+          product_id: string;
+          quantity: number;
+          restored_stock: number;
+          voided_at: string;
+        }[];
       };
 
       is_shop_owner: {

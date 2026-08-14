@@ -37,7 +37,7 @@ export function RestockDialog({ product, onRestock, onClose }: RestockDialogProp
 
   return (
     <div className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center">
-      <div className="bg-card w-full max-w-md rounded-t-2xl sm:rounded-2xl animate-slide-up">
+      <div className="bg-card w-full max-w-md rounded-t-2xl sm:rounded-lg animate-slide-up">
         <div className="p-4 border-b border-border flex items-center justify-between">
           <h2 className="text-lg font-semibold">Restock Product</h2>
           <Button variant="ghost" size="icon-sm" onClick={onClose}>

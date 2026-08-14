@@ -40,17 +40,7 @@ type ParsedRow = {
 };
 
 interface CatalogImportPanelProps {
-  offeringMode: ImportMode;
   onImportProducts: (rows: Array<{
-    name: string;
-    category?: string;
-    costPrice: number;
-    sellingPrice: number;
-    quantity: number;
-    lowStockThreshold: number;
-    durationMinutes?: number;
-  }>) => Promise<{ inserted: number; error: any }>;
-  onImportServices: (rows: Array<{
     name: string;
     category?: string;
     costPrice: number;
@@ -107,7 +97,7 @@ const FIELD_ALIASES: Record<FieldKey, string[]> = {
   durationMinutes: ['duration_minutes', 'duration', 'minutes', 'service_duration'],
 };
 
-const parseDraft = (offeringMode: ImportMode, rowNumber: number, draft: RowDraft) => {
+const parseDraft = (rowNumber: number, draft: RowDraft) => {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -119,14 +109,8 @@ const parseDraft = (offeringMode: ImportMode, rowNumber: number, draft: RowDraft
   const lowThresholdNum = toNumber(draft.lowStockThreshold);
   const durationNum = toNumber(draft.durationMinutes);
 
-  let target: 'products' | 'services' = offeringMode === 'services' ? 'services' : 'products';
+  const target: 'products' = 'products';
   const itemType = draft.itemType.toLowerCase().trim();
-  if (offeringMode === 'mixed') {
-    if (itemType === 'service' || itemType === 'services') target = 'services';
-    else if (itemType === 'product' || itemType === 'products') target = 'products';
-    else if (Number.isFinite(durationNum) && durationNum > 0) target = 'services';
-    else warnings.push('Mixed mode: item_type missing, defaulted to product.');
-  }
 
   if (!name) errors.push('Missing name.');
   if (!Number.isFinite(sellingPriceNum) || sellingPriceNum <= 0) errors.push('Missing or invalid selling/price.');
@@ -142,7 +126,7 @@ const parseDraft = (offeringMode: ImportMode, rowNumber: number, draft: RowDraft
     sellingPrice: Math.max(0, sellingPriceNum),
     quantity: Math.max(0, Math.floor(quantityNum)),
     lowStockThreshold: Number.isFinite(lowThresholdNum) ? Math.max(0, Math.floor(lowThresholdNum)) : 5,
-    durationMinutes: target === 'services' && Number.isFinite(durationNum) ? Math.max(0, Math.floor(durationNum)) : 0,
+    durationMinutes: 0,
   } : undefined;
 
   return { parsed, errors, warnings };
@@ -172,7 +156,7 @@ const parseRawRowToDraft = (
   };
 };
 
-export function CatalogImportPanel({ offeringMode, onImportProducts, onImportServices }: CatalogImportPanelProps) {
+export function CatalogImportPanel({ onImportProducts }: CatalogImportPanelProps) {
   const [fileName, setFileName] = useState('');
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [availableHeaders, setAvailableHeaders] = useState<string[]>([]);
@@ -193,7 +177,7 @@ export function CatalogImportPanel({ offeringMode, onImportProducts, onImportSer
   const buildRow = (raw: Record<string, any>, rowNumber: number, draftOverride?: Partial<RowDraft>): ParsedRow => {
     const baseDraft = parseRawRowToDraft(raw, columnMap);
     const draft = { ...baseDraft, ...(draftOverride || {}) };
-    const evaluated = parseDraft(offeringMode, rowNumber, draft);
+    const evaluated = parseDraft(rowNumber, draft);
     return {
       rowNumber,
       raw,
@@ -270,29 +254,6 @@ export function CatalogImportPanel({ offeringMode, onImportProducts, onImportSer
     setIsImporting(true);
     try {
       const productRows = validRows.filter((r) => r.parsed.target === 'products').map((r) => r.parsed);
-      const serviceRows = validRows.filter((r) => r.parsed.target === 'services').map((r) => r.parsed);
-
-      if (productRows.length > 0) {
-        await onImportProducts(productRows.map((row) => ({
-          name: row.name,
-          category: row.category,
-          costPrice: row.costPrice,
-          sellingPrice: row.sellingPrice,
-          quantity: row.quantity,
-          lowStockThreshold: row.lowStockThreshold,
-        })));
-      }
-      if (serviceRows.length > 0) {
-        await onImportServices(serviceRows.map((row) => ({
-          name: row.name,
-          category: row.category,
-          costPrice: row.costPrice,
-          sellingPrice: row.sellingPrice,
-          quantity: row.quantity,
-          lowStockThreshold: row.lowStockThreshold,
-          durationMinutes: row.durationMinutes || 0,
-        })));
-      }
       setRows((prev) => {
         const remaining = prev.filter((row) => row.errors.length > 0);
         if (remaining.length === 0) setFileName('');
@@ -331,22 +292,14 @@ export function CatalogImportPanel({ offeringMode, onImportProducts, onImportSer
   };
 
   const downloadTemplate = () => {
-    const headers = offeringMode === 'mixed'
-      ? ['item_type', 'name', 'category', 'cost_price', 'selling_price', 'quantity', 'low_stock_threshold', 'duration_minutes']
-      : offeringMode === 'services'
-        ? ['name', 'category', 'cost_price', 'selling_price', 'capacity', 'min_capacity_level', 'duration_minutes']
-        : ['name', 'category', 'cost_price', 'selling_price', 'quantity', 'low_stock_threshold'];
-    const sample = offeringMode === 'mixed'
-      ? ['product', 'Unga wa Ngano (2kg)', 'Retail', '65', '80', '20', '5', '']
-      : offeringMode === 'services'
-        ? ['Haircut', 'Grooming', '100', '250', '15', '3', '30']
-        : ['Unga wa Ngano (2kg)', 'Flour', '65', '80', '20', '5'];
+    const headers = ['name', 'category', 'cost_price', 'selling_price', 'quantity', 'low_stock_threshold'];
+    const sample = ['Unga wa Ngano (2kg)', 'Flour', '65', '80', '20', '5'];
     const csv = `${headers.join(',')}\n${sample.join(',')}\n`;
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `duka-import-template-${offeringMode}.csv`;
+    a.download = 'duka-import-template.csv';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -354,7 +307,7 @@ export function CatalogImportPanel({ offeringMode, onImportProducts, onImportSer
   };
 
   return (
-    <div className="panel-glass p-4 space-y-4">
+    <div className="sheet p-4 space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h3 className="font-semibold">Catalog Import</h3>
@@ -398,8 +351,7 @@ export function CatalogImportPanel({ offeringMode, onImportProducts, onImportSer
               { key: 'quantity', label: 'Quantity/Capacity' },
               { key: 'category', label: 'Category' },
               { key: 'lowStockThreshold', label: 'Low Stock Threshold' },
-              { key: 'durationMinutes', label: 'Duration (services)' },
-              { key: 'itemType', label: 'Item Type (mixed)' },
+                      { key: 'itemType', label: 'Item Type (mixed)' },
             ].map((field) => (
               <label key={field.key} className="space-y-1">
                 <span className="text-muted-foreground">{field.label}</span>
@@ -450,7 +402,7 @@ export function CatalogImportPanel({ offeringMode, onImportProducts, onImportSer
                 <p key={`e-${idx}`} className="text-destructive flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> {e}</p>
               ))}
               {row.warnings.map((w, idx) => (
-                <p key={`w-${idx}`} className="text-amber-600 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> {w}</p>
+                <p key={`w-${idx}`} className="text-warning flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> {w}</p>
               ))}
               {row.errors.length === 0 && (
                 <p className="text-success flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Ready</p>

@@ -5,17 +5,15 @@ import { Button } from '@/components/ui/button';
 interface LowStockAlertsProps {
   products: Product[];
   onRestock?: (product: Product) => void;
-  offeringMode?: 'products' | 'services' | 'mixed' | string;
 }
 
-export function LowStockAlerts({ products, onRestock, offeringMode = 'products' }: LowStockAlertsProps) {
-  const nounPlural = offeringMode === 'services' ? 'services' : offeringMode === 'mixed' ? 'items' : 'products';
-  const heading = offeringMode === 'services' ? 'Availability Looks Good!' : 'All Stocked Up!';
-  const subheading = offeringMode === 'services' ? 'No services are running low on capacity' : `No ${nounPlural} are running low`;
-  const alertTitle = offeringMode === 'services' ? `${products.length} Services Need Capacity Update` : `${products.length} Items Need Restocking`;
-  const thresholdLabel = offeringMode === 'services' ? 'Min capacity' : 'Threshold';
-  const restockAction = offeringMode === 'services' ? 'Update Capacity' : 'Update Stock';
-  const remainingLabel = offeringMode === 'services' ? 'slots left' : 'remaining';
+export function LowStockAlerts({ products, onRestock }: LowStockAlertsProps) {
+  const heading = 'Nothing is running out';
+  const subheading = 'Every product is above the level you set';
+  const alertTitle = `${products.length} to reorder`;
+  const thresholdLabel = 'Warn at';
+  const restockAction = 'Restock';
+  const remainingLabel = 'left';
 
   if (products.length === 0) {
     return (
@@ -46,7 +44,7 @@ export function LowStockAlerts({ products, onRestock, offeringMode = 'products' 
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-foreground truncate">{product.name}</h3>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {thresholdLabel}: {product.lowStockThreshold} {offeringMode === 'services' ? 'slots' : 'units'}
+                  {thresholdLabel}: {product.lowStockThreshold}
                 </p>
               </div>
               <div className="text-right flex-shrink-0">

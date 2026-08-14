@@ -1,14 +1,24 @@
-import { LayoutDashboard, Package, AlertTriangle, BarChart3, Banknote, LucideIcon } from 'lucide-react';
+import { Home, Package, Users, Wallet, MoreHorizontal, LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type TabType = 'dashboard' | 'products' | 'alerts' | 'credit' | 'reports' | 'settings' | 'expenses' | 'help' | 'privacy' | 'contact';
+export type TabType =
+  | 'dashboard'
+  | 'products'
+  | 'credit'
+  | 'money'
+  | 'more'
+  | 'alerts'
+  | 'settings'
+  | 'staff'
+  | 'help'
+  | 'privacy'
+  | 'contact';
 
 interface NavigationProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
-  alertCount: number;
   isOwner?: boolean;
-  offeringMode?: 'products' | 'services' | 'mixed' | string;
+  deniCount?: number;
 }
 
 interface NavItem {
@@ -16,53 +26,61 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   badge?: number;
+  /** Other tabs that should light this one up, so deep screens keep their place. */
+  covers?: TabType[];
 }
 
-export function Navigation({ activeTab, onTabChange, alertCount, isOwner = true, offeringMode = 'products' }: NavigationProps) {
-  const catalogLabel = offeringMode === 'services' ? 'Services' : offeringMode === 'mixed' ? 'Catalog' : 'Products';
-  
+export function Navigation({ activeTab, onTabChange, isOwner = true, deniCount = 0 }: NavigationProps) {
   const ownerTabs: NavItem[] = [
-    { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
-    { id: 'products', label: catalogLabel, icon: Package },
-    { id: 'expenses', label: 'Expenses', icon: Banknote },
-    { id: 'reports', label: 'Reports', icon: BarChart3 },
+    { id: 'dashboard', label: 'Home', icon: Home, covers: ['alerts'] },
+    { id: 'products', label: 'Sell', icon: Package },
+    { id: 'credit', label: 'Deni', icon: Users, badge: deniCount },
+    { id: 'money', label: 'Money', icon: Wallet },
+    { id: 'more', label: 'More', icon: MoreHorizontal, covers: ['settings', 'staff', 'help', 'privacy', 'contact'] },
   ];
 
+  // Staff get the two screens they use and nothing that implies more exists.
   const employeeTabs: NavItem[] = [
-    { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
-    { id: 'products', label: catalogLabel, icon: Package },
-    { id: 'alerts', label: 'Alerts', icon: AlertTriangle, badge: alertCount },
+    { id: 'dashboard', label: 'Home', icon: Home, covers: ['alerts'] },
+    { id: 'products', label: 'Sell', icon: Package },
+    { id: 'more', label: 'More', icon: MoreHorizontal, covers: ['settings', 'help', 'privacy', 'contact'] },
   ];
 
   const tabs = isOwner ? ownerTabs : employeeTabs;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border safe-area-pb z-40">
-      <div className="flex items-center justify-around py-2 px-1 max-w-md mx-auto">
+      <div className="flex items-stretch justify-around max-w-md mx-auto">
         {tabs.map((tab) => {
           const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          
+          const isActive = activeTab === tab.id || (tab.covers ?? []).includes(activeTab);
+
           return (
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={cn(
-                "flex flex-col items-center gap-0.5 py-2 px-2 rounded-xl transition-all duration-200 relative min-w-0",
-                isActive 
-                  ? "text-primary bg-primary/10" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                'flex-1 flex flex-col items-center gap-1 pt-2.5 pb-2 relative transition-colors',
+                isActive ? 'text-primary' : 'text-muted-foreground'
               )}
             >
+              {/* A rule above the active tab rather than a pill behind it --
+                  quieter, and consistent with the ruled sheets everywhere else. */}
+              <span
+                className={cn(
+                  'absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full transition-colors',
+                  isActive ? 'bg-primary' : 'bg-transparent'
+                )}
+              />
               <div className="relative">
-                <Icon className="h-5 w-5" />
+                <Icon className="h-5 w-5" strokeWidth={isActive ? 2.25 : 1.75} />
                 {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-warning text-warning-foreground text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-2 bg-warning text-warning-foreground text-[10px] font-bold rounded-full min-w-4 h-4 px-1 flex items-center justify-center num">
                     {tab.badge > 9 ? '9+' : tab.badge}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] font-medium">{tab.label}</span>
+              <span className={cn('text-[11px]', isActive && 'font-semibold')}>{tab.label}</span>
             </button>
           );
         })}

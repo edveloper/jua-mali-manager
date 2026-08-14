@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Store, Mail, Phone, Lock, User, Building2 } from 'lucide-react';
+import { Mail, Phone, Lock, User, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { Logo } from '@/components/Logo';
 import { toAuthEmail } from '@/lib/identity';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -19,8 +20,6 @@ export default function Auth() {
   const [fullName, setFullName] = useState('');
   const [shopName, setShopName] = useState('');
   const [businessCategory, setBusinessCategory] = useState('retail');
-  const [offeringMode, setOfferingMode] = useState<'products' | 'services' | 'mixed'>('products');
-  const [singleOffering, setSingleOffering] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { signIn, signUp, user, shopMember, loading: isLoading } = useAuth();
@@ -50,7 +49,7 @@ export default function Auth() {
         if (error) {
           toast({ title: 'Sign In Failed', description: 'Check your details and try again.', variant: 'destructive' });
         } else {
-          toast({ title: 'Welcome Back!', description: 'Signed in successfully.' });
+          toast({ title: 'Karibu tena' });
           navigate('/');
         }
       } else {
@@ -61,13 +60,11 @@ export default function Auth() {
         }
         const { error } = await signUp(emailToUse, password, fullName, shopName, {
           businessCategory,
-          offeringMode,
-          singleOffering,
         });
         if (error) {
           toast({ title: 'Sign Up Failed', description: error.message, variant: 'destructive' });
         } else {
-          toast({ title: 'Account Created!', description: 'Welcome to Duka Manager.' });
+          toast({ title: 'Your shop is ready', description: 'Karibu Tarihi.' });
           navigate('/');
         }
       }
@@ -82,20 +79,15 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="p-6 text-center">
-        <div className="flex items-center gap-3 justify-center">
-          <div className="p-2 bg-primary rounded-xl">
-            <Store className="h-6 w-6 text-primary-foreground" />
-          </div>
-          <h1 className="text-xl font-bold">Duka Manager</h1>
-        </div>
+      <header className="p-6 flex justify-center">
+        <Logo size="md" />
       </header>
 
       <main className="flex-1 flex items-center justify-center px-4 pb-8">
         <div className="w-full max-w-sm space-y-6">
           <div className="text-center">
             <h2 className="text-2xl font-bold">{mode === 'signin' ? 'Welcome Back' : 'Create Your Shop'}</h2>
-            <p className="text-muted-foreground text-sm">Join the digital duka community</p>
+            <p className="text-muted-foreground text-sm">Biashara yako, siku kwa siku</p>
           </div>
 
           {wasRemoved && (
@@ -151,26 +143,6 @@ export default function Auth() {
                       <option value="other_services">Other Service Business</option>
                     </select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>What do you mainly sell?</Label>
-                    <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={offeringMode}
-                      onChange={(e) => setOfferingMode(e.target.value as 'products' | 'services' | 'mixed')}
-                    >
-                      <option value="products">Products Only</option>
-                      <option value="services">Services Only</option>
-                      <option value="mixed">Products + Services</option>
-                    </select>
-                  </div>
-                  <label className="flex items-center justify-between rounded-md border border-input px-3 py-2 text-sm">
-                    <span>Single main product/service business</span>
-                    <input
-                      type="checkbox"
-                      checked={singleOffering}
-                      onChange={(e) => setSingleOffering(e.target.checked)}
-                    />
-                  </label>
                 </>
               )}
 

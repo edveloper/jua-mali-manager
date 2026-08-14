@@ -16,35 +16,28 @@ interface SellDialogProps {
       customerId?: string;
       /** Typed in on the spot rather than picked from the credit book. */
       newCustomer?: { name: string; phone: string };
-      meta?: { staffName?: string; sessionTime?: string; notes?: string; status?: 'completed' | 'scheduled' | 'cancelled' };
       unitPrice?: number;
     }
   ) => void | boolean | Promise<void | boolean>;
   onClose: () => void;
   isOwner?: boolean;
-  offeringMode?: 'products' | 'services' | 'mixed' | string;
-  allowCredit?: boolean;
   /** Whether this user may charge something other than the catalog price. */
   canOverridePrice?: boolean;
 }
 
-export function SellDialog({ product, customers, onSell, onClose, isOwner = true, offeringMode = 'products', allowCredit = true, canOverridePrice = false }: SellDialogProps) {
+export function SellDialog({ product, customers, onSell, onClose, isOwner = true, canOverridePrice = false }: SellDialogProps) {
   const [quantity, setQuantity] = useState(1);
   const [isCredit, setIsCredit] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [customerQuery, setCustomerQuery] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [staffName, setStaffName] = useState('');
-  const [sessionTime, setSessionTime] = useState('');
-  const [notes, setNotes] = useState('');
-  const [sessionStatus, setSessionStatus] = useState<'completed' | 'scheduled' | 'cancelled'>('completed');
   // Free text, not a number, so the field can be cleared and retyped on a phone
   // without fighting a forced 0.
   const [priceInput, setPriceInput] = useState(String(product.sellingPrice ?? 0));
-  const actionLabel = offeringMode === 'services' ? 'Record Service' : 'Record Sale';
+  const actionLabel = 'Record a sale';
 
-  const isPriceable = offeringMode !== 'services' && canOverridePrice;
+  const isPriceable = canOverridePrice;
   const basePrice = Number(product.sellingPrice || 0);
   const minPrice = product.minPrice ?? null;
   const maxPrice = product.maxPrice ?? null;
@@ -97,25 +90,16 @@ export function SellDialog({ product, customers, onSell, onClose, isOwner = true
     quantity > 0 &&
     quantity <= product.quantity &&
     !priceError &&
-    !(allowCredit && isCredit && !hasCustomer);
+    !(isCredit && !hasCustomer);
 
   const handleSell = async () => {
     if (!canSubmit) return;
     setIsSubmitting(true);
 
-    const result = offeringMode === 'services'
-      ? await onSell(product.id, quantity, {
-          meta: {
-            staffName: staffName.trim(),
-            sessionTime: sessionTime || undefined,
-            notes: notes.trim(),
-            status: sessionStatus,
-          },
-        })
-      : await onSell(product.id, quantity, {
-          isCredit: allowCredit ? isCredit : false,
-          customerId: (allowCredit && isCredit && resolvedCustomer) ? resolvedCustomer.id : undefined,
-          newCustomer: (allowCredit && isCredit && isNewCustomer)
+    const result = await onSell(product.id, quantity, {
+          isCredit,
+          customerId: (isCredit && resolvedCustomer) ? resolvedCustomer.id : undefined,
+          newCustomer: (isCredit && isNewCustomer)
             ? { name: trimmedQuery, phone: newCustomerPhone.trim() }
             : undefined,
           unitPrice: isPriceable ? effectivePrice : undefined,
@@ -135,7 +119,7 @@ export function SellDialog({ product, customers, onSell, onClose, isOwner = true
       {/* Column layout with a scrolling middle: on a phone the keyboard eats most
           of the screen, and the action buttons must stay reachable without
           dismissing it. dvh rather than vh so the keyboard is accounted for. */}
-      <div className="bg-card w-full max-w-md rounded-t-2xl sm:rounded-2xl animate-slide-up flex flex-col max-h-[90dvh]">
+      <div className="bg-card w-full max-w-md rounded-t-2xl sm:rounded-lg animate-slide-up flex flex-col max-h-[90dvh]">
         <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
           <h2 className="text-lg font-semibold">{actionLabel}</h2>
           <Button variant="ghost" size="icon-sm" onClick={onClose}>
@@ -215,7 +199,7 @@ export function SellDialog({ product, customers, onSell, onClose, isOwner = true
             </div>
           </div>
 
-          {allowCredit && (
+          {(
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Payment Type</label>
               <div className="flex gap-2">
@@ -239,39 +223,10 @@ export function SellDialog({ product, customers, onSell, onClose, isOwner = true
             </div>
           )}
 
-          {offeringMode === 'services' && (
-            <div className="space-y-3 rounded-xl border border-border p-3">
-              <p className="text-sm font-medium text-foreground">Service Session Details</p>
-              <Input
-                placeholder="Staff name (optional)"
-                value={staffName}
-                onChange={(e) => setStaffName(e.target.value)}
-              />
-              <Input
-                type="datetime-local"
-                value={sessionTime}
-                onChange={(e) => setSessionTime(e.target.value)}
-              />
-              <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={sessionStatus}
-                onChange={(e) => setSessionStatus(e.target.value as 'completed' | 'scheduled' | 'cancelled')}
-              >
-                <option value="completed">Completed</option>
-                <option value="scheduled">Scheduled</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-              <Input
-                placeholder="Notes (optional)"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
-            </div>
-          )}
 
           {/* Customer for a credit sale: search the credit book, or just type a
               new name. No need to leave the sale to add someone first. */}
-          {allowCredit && isCredit && (
+          {isCredit && (
             <div className="space-y-2">
               <label htmlFor="credit-customer" className="text-sm font-medium text-foreground">
                 Who is taking it on credit?
@@ -363,7 +318,7 @@ export function SellDialog({ product, customers, onSell, onClose, isOwner = true
                 <span className="font-semibold text-success">KSh {profit.toLocaleString()}</span>
               </div>
             )}
-          {allowCredit && isCredit && (
+          {isCredit && (
             <div className="flex justify-between text-warning pt-2 border-t border-border">
               <span>Payment Type</span>
               <span className="font-semibold">Credit Sale</span>
@@ -385,7 +340,7 @@ export function SellDialog({ product, customers, onSell, onClose, isOwner = true
             <ShoppingCart className="h-4 w-4 mr-2" />
             {isSubmitting
               ? 'Saving...'
-              : isCredit ? 'Credit Sale' : (offeringMode === 'services' ? 'Complete Service' : 'Complete Sale')}
+              : isCredit ? 'Record on deni' : 'Complete sale'}
           </Button>
         </div>
       </div>

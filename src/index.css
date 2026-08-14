@@ -96,45 +96,72 @@
   }
 
   body {
+    /* Plain ground. The gradient wash that used to live here was decoration
+       borrowed from marketing pages; a daybook sits on paper, not on glass. */
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Plus Jakarta Sans', sans-serif;
-    background-image:
-      radial-gradient(circle at 20% 0%, hsl(var(--primary) / 0.08), transparent 38%),
-      radial-gradient(circle at 100% 10%, hsl(var(--secondary) / 0.09), transparent 36%),
-      linear-gradient(180deg, hsl(var(--background)), hsl(var(--background)));
   }
 }
 
 @layer utilities {
-  .gradient-primary {
-    @apply bg-gradient-to-br from-primary to-primary/80;
+  /* ---------------------------------------------------------------------
+     Figures
+     Money is the content, so it gets the typographic care. Tabular numerals
+     keep columns aligned as digits change, which matters on a list of sales.
+     --------------------------------------------------------------------- */
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
   }
 
-  .gradient-secondary {
-    @apply bg-gradient-to-br from-secondary to-secondary/80;
+  .amount {
+    @apply num font-semibold tracking-tight;
   }
 
+  /* ---------------------------------------------------------------------
+     Daybook
+     Rules and alignment carry the structure instead of a box around every
+     fact. One heavy rule above the figure that actually matters.
+     --------------------------------------------------------------------- */
+  .sheet {
+    @apply bg-card rounded-lg border border-border/70 px-4 py-3;
+  }
+
+  .ledger-line {
+    @apply flex items-baseline justify-between gap-4 py-1.5;
+  }
+
+  .ledger-sub {
+    @apply flex items-baseline justify-between gap-4 py-0.5 pl-4 text-sm text-muted-foreground;
+  }
+
+  .ledger-rule {
+    @apply border-t border-border mt-1.5 pt-1.5;
+  }
+
+  .ledger-total {
+    @apply border-t-2 border-foreground/25 mt-2 pt-2;
+  }
+
+  .sheet-heading {
+    @apply text-xs font-semibold uppercase tracking-wide text-muted-foreground;
+  }
+
+  /* Kept for the few places still using them, minus the hover lift -- this is
+     a touch app, so pressed states are the honest feedback. */
   .stat-card {
-    @apply bg-card/90 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-border/50 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5;
+    @apply bg-card rounded-lg p-4 border border-border/70 transition-colors;
   }
 
   .metric-value {
-    @apply text-2xl font-bold tracking-tight;
+    @apply text-2xl font-bold tracking-tight num;
   }
 
   .metric-label {
-    @apply text-sm text-muted-foreground font-medium;
+    @apply text-sm text-muted-foreground;
   }
 
-  .panel-glass {
-    @apply bg-card/80 backdrop-blur-md border border-border/60 shadow-sm rounded-2xl;
-  }
-
-  .section-kicker {
-    @apply text-[10px] uppercase tracking-[0.14em] font-semibold text-muted-foreground;
-  }
-
-  .soft-divider {
-    @apply border-t border-border/60;
+  .pressable {
+    @apply transition-transform active:scale-[0.98];
   }
 }

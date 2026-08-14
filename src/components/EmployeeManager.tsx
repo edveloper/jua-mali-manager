@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, Users, Phone, Lock, User, Trash2 } from 'lucide-react';
+import { UserPlus, Phone, Lock, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -195,31 +195,27 @@ export function EmployeeManager() {
   if (!isOwner) return null;
 
   return (
-    <div className="space-y-4 animate-slide-up">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <Users className="h-5 w-5" />
-          Employees
-        </h2>
-        <Button 
-          onClick={() => setShowForm(!showForm)}
-          size="sm"
-          variant={showForm ? 'outline' : 'default'}
-        >
-          <UserPlus className="h-4 w-4 mr-1" />
-          {showForm ? 'Cancel' : 'Add Employee'}
+        <p className="text-sm text-muted-foreground">
+          {employees.length === 0
+            ? 'Nobody added yet'
+            : `${employees.length} ${employees.length === 1 ? 'person' : 'people'}`}
+        </p>
+        <Button onClick={() => setShowForm(!showForm)} size="sm" variant={showForm ? 'ghost' : 'default'}>
+          {showForm ? 'Cancel' : <><UserPlus className="h-4 w-4 mr-1.5" /> Add someone</>}
         </Button>
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="stat-card space-y-4 bg-card p-4 rounded-lg border">
+        <form onSubmit={handleSubmit} className="sheet space-y-4">
           <p className="text-sm text-muted-foreground">
             Give your employee a temporary password. The first time they sign in, they
             will be asked to choose their own.
           </p>
 
           <div className="space-y-2">
-            <Label htmlFor="empName">Employee Name</Label>
+            <Label htmlFor="empName">Their name</Label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -234,7 +230,7 @@ export function EmployeeManager() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="empIdentifier">Phone Number or Email</Label>
+            <Label htmlFor="empIdentifier">Phone number or email</Label>
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -252,7 +248,7 @@ export function EmployeeManager() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="empPassword">Temporary Password</Label>
+            <Label htmlFor="empPassword">Temporary password</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -269,42 +265,37 @@ export function EmployeeManager() {
           </div>
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? 'Creating Account...' : 'Create Employee Account'}
+            {isSubmitting ? 'Adding...' : 'Add them'}
           </Button>
         </form>
       )}
 
       <div className="grid gap-3">
         {employees.length === 0 ? (
-          <div className="stat-card text-center py-10 border rounded-lg border-dashed">
-            <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-muted-foreground text-sm font-medium">No employees yet</p>
-            <p className="text-muted-foreground text-xs">Staff you add will appear here.</p>
+          <div className="sheet">
+            <p className="text-sm text-muted-foreground">
+              Anyone you add gets their own login. They can sell and check stock, but never see
+              what you paid for things, your spending, or your profit.
+            </p>
           </div>
         ) : (
           employees.map((employee) => (
-            <div key={employee.id} className="stat-card p-4 bg-card rounded-lg border shadow-sm space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                    {employee.full_name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground leading-none mb-1">{employee.full_name}</p>
-                    <p className="text-sm text-muted-foreground">{toDisplayIdentity(employee.email)}</p>
-                  </div>
+            <div key={employee.id} className="sheet space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{employee.full_name}</p>
+                  <p className="text-sm text-muted-foreground truncate">{toDisplayIdentity(employee.email)}</p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
+                <button
+                  type="button"
                   onClick={() => handleRemoveEmployee(employee.id, employee.full_name)}
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  className="text-xs text-muted-foreground active:text-destructive shrink-0"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                  Remove
+                </button>
               </div>
 
-              <label className="flex items-center justify-between gap-3 pt-3 border-t border-border/50 cursor-pointer">
+              <label className="flex items-center justify-between gap-3 pt-3 border-t border-border/70 cursor-pointer">
                 <span className="text-sm">
                   Can agree a price with the customer
                   <span className="block text-xs text-muted-foreground">
@@ -313,9 +304,7 @@ export function EmployeeManager() {
                 </span>
                 <Switch
                   checked={employee.permissions?.override_price === true}
-                  onCheckedChange={(checked) =>
-                    handleTogglePermission(employee, 'override_price', checked)
-                  }
+                  onCheckedChange={(checked) => handleTogglePermission(employee, 'override_price', checked)}
                 />
               </label>
             </div>

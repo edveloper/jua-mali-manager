@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export const useInventory = () => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [sales, setSales] = useState<Sale[]>([]);
+  const [allSales, setAllSales] = useState<Sale[]>([]);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { shop, isOwner } = useAuth();
@@ -15,7 +15,7 @@ export const useInventory = () => {
   const fetchProducts = async () => {
     if (!shop?.id) {
       setProducts([]);
-      setSales([]);
+      setAllSales([]);
       setStockMovements([]);
       setIsLoading(false);
       return;
@@ -60,7 +60,7 @@ export const useInventory = () => {
 
       if (error) throw error;
 
-      setSales((data || []).map((s: any) => {
+      setAllSales((data || []).map((s: any) => {
         const totalAmount = Number(s.total_amount || 0);
         const costAtSale = Number(s.cost_price_at_sale || 0);
         const qty = Number(s.quantity || 0);
@@ -74,6 +74,7 @@ export const useInventory = () => {
           listPriceAtSale: Number(s.list_price_at_sale ?? 0),
           priceSource: s.price_source || 'list',
           soldBy: s.sold_by || null,
+          voidedAt: s.voided_at || null,
           totalAmount,
           profit: totalAmount - (costAtSale * qty),
           createdAt: s.created_at
@@ -117,6 +118,29 @@ export const useInventory = () => {
     fetchSales();
     fetchStockMovements();
   }, [shop?.id]);
+
+  // Everything that adds up money uses this. allSales exists only so the day
+  // list can show a cancelled sale struck through rather than vanishing.
+  const sales = allSales.filter((s) => !s.voidedAt);
+
+  const voidSale = async (saleId: string, reason?: string) => {
+    if (!shop?.id) return false;
+    const { error } = await supabase.rpc('void_sale_atomic', {
+      p_shop_id: shop.id,
+      p_sale_id: saleId,
+      p_reason: reason ?? null,
+    });
+
+    if (error) {
+      toast({ title: 'Could not cancel', description: error.message, variant: 'destructive' });
+      return false;
+    }
+
+    toast({ title: 'Sale cancelled', description: 'The stock has been put back.' });
+    await fetchProducts();
+    await fetchSales();
+    return true;
+  };
 
   const addProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> & { unit?: string }) => {
     if (!shop?.id || !isOwner) return;
@@ -279,6 +303,8 @@ export const useInventory = () => {
   return {
     products,
     sales,
+    allSales,
+    voidSale,
     stockMovements,
     isLoading,
     addProduct,

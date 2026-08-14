@@ -14,11 +14,11 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
+      includeAssets: ['favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'og-image.png'],
       manifest: {
-        name: 'Duka Manager',
-        short_name: 'Duka',
-        description: 'Inventory and Sales for Kenyan Dukas',
+        name: 'Tarihi — biashara yako, siku kwa siku',
+        short_name: 'Tarihi',
+        description: 'Sales, stock, deni and expenses for small shops in Kenya.',
         theme_color: '#c85a2e',
         background_color: '#f8f7f5',
         display: 'standalone', // This makes it look like a real app
@@ -37,10 +37,10 @@ export default defineConfig(({ mode }) => ({
             type: 'image/png'
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'pwa-maskable-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'maskable'
           }
         ]
       }

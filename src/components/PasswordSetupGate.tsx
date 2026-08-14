@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Lock, Store, ShieldCheck } from 'lucide-react';
+import { Lock, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { Logo } from '@/components/Logo';
 
 const MIN_LENGTH = 6;
 
@@ -58,13 +59,8 @@ export function PasswordSetupGate() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="p-6 text-center">
-        <div className="flex items-center gap-3 justify-center">
-          <div className="p-2 bg-primary rounded-xl">
-            <Store className="h-6 w-6 text-primary-foreground" />
-          </div>
-          <h1 className="text-xl font-bold">Duka Manager</h1>
-        </div>
+      <header className="p-6 flex justify-center">
+        <Logo size="md" />
       </header>
 
       <main className="flex-1 flex items-center justify-center px-4 pb-8">
