@@ -331,15 +331,14 @@ const Index = () => {
     if (!sale) return false;
 
     if (isCredit && resolvedCustomerId) {
-      const pName = sale.productName || (sale as any).product_name;
-      const pAmount = sale.totalAmount || (sale as any).total_amount;
-
+      // The RPC returns snake_case columns. The old camelCase lookups here were
+      // always undefined and only worked because of the fallback beside them.
       await addCreditSale(
         resolvedCustomerId,
         sale.id,
-        pName,
+        sale.product_name,
         quantity,
-        Number(pAmount)
+        Number(sale.total_amount)
       );
     }
     setSellingProduct(null);
@@ -549,7 +548,6 @@ const Index = () => {
               offeringMode={offeringMode}
               businessCategory={shop?.business_category || 'retail'}
               singleOffering={Boolean(shop?.single_offering)}
-              lowStockProducts={lowStockProducts}
             />
             {(isServicesMode || isMixedMode) && <ServiceSessionHistory sessions={serviceSales} />}
           </div>

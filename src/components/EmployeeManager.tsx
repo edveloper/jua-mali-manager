@@ -72,7 +72,7 @@ export function EmployeeManager() {
           // Fallback to 'No Email' or 'Unknown' if profile doesn't exist yet
           email: profile?.email || 'Invited User',
           full_name: profile?.full_name || 'New Staff',
-          permissions: (member as any).permissions || {},
+          permissions: (member.permissions as Record<string, boolean>) || {},
         };
       });
 
@@ -127,7 +127,7 @@ export function EmployeeManager() {
       prev.map((e) => (e.id === employee.id ? { ...e, permissions: next } : e))
     );
 
-    const { error } = await (supabase.from('shop_members') as any)
+    const { error } = await supabase.from('shop_members')
       .update({ permissions: next })
       .eq('id', employee.id);
 

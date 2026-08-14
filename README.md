@@ -60,39 +60,6 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
-## Local AI with Ollama (free, local-only)
-
-This repo now includes a lightweight local AI backend at `ai-server/server.mjs`.
-
-1. Start Ollama locally (default URL: `http://127.0.0.1:11434`) and pull a model:
-```sh
-ollama pull qwen2.5:3b-instruct
-```
-2. Run the AI backend:
-```sh
-npm run ai:dev
-```
-3. Run the frontend:
-```sh
-npm run dev
-```
-
-Optional environment variables:
-- `AI_PORT` (default `8787`)
-- `AI_PROVIDER` (default `ollama`)
-- `OLLAMA_BASE_URL` (default `http://127.0.0.1:11434`)
-- `OLLAMA_MODEL` (default `qwen2.5:3b-instruct`)
-- `OLLAMA_TIMEOUT_MS` (default `120000`)
-- `AI_ALLOWED_ORIGIN` (default `http://localhost:8080`)
-- `AI_RATE_LIMIT_WINDOW_MS` (default `60000`)
-- `AI_RATE_LIMIT_MAX` (default `30`)
-- `VITE_AI_BASE_URL` (frontend; default `http://localhost:8787`)
-
-AI endpoints available:
-- `POST /ai/insights` for daily business summaries
-- `POST /ai/reorder` for 7-day stock/resource planning (works for product and service businesses)
-- `POST /ai/query` for direct Q&A over provided context
-
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.

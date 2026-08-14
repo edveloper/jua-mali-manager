@@ -2,13 +2,11 @@
 import {
   ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend
 } from 'recharts';
-import { CreditCard, Calendar as CalendarIcon, ArrowRight, Download, Sparkles, FileText, Landmark, Banknote } from 'lucide-react';
-import { Sale, CreditSale, Product, StockMovement, ServiceSale, Expense } from '@/types/inventory';
+import { CreditCard, Calendar as CalendarIcon, ArrowRight, Download, FileText, Banknote } from 'lucide-react';
+import { Sale, CreditSale, StockMovement, ServiceSale, Expense } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, startOfDay, endOfDay, subDays, isWithinInterval } from 'date-fns';
-import { aiClient } from '@/lib/aiClient';
-import { Input } from '@/components/ui/input';
 
 interface SalesReportsProps {
   sales: Sale[];
@@ -27,14 +25,12 @@ interface SalesReportsProps {
   offeringMode?: 'products' | 'services' | 'mixed' | string;
   businessCategory?: string;
   singleOffering?: boolean;
-  lowStockProducts?: Product[];
 }
 
 type RangeType = '7d' | '30d' | 'thisMonth' | 'custom';
 
 const formatCurrency = (amount: number) => `KSh ${amount.toLocaleString()}`;
 const csvEscape = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
-const isTimeoutError = (message: string) => message.toLowerCase().includes('timeout');
 // Matches useExpenses: only restock-generated expenses are already counted as
 // COGS. Anything entered by hand is a genuine operating outflow.
 const isRestockExpense = (expense: Expense) => expense.source === 'restock';
@@ -49,17 +45,13 @@ export function SalesReports({
   serviceSessions = [],
   offeringMode = 'products',
   businessCategory = 'retail',
-  singleOffering = false,
-  lowStockProducts = []
+  singleOffering = false
 }: SalesReportsProps) {
   const [rangeType, setRangeType] = useState<RangeType>('7d');
   const [customStart, setCustomStart] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
   const [customEnd, setCustomEnd] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [expenseBasis, setExpenseBasis] = useState<'cash' | 'accrual'>('accrual');
   const [docTab, setDocTab] = useState<'all' | 'loan' | 'visa'>('all');
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiText, setAiText] = useState('');
-  const [aiQuestion, setAiQuestion] = useState('');
 
   const filteredData = useMemo(() => {
     let start = startOfDay(new Date());
@@ -587,126 +579,6 @@ export function SalesReports({
     URL.revokeObjectURL(url);
   };
 
-  const runAiSummary = async () => {
-    setAiLoading(true);
-    setAiText('');
-    try {
-      const result = await aiClient.insights({
-        metrics: {
-          todaySales: stats.totalRevenue,
-          todayProfit: stats.totalProfit,
-          totalStockValue: 0,
-          lowStockCount: lowStockProducts.length,
-          totalCreditOwed: filteredData.fCredits.reduce((s, c) => s + Number(c.balance || 0), 0),
-          totalExpenses: stats.totalExpenses,
-        },
-        businessProfile: {
-          category: businessCategory,
-          offeringMode,
-          singleOffering,
-        },
-        lowStockProducts: lowStockProducts.map((p) => ({
-          name: p.name,
-          quantity: p.quantity,
-          threshold: p.lowStockThreshold,
-          category: p.category || 'General',
-        })),
-        topProducts: stats.topItems.map((t) => ({ name: t.name, quantity: t.qty, threshold: 0, category: 'Top' })),
-      });
-      if (!result.ok) throw new Error(result.error || 'AI request failed');
-      setAiText(result.answer || 'No AI summary returned.');
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to generate AI summary.';
-      if (isTimeoutError(msg)) {
-        const fallback = await aiClient.query({
-          question: 'Give a short business summary and 3 actions from this report data.',
-          context: {
-            totals: { revenue: stats.totalRevenue, profit: stats.totalProfit, credit: stats.creditIssued },
-            topItems: stats.topItems.slice(0, 3),
-          },
-        });
-        if (fallback.ok && fallback.answer) {
-          setAiText(`${fallback.answer}\n\n(Generated via fallback due to model timeout.)`);
-        } else {
-          setAiText(`${msg}. Try again or reduce report range to 7D.`);
-        }
-      } else {
-        setAiText(msg);
-      }
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  const runAiReorderPlan = async () => {
-    setAiLoading(true);
-    setAiText('');
-    try {
-      const result = await aiClient.reorder({
-        businessProfile: { category: businessCategory, offeringMode, singleOffering },
-        lowStockProducts: lowStockProducts.map((p) => ({
-          name: p.name,
-          quantity: p.quantity,
-          threshold: p.lowStockThreshold,
-          category: p.category || 'General',
-        })),
-        topProducts: stats.topItems.map((t) => ({ name: t.name, quantity: t.qty, threshold: 0, category: 'Top' })),
-      });
-      if (!result.ok) throw new Error(result.error || 'AI request failed');
-      setAiText(result.answer || 'No AI plan returned.');
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to generate AI plan.';
-      if (isTimeoutError(msg)) {
-        const fallback = await aiClient.query({
-          question: 'Create a short 7-day priority restock/resource plan from this context.',
-          context: {
-            lowStock: lowStockProducts.slice(0, 10).map((p) => ({ name: p.name, qty: p.quantity, th: p.lowStockThreshold })),
-            topItems: stats.topItems.slice(0, 5),
-            business: { offeringMode, businessCategory, singleOffering },
-          },
-        });
-        if (fallback.ok && fallback.answer) {
-          setAiText(`${fallback.answer}\n\n(Generated via fallback due to model timeout.)`);
-        } else {
-          setAiText(`${msg}. Try again or reduce report range to 7D.`);
-        }
-      } else {
-        setAiText(msg);
-      }
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  const runAiQuestion = async () => {
-    if (!aiQuestion.trim()) return;
-    setAiLoading(true);
-    setAiText('');
-    try {
-      const result = await aiClient.query({
-        question: aiQuestion.trim(),
-        context: {
-          businessCategory, offeringMode, singleOffering,
-          period: `${format(filteredData.start, 'yyyy-MM-dd')} to ${format(filteredData.end, 'yyyy-MM-dd')}`,
-          totals: {
-            revenue: stats.totalRevenue,
-            profit: stats.totalProfit,
-            expenses: stats.totalExpenses,
-            creditIssued: stats.creditIssued,
-            consistencyScore: stats.consistencyScore,
-          },
-          topItems: stats.topItems,
-        }
-      });
-      if (!result.ok) throw new Error(result.error || 'AI query failed');
-      setAiText(result.answer || 'No AI answer returned.');
-    } catch (err: unknown) {
-      setAiText(err instanceof Error ? err.message : 'Failed to run AI query.');
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
   return (
     <div className="space-y-6 animate-slide-up pb-10">
       <div className="space-y-3">
@@ -775,13 +647,12 @@ export function SalesReports({
       </div>
 
       <Tabs defaultValue="overview">
-        <TabsList className="w-full h-auto grid grid-cols-3 sm:grid-cols-6 gap-1 p-1">
+        <TabsList className="w-full h-auto grid grid-cols-3 sm:grid-cols-5 gap-1 p-1">
           <TabsTrigger value="overview" className="min-w-0 px-2 text-xs sm:text-sm">Overview</TabsTrigger>
           <TabsTrigger value="operations" className="min-w-0 px-2 text-xs sm:text-sm">Ops</TabsTrigger>
           <TabsTrigger value="docs" className="min-w-0 px-2 text-xs sm:text-sm">Docs</TabsTrigger>
           <TabsTrigger value="tax" className="min-w-0 px-2 text-xs sm:text-sm">Tax</TabsTrigger>
           <TabsTrigger value="loan" className="min-w-0 px-2 text-xs sm:text-sm">Loan</TabsTrigger>
-          <TabsTrigger value="ai" className="min-w-0 px-2 text-xs sm:text-sm">AI</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4 pt-2">
@@ -1121,29 +992,6 @@ export function SalesReports({
           </Button>
         </TabsContent>
 
-        <TabsContent value="ai" className="pt-2 space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            <Button onClick={runAiSummary} disabled={aiLoading}>
-              <Sparkles className="h-4 w-4 mr-2" /> AI Summary
-            </Button>
-            <Button variant="outline" onClick={runAiReorderPlan} disabled={aiLoading}>
-              <Landmark className="h-4 w-4 mr-2" /> AI Plan
-            </Button>
-          </div>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Ask AI about your current report..."
-              value={aiQuestion}
-              onChange={(e) => setAiQuestion(e.target.value)}
-            />
-            <Button onClick={runAiQuestion} disabled={aiLoading || !aiQuestion.trim()}>
-              Ask
-            </Button>
-          </div>
-          <div className="rounded-xl border border-border bg-card p-4 text-sm whitespace-pre-wrap min-h-[140px]">
-            {aiLoading ? 'Generating AI output...' : (aiText || 'Run an AI action to generate insights here.')}
-          </div>
-        </TabsContent>
       </Tabs>
     </div>
   );

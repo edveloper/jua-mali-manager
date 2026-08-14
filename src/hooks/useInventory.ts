@@ -22,7 +22,7 @@ export const useInventory = () => {
     }
     try {
       setIsLoading(true);
-      const { data, error } = await (supabase.from('products') as any)
+      const { data, error } = await supabase.from('products')
         .select('*')
         .eq('shop_id', shop.id)
         .order('name', { ascending: true });
@@ -53,7 +53,7 @@ export const useInventory = () => {
   const fetchSales = async () => {
     if (!shop?.id) return;
     try {
-      const { data, error } = await (supabase.from('sales') as any)
+      const { data, error } = await supabase.from('sales')
         .select('*')
         .eq('shop_id', shop.id);
 
@@ -86,7 +86,7 @@ export const useInventory = () => {
   const fetchStockMovements = async () => {
     if (!shop?.id) return;
     try {
-      const { data, error } = await (supabase.from('stock_movements') as any)
+      const { data, error } = await supabase.from('stock_movements')
         .select('*')
         .eq('shop_id', shop.id)
         .order('happened_at', { ascending: false });
@@ -120,7 +120,7 @@ export const useInventory = () => {
   const addProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> & { unit?: string }) => {
     if (!shop?.id || !isOwner) return;
     try {
-      const { error } = await (supabase.from('products') as any).insert([{
+      const { error } = await supabase.from('products').insert([{
         shop_id: shop.id,
         name: productData.name,
         category: productData.category,
@@ -153,7 +153,7 @@ export const useInventory = () => {
         min_stock_level: row.lowStockThreshold,
         unit: row.unit || 'pcs'
       }));
-      const { error } = await (supabase.from('products') as any).insert(payload);
+      const { error } = await supabase.from('products').insert(payload);
       if (error) throw error;
       await fetchProducts();
       toast({ title: `Imported ${rows.length} products` });
@@ -167,7 +167,7 @@ export const useInventory = () => {
   const updateProduct = async (id: string, updates: Partial<Product> & { unit?: string }) => {
     if (!isOwner) return;
     try {
-      const { error } = await (supabase.from('products') as any)
+      const { error } = await supabase.from('products')
         .update({
           name: updates.name,
           category: updates.category,
@@ -190,7 +190,7 @@ export const useInventory = () => {
   const deleteProduct = async (id: string) => {
     if (!isOwner) return;
     try {
-      const { error } = await (supabase.from('products') as any).delete().eq('id', id);
+      const { error } = await supabase.from('products').delete().eq('id', id);
       if (error) throw error;
       toast({ title: "Product deleted" });
       await fetchProducts();
@@ -205,12 +205,12 @@ export const useInventory = () => {
     if (!shop?.id) return;
 
     try {
-      const { data, error } = await (supabase.rpc('record_product_sale_atomic' as any, {
+      const { data, error } = await supabase.rpc('record_product_sale_atomic', {
         p_shop_id: shop.id,
         p_product_id: productId,
         p_quantity: quantity,
         p_unit_price: unitPrice ?? null,
-      }) as any);
+      });
       if (error) throw error;
 
       await fetchProducts();
@@ -233,7 +233,7 @@ export const useInventory = () => {
     if (!shop?.id || !isOwner) return null;
 
     try {
-      const { data, error } = await (supabase.rpc('record_product_restock_atomic' as any, {
+      const { data, error } = await supabase.rpc('record_product_restock_atomic', {
         p_shop_id: shop.id,
         p_product_id: productId,
         p_quantity: quantity,
@@ -241,7 +241,7 @@ export const useInventory = () => {
         p_happened_at: `${happenedAt}T12:00:00`,
         p_notes: notes || null,
         p_allocation_mode: allocationMode,
-      }) as any);
+      });
       if (error) throw error;
 
       toast({ title: "Restock recorded" });

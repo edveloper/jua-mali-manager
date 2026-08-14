@@ -22,9 +22,9 @@ export const useCredit = () => {
     }
     try {
       setIsLoading(true);
-      const { data: custData } = await (supabase.from('customers') as any).select('*').eq('shop_id', shop.id);
-      const { data: creditData } = await (supabase.from('credit_sales') as any).select('*').eq('shop_id', shop.id).order('created_at', { ascending: false });
-      const { data: paymentData } = await (supabase.from('credit_payments') as any).select('*').eq('shop_id', shop.id).order('paid_at', { ascending: false });
+      const { data: custData } = await supabase.from('customers').select('*').eq('shop_id', shop.id);
+      const { data: creditData } = await supabase.from('credit_sales').select('*').eq('shop_id', shop.id).order('created_at', { ascending: false });
+      const { data: paymentData } = await supabase.from('credit_payments').select('*').eq('shop_id', shop.id).order('paid_at', { ascending: false });
 
       setPayments((paymentData || []).map((p: any) => ({
         id: p.id,
@@ -66,7 +66,7 @@ export const useCredit = () => {
 
   const addCustomer = async (customer: Omit<Customer, 'id' | 'createdAt'>) => {
     if (!shop?.id) return;
-    const { data, error } = await (supabase.from('customers') as any).insert([{
+    const { data, error } = await supabase.from('customers').insert([{
       shop_id: shop.id,
       name: customer.name,
       phone: customer.phone,
@@ -79,7 +79,7 @@ export const useCredit = () => {
   const addCreditSale = async (customerId: string, saleId: string, productName: string, quantity: number, amount: number) => {
     if (!shop?.id) return;
 
-    const { error } = await (supabase.from('credit_sales') as any).insert([{
+    const { error } = await supabase.from('credit_sales').insert([{
       shop_id: shop.id,
       customer_id: customerId,
       sale_id: saleId,
@@ -107,11 +107,11 @@ export const useCredit = () => {
   const recordPayment = async (creditId: string, paymentAmount: number) => {
     if (!shop?.id) return;
 
-    const { error } = await (supabase.rpc('record_credit_payment_atomic' as any, {
+    const { error } = await supabase.rpc('record_credit_payment_atomic', {
       p_shop_id: shop.id,
       p_credit_sale_id: creditId,
       p_amount: paymentAmount,
-    }) as any);
+    });
 
     if (error) {
       toast({ title: "Payment failed", description: error.message, variant: "destructive" });

@@ -20,7 +20,7 @@ export const useServices = () => {
     }
     try {
       setIsLoading(true);
-      const { data, error } = await (supabase.from('services') as any)
+      const { data, error } = await supabase.from('services')
         .select('*')
         .eq('shop_id', shop.id)
         .eq('is_active', true)
@@ -50,7 +50,7 @@ export const useServices = () => {
   const fetchServiceSales = async () => {
     if (!shop?.id) return;
     try {
-      const { data, error } = await (supabase.from('service_sales') as any)
+      const { data, error } = await supabase.from('service_sales')
         .select('*')
         .eq('shop_id', shop.id);
 
@@ -87,7 +87,7 @@ export const useServices = () => {
   const addService = async (serviceData: Omit<Service, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!shop?.id || !isOwner) return;
     try {
-      const { error } = await (supabase.from('services') as any).insert([{
+      const { error } = await supabase.from('services').insert([{
         shop_id: shop.id,
         name: serviceData.name,
         category: serviceData.category,
@@ -118,7 +118,7 @@ export const useServices = () => {
         min_capacity_level: row.lowStockThreshold,
         duration_minutes: row.durationMinutes || null,
       }));
-      const { error } = await (supabase.from('services') as any).insert(payload);
+      const { error } = await supabase.from('services').insert(payload);
       if (error) throw error;
       await fetchServices();
       toast({ title: `Imported ${rows.length} services` });
@@ -132,7 +132,7 @@ export const useServices = () => {
   const updateService = async (id: string, updates: Partial<Service>) => {
     if (!isOwner) return;
     try {
-      const { error } = await (supabase.from('services') as any)
+      const { error } = await supabase.from('services')
         .update({
           name: updates.name,
           category: updates.category,
@@ -153,7 +153,7 @@ export const useServices = () => {
   const deleteService = async (id: string) => {
     if (!isOwner) return;
     try {
-      const { error } = await (supabase.from('services') as any)
+      const { error } = await supabase.from('services')
         .update({ is_active: false })
         .eq('id', id);
       if (error) throw error;
@@ -172,7 +172,7 @@ export const useServices = () => {
     if (!shop?.id) return;
 
     try {
-      const { data, error } = await (supabase.rpc('record_service_sale_atomic' as any, {
+      const { data, error } = await supabase.rpc('record_service_sale_atomic', {
         p_shop_id: shop.id,
         p_service_id: serviceId,
         p_quantity: quantity,
@@ -180,7 +180,7 @@ export const useServices = () => {
         p_session_time: meta?.sessionTime || null,
         p_notes: meta?.notes || null,
         p_status: meta?.status || 'completed',
-      }) as any);
+      });
       if (error) throw error;
 
       await fetchServices();

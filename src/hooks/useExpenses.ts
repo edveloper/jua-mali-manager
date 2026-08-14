@@ -119,7 +119,7 @@ export const useExpenses = (currentPeriodSales: number = 0) => {
     }
     try {
       setIsLoading(true);
-      const { data, error } = await (supabase.from('expenses') as any)
+      const { data, error } = await supabase.from('expenses')
         .select('*')
         .eq('shop_id', shop.id)
         .order('date', { ascending: false });
@@ -148,7 +148,7 @@ export const useExpenses = (currentPeriodSales: number = 0) => {
 
   const addExpense = async (expense: ExpenseDraft) => {
     if (!shop?.id) return;
-    const { error } = await (supabase.from('expenses') as any).insert([{
+    const { error } = await supabase.from('expenses').insert([{
       shop_id: shop.id,
       category: expense.category,
       description: expense.description,
@@ -168,7 +168,7 @@ export const useExpenses = (currentPeriodSales: number = 0) => {
   };
 
   const deleteExpense = async (id: string) => {
-    const { error } = await (supabase.from('expenses') as any)
+    const { error } = await supabase.from('expenses')
       .delete()
       .eq('id', id);
 

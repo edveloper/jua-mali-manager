@@ -175,7 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       // 2. Create Shop
-      const { data: shopData, error: shopError } = await (supabase.from('shops') as any)
+      const { data: shopData, error: shopError } = await supabase.from('shops')
         .insert([{
           name: shopName || `${fullName}'s Shop`,
           business_category: profile?.businessCategory || 'retail',
@@ -189,7 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (shopError) throw shopError;
 
       // 3. Create Membership as Owner
-      const { error: memberError } = await (supabase.from('shop_members') as any)
+      const { error: memberError } = await supabase.from('shop_members')
         .insert([{
           shop_id: shopData.id,
           user_id: authData.user.id,
@@ -282,7 +282,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { data: null, error: { message: "Only shop owners can update shop settings" } };
     }
 
-    const { data, error } = await (supabase.from('shops') as any)
+    const { data, error } = await supabase.from('shops')
       .update(updates)
       .eq('id', shop.id)
       .select()

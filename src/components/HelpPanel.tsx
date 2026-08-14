@@ -52,13 +52,12 @@ export function HelpPanel() {
       ]
     },
     {
-      title: "Reports + AI",
+      title: "Reports",
       icon: <Sparkles className="h-5 w-5 text-amber-500" />,
       steps: [
-        "Reports now include Overview, Ops, Tax, Loan, and AI tabs.",
-        "Ops tab adds restock spend trends, top purchased items, and service session exports.",
-        "Run AI Summary and AI Plan directly inside Reports.",
-        "Ask AI specific report questions from the same screen."
+        "Reports are split into Overview, Ops, Docs, Tax and Loan.",
+        "Ops covers restock spend trends, top purchased items, and service session exports.",
+        "Pick a date range at the top: last 7 days, 30 days, this month, or your own dates."
       ]
     },
     {
