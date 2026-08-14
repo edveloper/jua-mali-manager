@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Store, Mail, Phone, Lock, User, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,8 @@ export default function Auth() {
   const { signIn, signUp, user, loading: isLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const wasRemoved = searchParams.get('removed') === '1';
 
   useEffect(() => {
     if (user && !isLoading) {
@@ -91,6 +93,15 @@ export default function Auth() {
             <h2 className="text-2xl font-bold">{mode === 'signin' ? 'Welcome Back' : 'Create Your Shop'}</h2>
             <p className="text-muted-foreground text-sm">Join the digital duka community</p>
           </div>
+
+          {wasRemoved && (
+            <div className="rounded-xl border border-warning/40 bg-warning/5 p-4 text-center">
+              <p className="text-sm font-semibold">You no longer have access to this shop</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                The owner has removed your account. Talk to them if you think this is a mistake.
+              </p>
+            </div>
+          )}
 
           <Tabs defaultValue="phone" onValueChange={(v) => {
             setAuthMethod(v as 'phone' | 'email');

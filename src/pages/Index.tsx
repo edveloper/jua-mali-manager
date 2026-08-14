@@ -57,7 +57,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { installApp, canInstall } = usePwaInstall();
 
-  const { user, loading: authLoading, isOwner, can, shop, shopMember, signOut } = useAuth();
+  const { user, loading: authLoading, isOwner, can, shop, shopMember, membershipResolved, signOut } = useAuth();
 
   const {
     products, sales, stockMovements, isLoading: inventoryLoading,
@@ -84,6 +84,17 @@ const Index = () => {
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth', { replace: true });
   }, [user, authLoading, navigate]);
+
+  // Signed in, but no longer a member of any shop -- i.e. the owner removed them.
+  // Without this they land in an empty dashboard that looks broken. Gated on
+  // membershipResolved so a failed lookup never signs anyone out by mistake.
+  useEffect(() => {
+    if (authLoading || !user || !membershipResolved || shopMember) return;
+    (async () => {
+      await signOut();
+      navigate('/auth?removed=1', { replace: true });
+    })();
+  }, [authLoading, user, membershipResolved, shopMember, signOut, navigate]);
 
   useEffect(() => {
     if (offeringMode === 'services') {

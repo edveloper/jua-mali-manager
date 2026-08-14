@@ -15,6 +15,11 @@ interface AuthContextType {
   /** True while an employee is still on the password their owner typed for them. */
   mustChangePassword: boolean;
   completePasswordSetup: (newPassword: string) => Promise<{ error: any }>;
+  /**
+   * True once a membership lookup has actually completed. Stays false if the
+   * lookup errors, so a flaky connection is never mistaken for "no shop".
+   */
+  membershipResolved: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
   signIn: (email: string, password?: string) => Promise<{ data: any; error: any }>;
@@ -47,6 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [shop, setShop] = useState<any | null>(null);
   const [shopMember, setShopMember] = useState<any | null>(null);
   const [isOwner, setIsOwner] = useState(false);
+  const [membershipResolved, setMembershipResolved] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchShopData = async (userId: string) => {
@@ -81,6 +87,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setShopMember(null);
         setIsOwner(false);
       }
+
+      // Set only on a clean lookup. If the query threw, we genuinely don't know
+      // whether they have a shop, and must not act as if they don't.
+      setMembershipResolved(true);
     } catch (err) {
       console.error("Auth Error:", err);
     } finally {
@@ -114,6 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setShop(null);
         setShopMember(null);
         setIsOwner(false);
+        setMembershipResolved(false);
         setLoading(false);
       }
     });
@@ -291,6 +302,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         can,
         mustChangePassword,
         completePasswordSetup,
+        membershipResolved,
         loading,
         signOut, 
         signIn,

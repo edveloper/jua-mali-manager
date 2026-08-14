@@ -151,27 +151,45 @@ export function EmployeeManager() {
   };
 
   const handleRemoveEmployee = async (employeeId: string, employeeName: string) => {
-    const confirmed = window.confirm(`Remove ${employeeName} from your shop?`);
+    const confirmed = window.confirm(
+      `Remove ${employeeName} and delete their login?\n\n` +
+      `They will no longer be able to sign in. Sales they already recorded are kept.\n\n` +
+      `This cannot be undone.`
+    );
     if (!confirmed) return;
 
-    const { error } = await supabase
-      .from('shop_members')
-      .delete()
-      .eq('id', employeeId);
+    // Deleting the shop_members row from here would leave the login behind, so
+    // the person could still sign in and their phone number would stay taken.
+    const { data, error } = await supabase.functions.invoke('remove-employee', {
+      body: { memberId: employeeId },
+    });
 
+    let message = '';
     if (error) {
-      toast({
-        title: 'Error',
-        description: 'Could not remove employee. Please try again.',
-        variant: 'destructive',
-      });
-    } else {
-      toast({
-        title: 'Employee Removed',
-        description: `${employeeName} has been removed from your shop.`,
-      });
-      fetchEmployees();
+      message = 'Could not remove employee. Please try again.';
+      const response = (error as any)?.context;
+      if (response && typeof response.json === 'function') {
+        try {
+          const parsed = await response.json();
+          if (parsed?.error) message = parsed.error;
+        } catch {
+          // keep the generic message
+        }
+      }
+    } else if (data?.error) {
+      message = data.error;
     }
+
+    if (message) {
+      toast({ title: 'Could not remove', description: message, variant: 'destructive' });
+      return;
+    }
+
+    toast({
+      title: 'Employee Removed',
+      description: `${employeeName} can no longer sign in.`,
+    });
+    fetchEmployees();
   };
 
   if (!isOwner) return null;
