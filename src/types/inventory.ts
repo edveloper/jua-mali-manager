@@ -86,7 +86,10 @@ export interface CreditPayment {
   creditSaleId: string;
   customerId: string;
   amount: number;
-  createdAt: Date;
+  /** When the money actually came in. This is the date reports use. */
+  paidAt: string;
+  notes?: string;
+  createdAt: string;
 }
 
 export interface DashboardStats {

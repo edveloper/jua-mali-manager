@@ -73,7 +73,8 @@ const Index = () => {
 
   const {
     customers, creditSales, addCustomer,
-    addCreditSale, recordPayment, getTotalOwed, getCustomerTotalOwed
+    addCreditSale, recordPayment, getTotalOwed, getCustomerTotalOwed,
+    getPaymentsTotalForRange, getPaymentsForCredit
   } = useCredit();
 
   const offeringMode = shop?.offering_mode || 'products';
@@ -218,12 +219,16 @@ const Index = () => {
   const totalExpenses = getAccruedExpensesForDate(viewDate, { includeInventoryPurchases: false });
 
   const totalCreditOwed = isServicesMode ? 0 : getTotalOwed();
+  // Money collected against old debts on this date. Kept separate from revenue:
+  // the sale was already counted as revenue on the day it happened.
+  const creditCollected = isServicesMode ? 0 : getPaymentsTotalForRange(viewDate, viewDate);
   const displayStats = {
     ...baseStats,
     todaySales: selectedDateSales,
     todayProfit: selectedDateProfit,
     netProfit: selectedDateProfit - totalExpenses,
     totalCreditOwed,
+    creditCollected,
     totalExpenses: totalExpenses
   };
 
@@ -495,6 +500,7 @@ const Index = () => {
             onAddCustomer={(name, phone) => addCustomer({ name, phone: phone || '', email: '' })}
             onRecordPayment={recordPayment}
             getCustomerTotalOwed={getCustomerTotalOwed}
+            getPaymentsForCredit={getPaymentsForCredit}
           />
         )}
 
@@ -503,6 +509,7 @@ const Index = () => {
             <SalesReports
               sales={reportSales}
               creditSales={offeringMode === 'services' ? [] : creditSales}
+              getCreditPaymentsTotalForRange={offeringMode === 'services' ? undefined : getPaymentsTotalForRange}
               getExpenseTotalForRange={getExpenseTotalForRange}
               expenses={expenses}
               stockPurchases={stockMovements.filter((m) => m.reason === 'restock' && m.movementType === 'in')}

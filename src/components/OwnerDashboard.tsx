@@ -1,9 +1,9 @@
-import { Package, AlertTriangle, TrendingUp, Wallet, CreditCard, Receipt, Coins } from 'lucide-react';
+import { Package, AlertTriangle, TrendingUp, Wallet, CreditCard, Receipt, Coins, Banknote } from 'lucide-react';
 import { DashboardStats } from '@/types/inventory';
 import { TabType } from '@/components/Navigation';
 
 interface OwnerDashboardProps {
-  stats: DashboardStats & { netProfit?: number; totalExpenses?: number };
+  stats: DashboardStats & { netProfit?: number; totalExpenses?: number; creditCollected?: number };
   dateLabel?: string;
   onNavigate: (tab: TabType) => void;
   offeringMode?: 'products' | 'services' | 'mixed' | string;
@@ -133,6 +133,29 @@ export function OwnerDashboard({
           </div>
         </div>
       </div>
+
+      {/* DENI COLLECTED: money in from old debts, which is not part of today's
+          revenue but is very much part of "what came in today". */}
+      {(stats.creditCollected ?? 0) > 0 && (
+        <div
+          className="stat-card bg-success/5 border-success/20 cursor-pointer active:scale-95 transition-transform hover:bg-success/10"
+          onClick={() => onNavigate('credit')}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-success/20">
+                <Banknote className="h-5 w-5 text-success" />
+              </div>
+              <div>
+                <p className="metric-label">{dateLabel} Deni Payments</p>
+                <p className="text-xl font-bold text-success">
+                  {formatCurrency(stats.creditCollected ?? 0)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CREDIT MONITORING: Points to 'credit' */}
       {stats.totalCreditOwed !== undefined && stats.totalCreditOwed > 0 && (

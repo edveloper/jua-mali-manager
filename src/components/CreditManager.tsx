@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Users, Plus, CreditCard, Phone, ChevronRight, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Customer, CreditSale } from '@/types/inventory';
+import { Customer, CreditSale, CreditPayment } from '@/types/inventory';
 import { cn } from '@/lib/utils';
 
 interface CreditManagerProps {
@@ -12,6 +12,7 @@ interface CreditManagerProps {
   onAddCustomer: (name: string, phone?: string) => Promise<Customer | any>;
   onRecordPayment: (creditSaleId: string, amount: number) => void;
   getCustomerTotalOwed: (customerId: string) => number;
+  getPaymentsForCredit?: (creditSaleId: string) => CreditPayment[];
 }
 
 export function CreditManager({
@@ -21,6 +22,7 @@ export function CreditManager({
   onAddCustomer,
   onRecordPayment,
   getCustomerTotalOwed,
+  getPaymentsForCredit,
 }: CreditManagerProps) {
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -54,6 +56,7 @@ export function CreditManager({
     : [];
 
   if (selectedCredit) {
+    const creditPayments = getPaymentsForCredit ? getPaymentsForCredit(selectedCredit.id) : [];
     return (
       <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-300">
         <button
@@ -98,11 +101,42 @@ export function CreditManager({
               >
                 Pay Full
               </Button>
-              <Button className="flex-1" onClick={handlePayment} disabled={!paymentAmount || parseFloat(paymentAmount) <= 0}>
+              <Button
+                className="flex-1"
+                onClick={handlePayment}
+                disabled={
+                  !paymentAmount ||
+                  parseFloat(paymentAmount) <= 0 ||
+                  parseFloat(paymentAmount) > selectedCredit.balance
+                }
+              >
                 Update Deni
               </Button>
             </div>
+            {paymentAmount && parseFloat(paymentAmount) > selectedCredit.balance && (
+              <p className="text-xs text-destructive">
+                That is more than the {formatCurrency(selectedCredit.balance)} still owed.
+              </p>
+            )}
           </div>
+
+          {creditPayments.length > 0 && (
+            <div className="mt-6 pt-4 border-t border-border">
+              <p className="text-sm font-semibold mb-2">Payments So Far</p>
+              <div className="space-y-1">
+                {creditPayments.map((payment) => (
+                  <div key={payment.id} className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      {new Date(payment.paidAt).toLocaleDateString()}
+                    </span>
+                    <span className="font-medium text-success">
+                      {formatCurrency(payment.amount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );

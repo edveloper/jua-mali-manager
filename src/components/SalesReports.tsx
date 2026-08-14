@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input';
 interface SalesReportsProps {
   sales: Sale[];
   creditSales: CreditSale[];
+  /** Repayments against earlier credit sales, by date received. */
+  getCreditPaymentsTotalForRange?: (start: Date | string, end: Date | string) => number;
   getExpenseTotalForRange: (
     start: Date | string,
     end: Date | string,
@@ -41,6 +43,7 @@ const isInventoryPurchaseCategory = (category?: string | null) => {
 export function SalesReports({
   sales,
   creditSales = [],
+  getCreditPaymentsTotalForRange,
   getExpenseTotalForRange,
   expenses = [],
   stockPurchases = [],
@@ -96,7 +99,14 @@ export function SalesReports({
     const totalRevenue = filteredData.fSales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
     const totalProfit = filteredData.fSales.reduce((sum, s) => sum + (s.profit || 0), 0);
     const creditIssued = filteredData.fCredits.reduce((sum, c) => sum + (c.amount || 0), 0);
+    // Sales that were paid for on the spot.
     const cashRevenue = totalRevenue - creditIssued;
+    // Money in against debts from earlier periods. Not revenue -- that was
+    // already counted when the sale happened -- but it is cash through the door.
+    const creditCollected = getCreditPaymentsTotalForRange
+      ? getCreditPaymentsTotalForRange(filteredData.start, filteredData.end)
+      : 0;
+    const cashCollected = cashRevenue + creditCollected;
     const estimatedTOT = totalRevenue * 0.03;
     const avgTicket = filteredData.fSales.length ? totalRevenue / filteredData.fSales.length : 0;
     const avgDailySales = filteredData.fSales.length
@@ -139,9 +149,9 @@ export function SalesReports({
     const consistencyScore = avg > 0 ? Math.max(0, Math.min(100, Math.round(100 - (stdDev / avg) * 100))) : 0;
 
     return {
-      totalRevenue, totalProfit, cashRevenue, creditIssued, estimatedTOT, avgTicket, avgDailySales, topItems, trendData, consistencyScore, totalExpenses, netAfterExpenses, operatingMargin
+      totalRevenue, totalProfit, cashRevenue, creditIssued, creditCollected, cashCollected, estimatedTOT, avgTicket, avgDailySales, topItems, trendData, consistencyScore, totalExpenses, netAfterExpenses, operatingMargin
     };
-  }, [filteredData, getExpenseTotalForRange, expenseBasis]);
+  }, [filteredData, getExpenseTotalForRange, getCreditPaymentsTotalForRange, expenseBasis]);
 
   const expenseStats = useMemo(() => {
     const operatingByCategory = new Map<string, number>();
@@ -872,9 +882,19 @@ export function SalesReports({
               <p className="text-[10px] text-muted-foreground mt-1">Credit issued in range</p>
             </div>
             <div className="stat-card">
-              <p className="metric-label">Cash Collected</p>
+              <p className="metric-label">Paid On The Spot</p>
               <p className="text-lg font-bold">{formatCurrency(stats.cashRevenue)}</p>
-              <p className="text-[10px] text-muted-foreground mt-1">Revenue less credit issued</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Sales not taken on credit</p>
+            </div>
+            <div className="stat-card">
+              <p className="metric-label">Deni Payments In</p>
+              <p className="text-lg font-bold text-success">{formatCurrency(stats.creditCollected)}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Old debts settled in range</p>
+            </div>
+            <div className="stat-card border-primary/20 bg-primary/5">
+              <p className="metric-label">Total Money In</p>
+              <p className="text-lg font-bold text-primary">{formatCurrency(stats.cashCollected)}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">On the spot + deni payments</p>
             </div>
             <div className="stat-card">
               <p className="metric-label">Avg Daily Sales</p>
