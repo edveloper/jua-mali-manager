@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { toAuthEmail } from '@/lib/identity';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type AuthMode = 'signin' | 'signup';
@@ -32,24 +33,10 @@ export default function Auth() {
     }
   }, [user, isLoading, navigate]);
 
-  const getSupabaseEmail = (input: string) => {
-    const val = input.trim();
-    if (val.includes('@')) return val; // Real email
-    
-    // Clean phone number (07... to 254...)
-    let cleaned = val.replace(/\D/g, ''); 
-    if (cleaned.startsWith('0')) {
-      cleaned = '254' + cleaned.substring(1);
-    } else if (cleaned.length === 9) {
-      cleaned = '254' + cleaned;
-    }
-    return `${cleaned}@duka.local`; // Fake email for phone auth
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    const emailToUse = getSupabaseEmail(identifier);
+    const emailToUse = toAuthEmail(identifier);
 
     try {
       if (mode === 'signin') {

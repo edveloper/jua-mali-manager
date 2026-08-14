@@ -191,28 +191,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { data: null, error: { message: "Only shop owners can create employees" } };
     }
 
+    // Must go through the Edge Function. Creating the user from here would swap
+    // this browser's session over to the new employee and log the owner out.
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password: password || '123456',
-        options: { data: { full_name: fullName } }
+      const { data, error } = await supabase.functions.invoke('create-employee', {
+        body: { email, password, fullName },
       });
 
-      if (authError || !authData.user) throw authError;
+      if (error) {
+        // FunctionsHttpError keeps the real message in the response body.
+        let message = 'Could not create the employee account';
+        const response = (error as any)?.context;
+        if (response && typeof response.json === 'function') {
+          try {
+            const parsed = await response.json();
+            if (parsed?.error) message = parsed.error;
+          } catch {
+            // fall through to the generic message
+          }
+        } else if (error.message) {
+          message = error.message;
+        }
+        return { data: null, error: { message } };
+      }
 
-      const { error: memberError } = await (supabase.from('shop_members') as any)
-        .insert([{
-          shop_id: shop.id,
-          user_id: authData.user.id,
-          role: 'employee'
-        }]);
+      if (data?.error) return { data: null, error: { message: data.error } };
 
-      if (memberError) throw memberError;
-
-      return { data: authData, error: null };
+      return { data, error: null };
     } catch (err: any) {
       console.error("Employee creation error:", err);
-      return { data: null, error: err };
+      return { data: null, error: { message: err?.message || 'Could not reach the server' } };
     }
   };
 

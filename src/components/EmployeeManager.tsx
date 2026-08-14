@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, Users, Mail, Lock, User, Trash2 } from 'lucide-react';
+import { UserPlus, Users, Phone, Lock, User, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { toAuthEmail, toDisplayIdentity } from '@/lib/identity';
 
 interface Employee {
   id: string;
@@ -17,7 +18,7 @@ interface Employee {
 
 export function EmployeeManager() {
   const [showForm, setShowForm] = useState(false);
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,8 +84,8 @@ export function EmployeeManager() {
     setIsSubmitting(true);
 
     try {
-      const { error } = await createEmployee(email, password, fullName);
-      
+      const { error } = await createEmployee(toAuthEmail(identifier), password, fullName);
+
       if (error) {
         toast({
           title: 'Failed to Add Employee',
@@ -94,14 +95,14 @@ export function EmployeeManager() {
       } else {
         toast({
           title: 'Employee Added',
-          description: `${fullName} can now log in with their credentials.`,
+          description: `${fullName} can now sign in with ${identifier.trim()}.`,
         });
-        setEmail('');
+        setIdentifier('');
         setPassword('');
         setFullName('');
         setShowForm(false);
         // Delay slightly to allow Supabase Auth triggers to create the profile
-        setTimeout(fetchEmployees, 1000); 
+        setTimeout(fetchEmployees, 1000);
       }
     } catch (error) {
       console.error('Error creating employee:', error);
@@ -180,19 +181,21 @@ export function EmployeeManager() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="empEmail">Email</Label>
+            <Label htmlFor="empIdentifier">Phone Number or Email</Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                id="empEmail"
-                type="email"
-                placeholder="employee@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="empIdentifier"
+                placeholder="0712 345 678"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 className="pl-10"
                 required
               />
             </div>
+            <p className="text-xs text-muted-foreground">
+              This is what they will use to sign in.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -234,7 +237,7 @@ export function EmployeeManager() {
                 </div>
                 <div>
                   <p className="font-medium text-foreground leading-none mb-1">{employee.full_name}</p>
-                  <p className="text-sm text-muted-foreground">{employee.email}</p>
+                  <p className="text-sm text-muted-foreground">{toDisplayIdentity(employee.email)}</p>
                 </div>
               </div>
               <Button
