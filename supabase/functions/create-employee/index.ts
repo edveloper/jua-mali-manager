@@ -110,8 +110,21 @@ Deno.serve(async (req) => {
     .insert([{ shop_id: shopId, user_id: created.user.id, role: "employee" }]);
 
   if (memberError) {
-    // Don't leave an orphaned auth user behind that blocks retrying the same number.
-    await admin.auth.admin.deleteUser(created.user.id);
+    // Roll the login back, or the address stays taken and retrying returns 409
+    // with no way for the owner to clear it.
+    const { error: rollbackError } = await admin.auth.admin.deleteUser(created.user.id);
+
+    if (rollbackError) {
+      // Be honest about the half-finished state rather than claiming nothing
+      // was saved -- the login exists and only an admin can remove it.
+      console.error("Rollback failed, orphaned auth user:", created.user.id, rollbackError);
+      return json(500, {
+        error:
+          "Their login was created but could not be linked to your shop. " +
+          "Use a different phone number or email, and ask your developer to remove the stray login.",
+      });
+    }
+
     return json(500, { error: "Could not add the employee to your shop. Nothing was saved." });
   }
 

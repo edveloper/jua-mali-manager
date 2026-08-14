@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Local environment. Real values live in the Vercel project settings.
+# See .env.example for the required keys.
+.env
+.env.local
+.env.*.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

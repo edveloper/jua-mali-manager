@@ -25,6 +25,7 @@ export const useInventory = () => {
       const { data, error } = await supabase.from('products')
         .select('*')
         .eq('shop_id', shop.id)
+        .eq('is_active', true)
         .order('name', { ascending: true });
 
       if (error) throw error;
@@ -187,15 +188,19 @@ export const useInventory = () => {
     }
   };
 
+  // Archive, never delete. stock_movements cascades on product deletion, so a
+  // hard delete would take that product's whole restock history with it.
   const deleteProduct = async (id: string) => {
     if (!isOwner) return;
     try {
-      const { error } = await supabase.from('products').delete().eq('id', id);
+      const { error } = await supabase.from('products')
+        .update({ is_active: false })
+        .eq('id', id);
       if (error) throw error;
-      toast({ title: "Product deleted" });
+      toast({ title: "Product removed", description: "Past sales and restocks are kept." });
       await fetchProducts();
     } catch (error: any) {
-      toast({ title: "Delete failed", variant: "destructive" });
+      toast({ title: "Could not remove product", variant: "destructive" });
     }
   };
 

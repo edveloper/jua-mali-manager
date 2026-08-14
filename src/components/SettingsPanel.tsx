@@ -72,19 +72,18 @@ export function SettingsPanel({ onImportProducts, onImportServices }: SettingsPa
   return (
     <div className="space-y-6 animate-slide-up">
       <div className="panel-glass p-5">
-        <p className="section-kicker">Configuration</p>
-        <h2 className="text-2xl font-black mt-1">Settings</h2>
-        <p className="text-sm text-muted-foreground mt-1">Manage your business profile and team access.</p>
+        <h2 className="text-2xl font-black">Settings</h2>
+        <p className="text-sm text-muted-foreground mt-1">Your business details, your staff, and your stock list.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="stat-card">
-          <p className="section-kicker">Current Mode</p>
+          <p className="section-kicker">You sell</p>
           <p className="text-sm font-bold mt-1 capitalize">{offeringMode.replace('_', ' ')}</p>
         </div>
         <div className="stat-card">
-          <p className="section-kicker">Profile Type</p>
-          <p className="text-sm font-bold mt-1">{singleOffering ? 'Single Offering' : 'Multi Offering'}</p>
+          <p className="section-kicker">Range</p>
+          <p className="text-sm font-bold mt-1">{singleOffering ? 'One main line' : 'Several lines'}</p>
         </div>
       </div>
 
@@ -114,7 +113,7 @@ export function SettingsPanel({ onImportProducts, onImportServices }: SettingsPa
             </div>
             <div>
               <p className="font-medium text-foreground">{shop.name}</p>
-              <p className="text-sm text-muted-foreground">Active Business Workspace</p>
+              <p className="text-sm text-muted-foreground">Your shop</p>
             </div>
           </div>
         </div>
@@ -123,16 +122,16 @@ export function SettingsPanel({ onImportProducts, onImportServices }: SettingsPa
       {shop && isOwner && (
         <div className="panel-glass p-4 space-y-4">
           <h3 className="font-semibold text-foreground flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" /> Business Profile
+            <Sparkles className="h-4 w-4 text-primary" /> About your business
           </h3>
 
           <div className="space-y-2">
-            <Label htmlFor="shop-name">Business Name</Label>
+            <Label htmlFor="shop-name">Shop name</Label>
             <Input id="shop-name" value={shopName} onChange={(e) => setShopName(e.target.value)} />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="business-category">Business Category</Label>
+            <Label htmlFor="business-category">What kind of business?</Label>
             <select
               id="business-category"
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -152,21 +151,21 @@ export function SettingsPanel({ onImportProducts, onImportServices }: SettingsPa
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="offering-mode">Offering Mode</Label>
+            <Label htmlFor="offering-mode">What do you sell?</Label>
             <select
               id="offering-mode"
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               value={offeringMode}
               onChange={(e) => setOfferingMode(e.target.value)}
             >
-              <option value="products">Products Only</option>
-              <option value="services">Services Only</option>
-              <option value="mixed">Products + Services</option>
+              <option value="products">Goods</option>
+              <option value="services">Services</option>
+              <option value="mixed">Both</option>
             </select>
           </div>
 
           <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
-            <span className="text-sm">Single main product/service business</span>
+            <span className="text-sm">I mainly sell one thing</span>
             <input
               type="checkbox"
               checked={singleOffering}
@@ -176,7 +175,7 @@ export function SettingsPanel({ onImportProducts, onImportServices }: SettingsPa
 
           <Button onClick={handleSaveBusinessProfile} disabled={isSaving} className="w-full">
             <Save className="h-4 w-4 mr-2" />
-            {isSaving ? 'Saving...' : 'Save Business Profile'}
+            {isSaving ? 'Saving...' : 'Save'}
           </Button>
         </div>
       )}

@@ -283,7 +283,7 @@ export function ExpenseManager({
         <Card className="p-4 border-2 border-primary animate-in zoom-in-95">
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="flex justify-between items-center mb-2">
-              <h3 className="font-bold text-sm">New Expense Entry</h3>
+              <h3 className="font-bold text-sm">New expense</h3>
               <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddForm(false)}>Cancel</Button>
             </div>
 

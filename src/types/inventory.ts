@@ -1,7 +1,6 @@
 export interface Product {
   id: string;
   name: string;
-  barcode?: string;
   durationMinutes?: number;
   costPrice: number;
   sellingPrice: number;

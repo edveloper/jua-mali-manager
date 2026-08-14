@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Barcode } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Product } from '@/types/inventory';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,6 @@ export function ProductForm({ product, onSave, onClose, offeringMode = 'products
   const sellLabel = offeringMode === 'services' ? 'Service Price (KSh)' : 'Selling Price (KSh)';
   const [formData, setFormData] = useState({
     name: '',
-    barcode: '',
     costPrice: '',
     sellingPrice: '',
     minPrice: '',
@@ -33,7 +32,6 @@ export function ProductForm({ product, onSave, onClose, offeringMode = 'products
     if (product) {
       setFormData({
         name: product.name,
-        barcode: product.barcode || '',
         costPrice: product.costPrice.toString(),
         sellingPrice: product.sellingPrice.toString(),
         minPrice: product.minPrice === null || product.minPrice === undefined ? '' : String(product.minPrice),
@@ -64,7 +62,6 @@ export function ProductForm({ product, onSave, onClose, offeringMode = 'products
 
     onSave({
       name: formData.name,
-      barcode: formData.barcode || undefined,
       costPrice: parseFloat(formData.costPrice) || 0,
       sellingPrice: parseFloat(formData.sellingPrice) || 0,
       minPrice: minPriceValue,
@@ -101,22 +98,6 @@ export function ProductForm({ product, onSave, onClose, offeringMode = 'products
               required
             />
           </div>
-
-          {offeringMode !== 'services' && (
-            <div className="space-y-2">
-              <Label htmlFor="barcode">Barcode (Optional)</Label>
-              <div className="relative">
-                <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="barcode"
-                  placeholder="Scan or enter barcode"
-                  value={formData.barcode}
-                  onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">

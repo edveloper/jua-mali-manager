@@ -747,31 +747,31 @@ export function SalesReports({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="stat-card">
-              <p className="metric-label">5. Credit Risk</p>
+              <p className="metric-label">Sold on deni</p>
               <p className="text-lg font-bold">{formatCurrency(stats.creditIssued)}</p>
-              <p className="text-[10px] text-muted-foreground mt-1">Credit issued in range</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Not yet paid for</p>
             </div>
             <div className="stat-card">
-              <p className="metric-label">Paid On The Spot</p>
+              <p className="metric-label">Paid on the spot</p>
               <p className="text-lg font-bold">{formatCurrency(stats.cashRevenue)}</p>
-              <p className="text-[10px] text-muted-foreground mt-1">Sales not taken on credit</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Sales not on deni</p>
             </div>
             <div className="stat-card">
-              <p className="metric-label">Deni Payments In</p>
+              <p className="metric-label">Deni paid back</p>
               <p className="text-lg font-bold text-success">{formatCurrency(stats.creditCollected)}</p>
-              <p className="text-[10px] text-muted-foreground mt-1">Old debts settled in range</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Older debts settled</p>
             </div>
             <div className="stat-card border-primary/20 bg-primary/5">
-              <p className="metric-label">Total Money In</p>
+              <p className="metric-label">Money in</p>
               <p className="text-lg font-bold text-primary">{formatCurrency(stats.cashCollected)}</p>
-              <p className="text-[10px] text-muted-foreground mt-1">On the spot + deni payments</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Both of the above added up</p>
             </div>
             <div className="stat-card">
-              <p className="metric-label">Avg Daily Sales</p>
+              <p className="metric-label">Average day</p>
               <p className="text-lg font-bold">{formatCurrency(stats.avgDailySales)}</p>
             </div>
             <div className="stat-card">
-              <p className="metric-label">Operating Margin</p>
+              <p className="metric-label">Kept per 100 shillings</p>
               <p className="text-lg font-bold">{stats.operatingMargin.toFixed(1)}%</p>
             </div>
           </div>
@@ -976,15 +976,15 @@ export function SalesReports({
         <TabsContent value="loan" className="pt-2 space-y-4">
           <div className="stat-card bg-success/5 border-success/20">
             <h4 className="text-sm font-bold mb-1 flex items-center gap-2">
-              <Banknote className="h-4 w-4 text-success" /> Loan Readiness Score
+              <Banknote className="h-4 w-4 text-success" /> How steady your sales are
             </h4>
             <p className="text-2xl font-bold text-success">{stats.consistencyScore}/100</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Higher consistency in daily turnover can improve credit confidence.
+              Lenders like takings that do not swing much from day to day. The closer to 100, the steadier yours are.
             </p>
           </div>
           <div className="stat-card">
-            <p className="metric-label">Average Ticket Size</p>
+            <p className="metric-label">Average sale</p>
             <p className="text-xl font-bold">{formatCurrency(stats.avgTicket)}</p>
           </div>
           <Button variant="outline" className="w-full" onClick={exportLoanSummaryTxt}>

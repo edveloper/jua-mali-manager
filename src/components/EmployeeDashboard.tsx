@@ -10,9 +10,9 @@ interface EmployeeDashboardProps {
 
 export function EmployeeDashboard({ stats, todaySalesCount, offeringMode = 'products' }: EmployeeDashboardProps) {
   const { user, shop } = useAuth();
-  const catalogLabel = offeringMode === 'services' ? 'Services Available' : offeringMode === 'mixed' ? 'Items Available' : 'Products Available';
-  const lowLabel = offeringMode === 'services' ? 'Low Availability' : 'Low Stock Items';
-  const salesLabel = offeringMode === 'services' ? 'Services Recorded Today' : 'Sales Made Today';
+  const catalogLabel = offeringMode === 'services' ? 'Services' : offeringMode === 'mixed' ? 'Items' : 'Products';
+  const lowLabel = offeringMode === 'services' ? 'Almost full' : 'Running low';
+  const salesLabel = offeringMode === 'services' ? 'Services today' : 'Sales today';
 
   return (
     <div className="space-y-4 animate-slide-up">
@@ -22,14 +22,14 @@ export function EmployeeDashboard({ stats, todaySalesCount, offeringMode = 'prod
             <Users className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Logged in as</p>
+            <p className="text-sm text-muted-foreground">Signed in as</p>
             <p className="font-semibold text-foreground">{user?.user_metadata?.full_name || 'Employee'}</p>
             <p className="text-xs text-muted-foreground">{shop?.name}</p>
           </div>
         </div>
       </div>
 
-      <h2 className="text-lg font-semibold text-foreground">Quick Overview</h2>
+      <h2 className="text-lg font-semibold text-foreground">Today</h2>
       
       <div className="grid grid-cols-2 gap-3">
         <div className="stat-card">
@@ -71,8 +71,8 @@ export function EmployeeDashboard({ stats, todaySalesCount, offeringMode = 'prod
 
       <div className="stat-card bg-muted/50">
         <p className="text-sm text-muted-foreground text-center">
-          As an employee, you can record transactions and view your catalog. 
-          Contact the shop owner for inventory changes.
+          You can record sales and see what is in stock. Ask the owner to add new
+          items or change stock levels.
         </p>
       </div>
     </div>

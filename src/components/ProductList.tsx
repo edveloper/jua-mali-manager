@@ -45,7 +45,7 @@ export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSel
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder={offeringMode === 'services' ? 'Search services...' : `Search ${itemLabelPlural} or scan barcode...`}
+            placeholder={offeringMode === 'services' ? 'Search services...' : `Search ${itemLabelPlural}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -86,9 +86,6 @@ export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSel
                       <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0" />
                     )}
                   </div>
-                  {product.barcode && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{product.barcode}</p>
-                  )}
                   <div className="flex items-center gap-4 mt-2">
                     {/* Only show cost price to owners */}
                     {isOwner && (

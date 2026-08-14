@@ -184,13 +184,13 @@ const Index = () => {
         {!loadingTimedOut ? (
           <>
             <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
-            <p className="text-muted-foreground animate-pulse">Loading Duka Manager...</p>
+            <p className="text-muted-foreground animate-pulse">Opening your shop...</p>
           </>
         ) : (
           <div className="panel-glass p-5 max-w-sm text-center space-y-3">
-            <p className="font-semibold">Still loading...</p>
-            <p className="text-sm text-muted-foreground">Connection or session sync is taking longer than expected.</p>
-            <Button className="w-full" onClick={() => window.location.reload()}>Reload App</Button>
+            <p className="font-semibold">Taking longer than usual</p>
+            <p className="text-sm text-muted-foreground">Check your connection, then try again.</p>
+            <Button className="w-full" onClick={() => window.location.reload()}>Try again</Button>
           </div>
         )}
       </div>
@@ -363,7 +363,7 @@ const Index = () => {
           </div>
           <div className="flex-1">
             <h1 className="text-xl font-bold truncate">{shop?.name || 'Duka Manager'}</h1>
-            <p className="section-kicker mt-0.5">{isOwner ? 'Owner Workspace' : 'Staff Workspace'}</p>
+            <p className="section-kicker mt-0.5">{isOwner ? 'Owner' : 'Staff'}</p>
           </div>
 
           <DropdownMenu>
@@ -376,20 +376,20 @@ const Index = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Business Menu</DropdownMenuLabel>
+              <DropdownMenuLabel>Menu</DropdownMenuLabel>
               <DropdownMenuSeparator />
 
               {canInstall && (
                 <DropdownMenuItem onClick={installApp} className="bg-primary/10 text-primary font-semibold focus:bg-primary/20 focus:text-primary">
                   <Download className="mr-2 h-4 w-4" />
-                  <span>Download App</span>
+                  <span>Install app</span>
                 </DropdownMenuItem>
               )}
 
               {isOwner && offeringMode !== 'services' && (
                 <DropdownMenuItem onClick={() => setActiveTab('credit')}>
                   <Users className="mr-2 h-4 w-4" />
-                  <span>Credit Book</span>
+                  <span>Deni</span>
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onClick={() => setActiveTab('settings')}>
@@ -399,15 +399,15 @@ const Index = () => {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setActiveTab('help')}>
                 <HelpCircle className="mr-2 h-4 w-4" />
-                <span>How To / Help</span>
+                <span>Help</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setActiveTab('contact')}>
                 <MessageSquare className="mr-2 h-4 w-4" />
-                <span>Contact & Feedback</span>
+                <span>Contact us</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setActiveTab('privacy')}>
                 <ShieldAlert className="mr-2 h-4 w-4" />
-                <span>Privacy & Policy</span>
+                <span>Privacy</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={signOut} className="text-destructive">
@@ -440,17 +440,17 @@ const Index = () => {
             <div className="space-y-3">
               {hasDataCompletionTasks && (
                 <div className="panel-glass p-4 border border-warning/40 bg-warning/5">
-                  <p className="text-sm font-semibold">Data Completion Needed</p>
+                  <p className="text-sm font-semibold">Some items are missing prices</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Missing key fields from imported items can distort profit and reports.
+                    Without a cost price the app cannot work out your profit, so it will look better than it is.
                   </p>
                   <div className="text-xs mt-2 space-y-1">
-                    {productMissingCostCount > 0 && <p>{productMissingCostCount} products missing cost price.</p>}
-                    {productMissingPriceCount > 0 && <p>{productMissingPriceCount} products missing selling price.</p>}
-                    {serviceMissingCostCount > 0 && <p>{serviceMissingCostCount} services missing direct cost.</p>}
-                    {serviceMissingPriceCount > 0 && <p>{serviceMissingPriceCount} services missing service price.</p>}
+                    {productMissingCostCount > 0 && <p>{productMissingCostCount} products with no cost price.</p>}
+                    {productMissingPriceCount > 0 && <p>{productMissingPriceCount} products with no selling price.</p>}
+                    {serviceMissingCostCount > 0 && <p>{serviceMissingCostCount} services with no cost.</p>}
+                    {serviceMissingPriceCount > 0 && <p>{serviceMissingPriceCount} services with no price.</p>}
                   </div>
-                  <Button size="sm" className="mt-3" onClick={() => setActiveTab('products')}>Review Catalog Data</Button>
+                  <Button size="sm" className="mt-3" onClick={() => setActiveTab('products')}>Fix them</Button>
                 </div>
               )}
               <OwnerDashboard

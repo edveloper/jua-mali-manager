@@ -22,12 +22,12 @@ export function OwnerDashboard({
   // capacity at service price instead -- potential revenue, clearly labelled as
   // such rather than dressed up as an asset.
   const isServicesOnly = offeringMode === 'services';
-  const stockValueLabel = isServicesOnly ? 'Capacity Value' : 'Stock Value (at cost)';
+  const stockValueLabel = isServicesOnly ? 'Slots left' : 'Stock you are holding';
   const stockValueAmount = isServicesOnly
     ? (stats.totalCapacityValue ?? 0)
     : stats.totalStockValue;
   const stockRetailAmount = stats.totalStockRetailValue ?? 0;
-  const lowLabel = offeringMode === 'services' ? 'Low Capacity' : 'Low Stock';
+  const lowLabel = offeringMode === 'services' ? 'Almost full' : 'Running low';
   const lowUnit = offeringMode === 'services' ? 'Services' : offeringMode === 'mixed' ? 'Items' : 'Items';
 
   const netProfit = stats.netProfit ?? 0;
@@ -35,11 +35,9 @@ export function OwnerDashboard({
 
   return (
     <div className="space-y-4 animate-slide-up">
-      <h2 className="text-lg font-semibold text-foreground">Business Overview</h2>
+      <h2 className="text-lg font-semibold text-foreground">Your day</h2>
       
-      {/* PRIMARY STATS: Swapped Revenue/Profit Row with Expenses/Revenue logic */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Expenses Card - Position 1 - Points to 'expenses' */}
         <div 
           className="stat-card cursor-pointer active:scale-95 transition-transform hover:bg-muted/50"
           onClick={() => onNavigate('expenses')}
@@ -52,10 +50,9 @@ export function OwnerDashboard({
           <p className="metric-value text-destructive">
             {formatCurrency(stats.totalExpenses ?? 0)}
           </p>
-          <p className="metric-label">{dateLabel} Expenses</p>
+          <p className="metric-label">{dateLabel} spending</p>
         </div>
 
-        {/* Revenue Card - Position 2 - Points to 'reports' */}
         <div 
           className="stat-card border-primary/20 bg-primary/5 cursor-pointer active:scale-95 transition-transform hover:bg-primary/10"
           onClick={() => onNavigate('reports')}
@@ -66,13 +63,11 @@ export function OwnerDashboard({
             </div>
           </div>
           <p className="metric-value text-primary">{formatCurrency(stats.todaySales)}</p>
-          <p className="metric-label">{dateLabel} Revenue</p>
+          <p className="metric-label">{dateLabel} sales</p>
         </div>
       </div>
 
-      {/* SECONDARY STATS: Profit row - Both point to 'reports' */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Net Profit Card */}
         <div 
           className={`stat-card border-success/30 cursor-pointer active:scale-95 transition-transform ${isLoss ? 'bg-destructive/5 border-destructive/30 hover:bg-destructive/10' : 'bg-success/5 hover:bg-success/10'}`}
           onClick={() => onNavigate('reports')}
@@ -85,10 +80,9 @@ export function OwnerDashboard({
           <p className={`metric-value ${isLoss ? 'text-destructive' : 'text-success'}`}>
             {formatCurrency(netProfit)}
           </p>
-          <p className="metric-label">{dateLabel} Net Profit</p>
+          <p className="metric-label">{dateLabel} take-home</p>
         </div>
 
-        {/* Gross Profit Card */}
         <div 
           className="stat-card cursor-pointer active:scale-95 transition-transform hover:bg-muted/50"
           onClick={() => onNavigate('reports')}
@@ -99,13 +93,11 @@ export function OwnerDashboard({
             </div>
           </div>
           <p className="text-lg font-bold">{formatCurrency(stats.todayProfit)}</p>
-          <p className="metric-label text-[10px]">Gross Profit (Markup)</p>
+          <p className="metric-label text-[10px]">Before running costs</p>
         </div>
       </div>
 
-      {/* INVENTORY & ASSETS: Both point to 'products' */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Stock Value Card */}
         <div 
           className="stat-card cursor-pointer active:scale-95 transition-transform hover:bg-muted/50"
           onClick={() => onNavigate('products')}
@@ -123,12 +115,11 @@ export function OwnerDashboard({
           <p className="metric-label">{stockValueLabel}</p>
           {!isServicesOnly && stockRetailAmount > 0 && (
             <p className="text-[10px] text-muted-foreground mt-0.5">
-              Worth {formatCurrency(stockRetailAmount)} if it all sells
+              {formatCurrency(stockRetailAmount)} if it all sells
             </p>
           )}
         </div>
 
-        {/* Low Stock Card */}
         <div 
           className="stat-card cursor-pointer active:scale-95 transition-transform hover:bg-muted/50"
           onClick={() => onNavigate('products')}
@@ -160,7 +151,7 @@ export function OwnerDashboard({
                 <Banknote className="h-5 w-5 text-success" />
               </div>
               <div>
-                <p className="metric-label">{dateLabel} Deni Payments</p>
+                <p className="metric-label">{dateLabel} deni paid</p>
                 <p className="text-xl font-bold text-success">
                   {formatCurrency(stats.creditCollected ?? 0)}
                 </p>
@@ -170,7 +161,6 @@ export function OwnerDashboard({
         </div>
       )}
 
-      {/* CREDIT MONITORING: Points to 'credit' */}
       {stats.totalCreditOwed !== undefined && stats.totalCreditOwed > 0 && (
         <div 
           className="stat-card bg-warning/5 border-warning/20 cursor-pointer active:scale-95 transition-transform hover:bg-warning/10"
@@ -182,7 +172,7 @@ export function OwnerDashboard({
                 <CreditCard className="h-5 w-5 text-warning" />
               </div>
               <div>
-                <p className="text-xs font-medium text-warning-foreground uppercase tracking-wider">Total Credit Owed to You</p>
+                <p className="text-xs font-medium text-warning-foreground uppercase tracking-wider">Owed to you</p>
                 <p className="text-xl font-black text-warning">
                   {formatCurrency(stats.totalCreditOwed)}
                 </p>

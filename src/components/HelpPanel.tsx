@@ -1,92 +1,77 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Users, Banknote, UserPlus, Sparkles, Scissors, Download } from "lucide-react";
+import { Package, Users, Banknote, UserPlus, Store, Scissors, BarChart3 } from "lucide-react";
 
 export function HelpPanel() {
   const guides = [
     {
-      title: "Quick Onboarding (First 10 Minutes)",
-      icon: <Sparkles className="h-5 w-5 text-primary" />,
+      title: "Getting started",
+      icon: <Store className="h-5 w-5 text-primary" />,
       steps: [
-        "Create your shop profile: business category, offering mode (Products, Services, Mixed), and single-offering if applicable.",
-        "Open Settings > Catalog Import to upload CSV/XLSX starter stock/service data.",
-        "Add your first catalog items and set realistic low-stock/low-capacity thresholds.",
-        "Run one test transaction (sale or service), then check Dashboard and Reports to confirm totals.",
-        "Use Products > Restock to record purchases so stock and expense reports stay aligned."
+        "Add a few of the things you sell, with what each one costs you and what you sell it for.",
+        "Make one test sale and check the Home screen. If the numbers look right, you are set up.",
+        "Got a long stock list already? Settings has a CSV and Excel import."
       ]
     },
     {
-      title: "Business Setup",
-      icon: <Scissors className="h-5 w-5 text-primary" />,
+      title: "Selling",
+      icon: <Package className="h-5 w-5 text-primary" />,
       steps: [
-        "Set your Business Profile in Settings: category, offering mode (Products, Services, Mixed), and single-offering toggle.",
-        "Service businesses use capacity and session logs, while product businesses use stock and low-stock controls.",
-        "Mixed mode lets you switch catalog view between products and services."
+        "Tap Sell on any item, set the quantity, done. Stock goes down on its own.",
+        "Selling on deni? Choose Credit and type the customer's name. If they are new, add their number there and then — no need to leave the sale.",
+        "If you have agreed a price with the customer, type it over the usual one. You will only see that box if the owner has allowed it for you."
       ]
     },
     {
-      title: "Team Management",
-      icon: <UserPlus className="h-5 w-5 text-secondary" />,
+      title: "Buying stock",
+      icon: <Banknote className="h-5 w-5 text-secondary" />,
       steps: [
-        "As an Owner, go to Settings to add employee accounts.",
-        "Employees can record transactions and view operational tabs.",
-        "Owner-only financial controls stay protected."
+        "Always use Restock on the item, not the Expenses tab.",
+        "Restock does three things at once: raises your stock, updates what the item costs you on average, and records the money you spent.",
+        "Log stock as a plain expense instead and your shelves will say one thing while your books say another."
       ]
     },
     {
-      title: "Inventory / Services",
-      icon: <Package className="h-5 w-5 text-blue-600" />,
+      title: "Deni",
+      icon: <Users className="h-5 w-5 text-warning" />,
       steps: [
-        "Products track stock levels; Services track capacity and session details.",
-        "Use Restock on product cards to add stock and auto-log purchase cost as an expense.",
-        "Use Alerts to spot low stock or low capacity quickly.",
-        "Record service sessions with staff name, session time, status, and notes."
+        "The Credit Book shows who owes you and how much.",
+        "Record part payments as they come. Each one is saved with its date, so Reports can tell you what actually came in that day.",
+        "A sale on deni counts as income the day it happens. The payment later is not income again — it is the money finally arriving."
       ]
     },
     {
-      title: "Expenses Logic (Cash vs Accrual)",
-      icon: <Banknote className="h-5 w-5 text-green-600" />,
+      title: "Your staff",
+      icon: <UserPlus className="h-5 w-5 text-primary" />,
       steps: [
-        "Classify expenses as one-off, variable, or recurring to reflect real business spending patterns.",
-        "Set allocation mode per entry: cash basis posts on transaction date, accrual basis spreads recurring costs over time.",
-        "Home daily figures use date-scoped expense logic; Reports let you switch basis for period analysis."
+        "Add staff in Settings. Give them a temporary password; they choose their own the first time they sign in.",
+        "Staff can sell and see what is in stock. They cannot see what you paid for anything, your expenses, or your profit.",
+        "You can let a staff member agree prices with customers. Set the lowest and highest you will accept on the item first, then switch it on for that person."
       ]
     },
     {
-      title: "Reports",
-      icon: <Sparkles className="h-5 w-5 text-amber-500" />,
+      title: "Knowing where you stand",
+      icon: <BarChart3 className="h-5 w-5 text-primary" />,
       steps: [
-        "Reports are split into Overview, Ops, Docs, Tax and Loan.",
-        "Ops covers restock spend trends, top purchased items, and service session exports.",
-        "Pick a date range at the top: last 7 days, 30 days, this month, or your own dates."
+        "Home shows one day at a time. Use the arrows to look back at yesterday or last week.",
+        "Reports covers longer stretches, and you can export any of it to Excel.",
+        "Two different profits appear, and the gap between them is your running costs: one is sales minus what the goods cost you, the other takes off rent, wages and the rest."
       ]
     },
     {
-      title: "Exports & Compliance",
-      icon: <Download className="h-5 w-5 text-emerald-600" />,
+      title: "Services",
+      icon: <Scissors className="h-5 w-5 text-secondary" />,
       steps: [
-        "Export Sales, Stock Purchases, and Service Sessions in CSV and Excel-compatible formats.",
-        "Export Loan Readiness and Operations Summary text snapshots for external review.",
-        "Export Expenses CSV from Expenses tab with expense type and allocation metadata.",
-        "Use Tax tab estimates to prepare TOT workflows and filing records.",
-        "Use Loan tab exports when presenting turnover consistency to lenders."
+        "If you sell time rather than goods — a barber, a cyber, a salon — set your business to Services in Settings.",
+        "You then track how many slots you have left in a day instead of stock on a shelf, and each session can carry the staff member's name and a note."
       ]
     },
     {
-      title: "Credit & Cashflow",
-      icon: <Users className="h-5 w-5 text-indigo-500" />,
+      title: "When something looks wrong",
+      icon: <Package className="h-5 w-5 text-muted-foreground" />,
       steps: [
-        "Credit Book is available for product/mixed businesses.",
-        "Track pending balances and record partial/full payments.",
-        "Use reports to monitor credit impact on cashflow."
-      ]
-    },
-    {
-      title: "If App Seems Stuck Loading",
-      icon: <Users className="h-5 w-5 text-indigo-500" />,
-      steps: [
-        "Wait a few seconds: the app now uses a startup loading state while sessions sync.",
-        "If loading persists, tap browser refresh or close/reopen the PWA once.",
-        "Check network connectivity and confirm your Supabase project is reachable."
+        "Stuck on the loading screen? Close the app fully and open it again.",
+        "Numbers lower than you expected? Check that every item has a cost price. Without one the app cannot work out profit and will flatter you.",
+        "Still stuck, or something is plainly wrong? Use Contact & Feedback. Say what you were doing when it happened."
       ]
     },
   ];
@@ -94,9 +79,9 @@ export function HelpPanel() {
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
       <div className="panel-glass p-4">
-        <p className="section-kicker">Support</p>
-        <h2 className="text-2xl font-black mt-1">Help Center</h2>
-        <p className="text-muted-foreground text-sm mt-1">Onboarding and operations playbook for products, services, and mixed businesses in Duka Manager.</p>
+        <p className="section-kicker">Help</p>
+        <h2 className="text-2xl font-black mt-1">How this works</h2>
+        <p className="text-muted-foreground text-sm mt-1">The short version of everything.</p>
       </div>
       <div className="grid gap-4">
         {guides.map((guide, i) => (
@@ -106,7 +91,7 @@ export function HelpPanel() {
               <CardTitle className="text-lg">{guide.title}</CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+              <ul className="space-y-2 text-sm text-muted-foreground">
                 {guide.steps.map((step, j) => (
                   <li key={j}>{step}</li>
                 ))}

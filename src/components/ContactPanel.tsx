@@ -19,9 +19,9 @@ export function ContactPanel() {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
       <div className="panel-glass p-5 text-center space-y-2">
-        <p className="section-kicker">Support & Feedback</p>
-        <h2 className="text-2xl font-black">Contact Developer</h2>
-        <p className="text-muted-foreground text-sm">Get help, report issues, and suggest features for Duka Manager.</p>
+        <p className="section-kicker">Contact</p>
+        <h2 className="text-2xl font-black">Talk to us</h2>
+        <p className="text-muted-foreground text-sm">Something broken, or an idea? We would like to hear it.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -31,7 +31,7 @@ export function ContactPanel() {
           onClick={() => handleFeedback('Bug')}
         >
           <Bug className="h-6 w-6 text-destructive" />
-          <span>Report Bug</span>
+          <span>Report a problem</span>
         </Button>
         <Button
           variant="outline"
@@ -39,7 +39,7 @@ export function ContactPanel() {
           onClick={() => handleFeedback('Feature')}
         >
           <Lightbulb className="h-6 w-6 text-primary" />
-          <span>Request Feature</span>
+          <span>Suggest something</span>
         </Button>
       </div>
 
@@ -84,7 +84,7 @@ export function ContactPanel() {
       <div className="panel-glass p-4 flex items-start gap-2">
         <MessageSquareHeart className="h-4 w-4 text-primary mt-0.5" />
         <p className="text-xs text-muted-foreground">
-          Include your business profile, what you were trying to do, and screenshots for faster support.
+          Tell us what you were doing when it happened, and send a screenshot if you can. It saves a lot of back and forth.
         </p>
       </div>
     </div>

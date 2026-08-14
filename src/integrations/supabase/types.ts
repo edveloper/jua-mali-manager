@@ -129,6 +129,7 @@ export type Database = {
           stock_level: number;
           min_stock_level: number;
           unit: string | null;
+          is_active: boolean;
           created_at: string | null;
           updated_at: string | null;
         };
@@ -144,6 +145,7 @@ export type Database = {
           stock_level?: number;
           min_stock_level?: number;
           unit?: string | null;
+          is_active?: boolean;
           created_at?: string | null;
           updated_at?: string | null;
         };
@@ -159,6 +161,7 @@ export type Database = {
           stock_level?: number;
           min_stock_level?: number;
           unit?: string | null;
+          is_active?: boolean;
           created_at?: string | null;
           updated_at?: string | null;
         };
