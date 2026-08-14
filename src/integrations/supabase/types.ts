@@ -724,6 +724,22 @@ export type Database = {
         }[];
       };
 
+      create_shop_with_owner: {
+        Args: {
+          p_name: string;
+          p_business_category?: string | null;
+          p_offering_mode?: string | null;
+          p_single_offering?: boolean | null;
+          p_currency?: string | null;
+        };
+        Returns: Database['public']['Tables']['shops']['Row'];
+      };
+
+      shares_shop_with: {
+        Args: { p_viewer: string; p_target: string };
+        Returns: boolean;
+      };
+
       is_shop_owner: {
         Args: { p_user_id: string; p_shop_id: string };
         Returns: boolean;

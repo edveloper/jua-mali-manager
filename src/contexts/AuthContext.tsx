@@ -174,31 +174,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // 2. Create Shop
-      const { data: shopData, error: shopError } = await supabase.from('shops')
-        .insert([{
-          name: shopName || `${fullName}'s Shop`,
-          business_category: profile?.businessCategory || 'retail',
-          offering_mode: profile?.offeringMode || 'products',
-          single_offering: Boolean(profile?.singleOffering),
-          currency: 'KES'
-        }])
-        .select()
-        .single();
+      // 2. Create the shop and its owner membership in one server-side call.
+      //    Clients can no longer insert into shops or shop_members directly --
+      //    that pair of permissions was what allowed a user to add themselves as
+      //    owner of somebody else's shop.
+      const { error: shopError } = await supabase.rpc('create_shop_with_owner', {
+        p_name: shopName || `${fullName}'s Shop`,
+        p_business_category: profile?.businessCategory || 'retail',
+        p_offering_mode: profile?.offeringMode || 'products',
+        p_single_offering: Boolean(profile?.singleOffering),
+        p_currency: 'KES',
+      });
 
       if (shopError) throw shopError;
 
-      // 3. Create Membership as Owner
-      const { error: memberError } = await supabase.from('shop_members')
-        .insert([{
-          shop_id: shopData.id,
-          user_id: authData.user.id,
-          role: 'owner'
-        }]);
-
-      if (memberError) throw memberError;
-
-      // 4. Sync local state
+      // 3. Sync local state
       await fetchShopData(authData.user.id);
       return { data: authData, error: null };
     } catch (err: any) {
