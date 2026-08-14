@@ -105,15 +105,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const userObj = session?.user ?? null;
-      setCurrentUser(userObj);
-      if (userObj) {
-        fetchShopData(userObj.id);
-      } else {
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        const userObj = session?.user ?? null;
+        setCurrentUser(userObj);
+        if (userObj) {
+          fetchShopData(userObj.id);
+        } else {
+          setLoading(false);
+        }
+      })
+      // An expired or revoked refresh token rejects here. Without this the
+      // promise fails silently, setLoading(false) never runs, and the app hangs
+      // on the splash until the 12s failsafe fires.
+      .catch((err) => {
+        console.warn('Could not restore previous session:', err?.message || err);
+        setCurrentUser(null);
+        setShop(null);
+        setShopMember(null);
+        setIsOwner(false);
         setLoading(false);
-      }
-    });
+      });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const userObj = session?.user ?? null;
@@ -235,7 +247,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // A stale or already-revoked refresh token makes the server-side sign-out
+    // fail, and the local session survives that failure -- which is exactly the
+    // state someone is in when sign-out "does nothing". Fall back to a local
+    // sign-out, which never touches the network.
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.warn('Sign out request failed, clearing local session:', error.message);
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+    }
+
+    // onAuthStateChange does not fire when the call above failed, so the UI
+    // cannot rely on it to reset.
+    setCurrentUser(null);
+    setShop(null);
+    setShopMember(null);
+    setIsOwner(false);
+    setMembershipResolved(false);
+    setLoading(false);
   };
 
   // Mirrors public.member_can() in the database. This is only for hiding UI --

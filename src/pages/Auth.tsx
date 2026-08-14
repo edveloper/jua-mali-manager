@@ -23,17 +23,21 @@ export default function Auth() {
   const [singleOffering, setSingleOffering] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const { signIn, signUp, user, loading: isLoading } = useAuth();
+  const { signIn, signUp, user, shopMember, loading: isLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const wasRemoved = searchParams.get('removed') === '1';
 
+  // Waits for the membership, not just the user. During sign-up the auth user
+  // exists for a moment before create_shop_with_owner has run; redirecting on
+  // `user` alone sent people to a shopless dashboard, which then bounced them
+  // straight back here with "You no longer have access to this shop".
   useEffect(() => {
-    if (user && !isLoading) {
-      navigate('/');
+    if (user && shopMember && !isLoading) {
+      navigate('/', { replace: true });
     }
-  }, [user, isLoading, navigate]);
+  }, [user, shopMember, isLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
