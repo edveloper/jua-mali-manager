@@ -132,15 +132,18 @@ export function SellDialog({ product, customers, onSell, onClose, isOwner = true
 
   return (
     <div className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center">
-      <div className="bg-card w-full max-w-md rounded-t-2xl sm:rounded-2xl animate-slide-up">
-        <div className="p-4 border-b border-border flex items-center justify-between">
+      {/* Column layout with a scrolling middle: on a phone the keyboard eats most
+          of the screen, and the action buttons must stay reachable without
+          dismissing it. dvh rather than vh so the keyboard is accounted for. */}
+      <div className="bg-card w-full max-w-md rounded-t-2xl sm:rounded-2xl animate-slide-up flex flex-col max-h-[90dvh]">
+        <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
           <h2 className="text-lg font-semibold">{actionLabel}</h2>
           <Button variant="ghost" size="icon-sm" onClick={onClose}>
             <X className="h-5 w-5" />
           </Button>
         </div>
-        
-        <div className="p-4 space-y-4">
+
+        <div className="p-4 space-y-4 overflow-y-auto flex-1">
           <div className="bg-muted rounded-xl p-4">
             <h3 className="font-semibold text-foreground">{product.name}</h3>
             <p className="text-sm text-muted-foreground mt-1">
@@ -368,21 +371,22 @@ export function SellDialog({ product, customers, onSell, onClose, isOwner = true
             )}
           </div>
 
-          <div className="flex gap-3 pt-2">
-            <Button variant="outline" className="flex-1" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              className="flex-1"
-              onClick={handleSell}
-              disabled={!canSubmit}
-            >
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              {isSubmitting
-                ? 'Saving...'
-                : isCredit ? 'Credit Sale' : (offeringMode === 'services' ? 'Complete Service' : 'Complete Sale')}
-            </Button>
-          </div>
+        </div>
+
+        <div className="p-4 border-t border-border flex gap-3 shrink-0">
+          <Button variant="outline" className="flex-1" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            className="flex-1"
+            onClick={handleSell}
+            disabled={!canSubmit}
+          >
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            {isSubmitting
+              ? 'Saving...'
+              : isCredit ? 'Credit Sale' : (offeringMode === 'services' ? 'Complete Service' : 'Complete Sale')}
+          </Button>
         </div>
       </div>
     </div>

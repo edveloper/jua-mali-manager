@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { aiClient } from '@/lib/aiClient';
+import { toDisplayIdentity } from '@/lib/identity';
 import { CatalogImportPanel } from './CatalogImportPanel';
 
 interface SettingsPanelProps {
@@ -110,14 +111,16 @@ export function SettingsPanel({ onImportProducts, onImportServices }: SettingsPa
 
       <div className="panel-glass p-4 space-y-4">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-primary/10">
+          <div className="p-3 rounded-xl bg-primary/10 shrink-0">
             <User className="h-6 w-6 text-primary" />
           </div>
-          <div className="flex-1">
-            <p className="font-medium text-foreground">{user?.user_metadata?.full_name || 'User'}</p>
-            <p className="text-sm text-muted-foreground">{user?.email}</p>
+          {/* min-w-0 is load-bearing: without it a long identity string cannot
+              shrink and pushes the role badge past the edge of the screen. */}
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-foreground truncate">{user?.user_metadata?.full_name || 'User'}</p>
+            <p className="text-sm text-muted-foreground truncate">{toDisplayIdentity(user?.email)}</p>
           </div>
-          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10">
+          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 shrink-0">
             <Shield className="h-3 w-3 text-primary" />
             <span className="text-xs font-medium text-primary">{isOwner ? 'Owner' : 'Employee'}</span>
           </div>

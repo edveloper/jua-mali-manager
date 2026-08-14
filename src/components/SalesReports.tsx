@@ -35,10 +35,9 @@ type RangeType = '7d' | '30d' | 'thisMonth' | 'custom';
 const formatCurrency = (amount: number) => `KSh ${amount.toLocaleString()}`;
 const csvEscape = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
 const isTimeoutError = (message: string) => message.toLowerCase().includes('timeout');
-const isInventoryPurchaseCategory = (category?: string | null) => {
-  const normalized = String(category || '').toLowerCase();
-  return normalized.includes('stock purchase') || normalized.includes('inventory purchase');
-};
+// Matches useExpenses: only restock-generated expenses are already counted as
+// COGS. Anything entered by hand is a genuine operating outflow.
+const isRestockExpense = (expense: Expense) => expense.source === 'restock';
 
 export function SalesReports({
   sales,
@@ -161,7 +160,7 @@ export function SalesReports({
     for (const e of filteredExpenses) {
       const amount = Number(e.amount || 0);
       const key = e.category || 'Other';
-      if (isInventoryPurchaseCategory(key)) {
+      if (isRestockExpense(e)) {
         inventoryAsExpenseTotal += amount;
         continue;
       }
@@ -186,7 +185,7 @@ export function SalesReports({
     for (const e of filteredExpenses) {
       const day = format(new Date(e.date), 'MM-dd');
       const row = dayMap.get(day) || { operating: 0, purchases: 0 };
-      if (isInventoryPurchaseCategory(e.category)) {
+      if (isRestockExpense(e)) {
         row.purchases += Number(e.amount || 0);
       } else {
         row.operating += Number(e.amount || 0);

@@ -31,10 +31,10 @@ const parseDate = (value?: string | null) => {
   return startOfDay(new Date(`${value}T00:00:00`));
 };
 
-const isInventoryPurchaseExpense = (expense: Expense) => {
-  const category = String(expense.category || '').toLowerCase();
-  return category.includes('stock purchase') || category.includes('inventory purchase');
-};
+// Only restock-generated expenses are already represented as COGS. An expense
+// typed in by hand is real money out even if it is named "Stock Purchase", and
+// excluding it used to make that spend vanish from net profit entirely.
+const isInventoryPurchaseExpense = (expense: Expense) => expense.source === 'restock';
 
 const isWithinEffectiveWindow = (target: Date, expense: Expense) => {
   const effectiveStart = parseDate(expense.effectiveFrom) || parseDate(expense.date);
@@ -134,6 +134,7 @@ export const useExpenses = (currentPeriodSales: number = 0) => {
         expenseType: e.expense_type || 'one_off',
         recurrenceUnit: e.recurrence_unit || 'none',
         allocationMode: e.allocation_mode || 'cash',
+        source: e.source === 'restock' ? 'restock' : 'manual',
         effectiveFrom: e.effective_from || null,
         effectiveTo: e.effective_to || null,
         createdAt: e.created_at

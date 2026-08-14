@@ -34,7 +34,10 @@ const categoryByBusiness = (businessCategory: string, offeringMode: string): str
   if (businessCategory === 'barbershop_salon') {
     return ['Beauty Supplies', 'Commission', 'Wages', 'Sanitation', 'Equipment Service', ...common];
   }
-  return ['Stock Purchase', 'Wages', 'Packaging', 'Marketing', ...common];
+  // 'Stock Purchase' is deliberately absent. Buying stock has to go through
+  // Products > Restock so stock levels and unit costs move with the money;
+  // logging it here would record the cash without any of the inventory effects.
+  return ['Wages', 'Packaging', 'Marketing', ...common];
 };
 
 const formatCurrency = (amt: number) => `KSh ${amt.toLocaleString()}`;
@@ -155,8 +158,8 @@ export function ExpenseManager({
       ];
     }
     return [
-      { description: 'Stock top-up', category: 'Stock Purchase' },
       { description: 'Shop utilities', category: 'Utilities' },
+      { description: 'Staff wages', category: 'Wages' },
     ];
   }, [offeringMode, businessCategory]);
 
@@ -283,6 +286,13 @@ export function ExpenseManager({
               <h3 className="font-bold text-sm">New Expense Entry</h3>
               <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddForm(false)}>Cancel</Button>
             </div>
+
+            {offeringMode !== 'services' && (
+              <p className="text-xs text-muted-foreground rounded-lg bg-muted p-2">
+                Buying stock? Record it under <span className="font-medium text-foreground">Products &rarr; Restock</span> instead,
+                so your stock levels and unit costs update along with the money.
+              </p>
+            )}
 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {quickTemplates.map((t) => (

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, Plus, Package, AlertTriangle, Edit2, Trash2, PackagePlus } from 'lucide-react';
 import { Product } from '@/types/inventory';
 import { Input } from '@/components/ui/input';
@@ -16,10 +16,21 @@ interface ProductListProps {
   offeringMode?: 'products' | 'services' | 'mixed' | string;
 }
 
+const PAGE_SIZE = 15;
+
 export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSell, onRestock, isOwner = true, offeringMode = 'products' }: ProductListProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
   const displayProducts = searchQuery ? onSearch(searchQuery) : products;
+
+  // A new search is a new list, so start from the top again.
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchQuery]);
+
+  const visibleProducts = displayProducts.slice(0, visibleCount);
+  const remainingCount = displayProducts.length - visibleProducts.length;
   const itemLabel = offeringMode === 'services' ? 'service' : offeringMode === 'mixed' ? 'item' : 'product';
   const itemLabelPlural = offeringMode === 'services' ? 'services' : offeringMode === 'mixed' ? 'items' : 'products';
   const sellAction = offeringMode === 'services' ? 'Record Service' : 'Sell';
@@ -60,7 +71,7 @@ export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSel
             )}
           </div>
         ) : (
-          displayProducts.map((product) => (
+          visibleProducts.map((product) => (
             <div
               key={product.id}
               className={`bg-card rounded-xl p-4 border transition-all duration-200 hover:shadow-md ${
@@ -127,6 +138,18 @@ export function ProductList({ products, onSearch, onEdit, onDelete, onAdd, onSel
               </div>
             </div>
           ))
+        )}
+
+        {remainingCount > 0 && (
+          <div className="pt-2 space-y-2">
+            <Button variant="outline" className="w-full" onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}>
+              Show {Math.min(remainingCount, PAGE_SIZE)} more
+            </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              Showing {visibleProducts.length} of {displayProducts.length}. Search to jump
+              straight to {offeringMode === 'services' ? 'a service' : 'an item'}.
+            </p>
+          </div>
         )}
       </div>
     </div>

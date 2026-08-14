@@ -110,6 +110,11 @@ export interface Expense {
   expenseType: 'one_off' | 'variable' | 'recurring';
   recurrenceUnit: 'none' | 'daily' | 'weekly' | 'monthly' | 'annual';
   allocationMode: 'cash' | 'accrual';
+  /**
+   * 'restock' means the Restock flow created it, so its cost is already carried
+   * as COGS and it must not be counted again as an operating expense.
+   */
+  source: 'manual' | 'restock';
   effectiveFrom?: string | null;
   effectiveTo?: string | null;
   createdAt: string;
