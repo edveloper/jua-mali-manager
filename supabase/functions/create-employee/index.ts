@@ -84,11 +84,14 @@ Deno.serve(async (req) => {
 
   // 4. Create the auth user. email_confirm is forced on: phone-based accounts use
   //    synthetic @duka.local addresses that can never receive a confirmation mail.
+  // must_change_password forces the employee to pick their own password on first
+  // sign-in, so the owner who typed this one stops knowing it. That matters now
+  // that sales carry sold_by and permissions are per-employee.
   const { data: created, error: createError } = await admin.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
-    user_metadata: { full_name: fullName },
+    user_metadata: { full_name: fullName, must_change_password: true },
   });
 
   if (createError || !created?.user) {

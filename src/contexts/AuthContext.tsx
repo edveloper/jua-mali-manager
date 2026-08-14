@@ -12,6 +12,9 @@ interface AuthContextType {
   isOwner: boolean;
   /** Owners get everything; employees only what the owner has switched on. */
   can: (permission: ShopPermission) => boolean;
+  /** True while an employee is still on the password their owner typed for them. */
+  mustChangePassword: boolean;
+  completePasswordSetup: (newPassword: string) => Promise<{ error: any }>;
   loading: boolean;
   signOut: () => Promise<void>;
   signIn: (email: string, password?: string) => Promise<{ data: any; error: any }>;
@@ -241,6 +244,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return shopMember?.permissions?.[permission] === true;
   };
 
+  // Set by the create-employee function; cleared here in the same call that
+  // changes the password, so the two can never drift apart.
+  const mustChangePassword = Boolean(currentUser?.user_metadata?.must_change_password);
+
+  const completePasswordSetup = async (newPassword: string) => {
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword,
+      data: { must_change_password: false },
+    });
+
+    // Update immediately rather than waiting on the USER_UPDATED event, so the
+    // gate closes the moment the call succeeds.
+    if (!error && data?.user) setCurrentUser(data.user);
+    return { error };
+  };
+
   const updateShopProfile = async (updates: {
     name?: string;
     business_category?: string;
@@ -270,6 +289,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         shopMember,
         isOwner,
         can,
+        mustChangePassword,
+        completePasswordSetup,
         loading,
         signOut, 
         signIn,

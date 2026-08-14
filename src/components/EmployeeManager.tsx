@@ -196,7 +196,8 @@ export function EmployeeManager() {
       {showForm && (
         <form onSubmit={handleSubmit} className="stat-card space-y-4 bg-card p-4 rounded-lg border">
           <p className="text-sm text-muted-foreground">
-            Create login credentials for your employee. They will only be able to record sales.
+            Give your employee a temporary password. The first time they sign in, they
+            will be asked to choose their own.
           </p>
 
           <div className="space-y-2">
@@ -233,7 +234,7 @@ export function EmployeeManager() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="empPassword">Password</Label>
+            <Label htmlFor="empPassword">Temporary Password</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
