@@ -75,6 +75,7 @@ export const useInventory = () => {
           priceSource: s.price_source || 'list',
           soldBy: s.sold_by || null,
           voidedAt: s.voided_at || null,
+          paymentMethod: s.payment_method || null,
           totalAmount,
           profit: totalAmount - (costAtSale * qty),
           createdAt: s.created_at
@@ -230,7 +231,13 @@ export const useInventory = () => {
 
   // unitPrice is the negotiated price per unit. Omit it to sell at the catalog
   // price; the RPC re-checks permission and the owner's band either way.
-  const recordSale = async (productId: string, quantity: number, unitPrice?: number) => {
+  const recordSale = async (
+    productId: string,
+    quantity: number,
+    unitPrice?: number,
+    paymentMethod?: string,
+    paymentReference?: string
+  ) => {
     if (!shop?.id) return;
 
     try {
@@ -239,6 +246,8 @@ export const useInventory = () => {
         p_product_id: productId,
         p_quantity: quantity,
         p_unit_price: unitPrice ?? null,
+        p_payment_method: paymentMethod ?? null,
+        p_payment_reference: paymentReference ?? null,
       });
       if (error) throw error;
 

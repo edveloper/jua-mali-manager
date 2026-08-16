@@ -189,6 +189,8 @@ export type Database = {
           list_price_at_sale: number | null;
           price_source: string;
           sold_by: string | null;
+          payment_method: string | null;
+          payment_reference: string | null;
           voided_at: string | null;
           voided_by: string | null;
           void_reason: string | null;
@@ -206,6 +208,8 @@ export type Database = {
           list_price_at_sale?: number | null;
           price_source?: string;
           sold_by?: string | null;
+          payment_method?: string | null;
+          payment_reference?: string | null;
           voided_at?: string | null;
           voided_by?: string | null;
           void_reason?: string | null;
@@ -223,6 +227,8 @@ export type Database = {
           list_price_at_sale?: number | null;
           price_source?: string;
           sold_by?: string | null;
+          payment_method?: string | null;
+          payment_reference?: string | null;
           voided_at?: string | null;
           voided_by?: string | null;
           void_reason?: string | null;
@@ -353,6 +359,8 @@ export type Database = {
           amount: number;
           paid_at: string;
           notes: string | null;
+          payment_method: string | null;
+          payment_reference: string | null;
           recorded_by: string | null;
           created_at: string;
         };
@@ -364,6 +372,8 @@ export type Database = {
           amount: number;
           paid_at?: string;
           notes?: string | null;
+          payment_method?: string | null;
+          payment_reference?: string | null;
           recorded_by?: string | null;
           created_at?: string;
         };
@@ -375,6 +385,8 @@ export type Database = {
           amount?: number;
           paid_at?: string;
           notes?: string | null;
+          payment_method?: string | null;
+          payment_reference?: string | null;
           recorded_by?: string | null;
           created_at?: string;
         };
@@ -408,6 +420,7 @@ export type Database = {
           recurrence_unit: string;
           allocation_mode: string;
           source: string;
+          payment_method: string | null;
           effective_from: string | null;
           effective_to: string | null;
           created_at: string | null;
@@ -423,6 +436,7 @@ export type Database = {
           recurrence_unit?: string;
           allocation_mode?: string;
           source?: string;
+          payment_method?: string | null;
           effective_from?: string | null;
           effective_to?: string | null;
           created_at?: string | null;
@@ -438,6 +452,7 @@ export type Database = {
           recurrence_unit?: string;
           allocation_mode?: string;
           source?: string;
+          payment_method?: string | null;
           effective_from?: string | null;
           effective_to?: string | null;
           created_at?: string | null;
@@ -654,6 +669,8 @@ export type Database = {
           p_product_id: string;
           p_quantity: number;
           p_unit_price?: number | null;
+          p_payment_method?: string | null;
+          p_payment_reference?: string | null;
         };
         Returns: {
           id: string;
@@ -665,6 +682,7 @@ export type Database = {
           unit_price: number;
           list_price_at_sale: number;
           price_source: string;
+          payment_method: string;
           sold_by: string;
           created_at: string;
         }[];
@@ -723,6 +741,8 @@ export type Database = {
           p_amount: number;
           p_paid_at?: string | null;
           p_notes?: string | null;
+          p_payment_method?: string | null;
+          p_payment_reference?: string | null;
         };
         Returns: {
           id: string;
@@ -730,6 +750,7 @@ export type Database = {
           customer_id: string;
           amount: number;
           paid_at: string;
+          payment_method: string;
           new_amount_paid: number;
           new_balance: number;
           new_status: string;

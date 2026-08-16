@@ -24,14 +24,18 @@ import { MoreMenu } from '@/components/MoreMenu';
 import { HelpPanel } from '@/components/HelpPanel';
 import { PrivacyPanel } from '@/components/PrivacyPanel';
 import { ContactPanel } from '@/components/ContactPanel';
+import { AboutPanel } from '@/components/AboutPanel';
+import { GettingStarted } from '@/components/GettingStarted';
+import { Logo } from '@/components/Logo';
 import { Navigation, type TabType } from '@/components/Navigation';
 import { Product } from '@/types/inventory';
+import { PAYMENT_METHODS, methodLabel } from '@/lib/payment';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 /** Screens reached from More, which get a back arrow instead of a nav slot. */
-const SUB_SCREENS: TabType[] = ['settings', 'staff', 'help', 'privacy', 'contact', 'alerts'];
+const SUB_SCREENS: TabType[] = ['settings', 'staff', 'help', 'privacy', 'contact', 'about', 'alerts'];
 
 const SCREEN_TITLES: Partial<Record<TabType, string>> = {
   settings: 'Shop details',
@@ -39,6 +43,7 @@ const SCREEN_TITLES: Partial<Record<TabType, string>> = {
   help: 'How this works',
   privacy: 'Your data',
   contact: 'Contact us',
+  about: 'About Tarihi',
   alerts: 'Running low',
 };
 
@@ -66,7 +71,7 @@ const Index = () => {
   const {
     customers, creditSales, addCustomer,
     addCreditSale, recordPayment, getTotalOwed, getCustomerTotalOwed,
-    getPaymentsTotalForRange, getPaymentsForCredit
+    getPaymentsTotalForRange, getPaymentsForCredit, paymentsBetween
   } = useCredit();
 
   const { members, nameFor } = useShopMembers();
@@ -144,6 +149,26 @@ const Index = () => {
   const dayPaidNow = daySalesTotal - dayOnDeni;
   const dayDeniPaidBack = getPaymentsTotalForRange(viewDate, viewDate);
 
+  // Cash in hand is not the same as money taken, so group what actually arrived
+  // by how it arrived. Sales on deni are excluded -- that money has not landed.
+  const receivedToday: { method: string; amount: number }[] = [
+    ...daySales
+      .filter((s) => !creditSaleIds.has(s.id))
+      .map((s) => ({ method: s.paymentMethod || 'unknown', amount: Number(s.totalAmount || 0) })),
+    ...paymentsBetween(viewDate, viewDate)
+      .map((p) => ({ method: p.paymentMethod || 'unknown', amount: p.amount })),
+  ];
+
+  const byMethod = [...PAYMENT_METHODS.map((m) => m.value), 'unknown']
+    .map((method) => ({
+      method,
+      label: method === 'unknown' ? 'Not recorded' : methodLabel(method),
+      amount: receivedToday
+        .filter((r) => r.method === method)
+        .reduce((sum, r) => sum + r.amount, 0),
+    }))
+    .filter((row) => row.amount > 0);
+
   const lowStockProducts = getLowStockProducts();
   const unpaidDeniCount = creditSales.filter((cs) => cs.status !== 'paid').length;
   const staffCount = members.filter((m) => m.role === 'employee').length;
@@ -170,9 +195,11 @@ const Index = () => {
       customerId?: string;
       newCustomer?: { name: string; phone: string };
       unitPrice?: number;
+      paymentMethod?: string;
+      paymentReference?: string;
     }
   ) => {
-    const { isCredit, customerId, newCustomer, unitPrice } = options || {};
+    const { isCredit, customerId, newCustomer, unitPrice, paymentMethod, paymentReference } = options || {};
 
     // Resolve the customer BEFORE the sale. If we created them afterwards and it
     // failed, stock would already be gone and the sale would look like cash.
@@ -195,7 +222,7 @@ const Index = () => {
       return false;
     }
 
-    const sale = await recordSale(itemId, quantity, unitPrice);
+    const sale = await recordSale(itemId, quantity, unitPrice, paymentMethod, paymentReference);
     if (!sale) return false;
 
     if (isCredit && resolvedCustomerId) {
@@ -230,7 +257,10 @@ const Index = () => {
               <h1 className="text-base font-semibold truncate">{SCREEN_TITLES[activeTab]}</h1>
             </>
           ) : (
-            <h1 className="text-lg font-bold truncate">{shop?.name || 'Tarihi'}</h1>
+            <>
+              <Logo wordmark={false} size="sm" />
+              <h1 className="text-lg font-bold truncate">{shop?.name || 'Tarihi'}</h1>
+            </>
           )}
         </div>
       </header>
@@ -271,12 +301,21 @@ const Index = () => {
             )}
 
             {isOwner && (
+              <GettingStarted
+                hasProducts={products.length > 0}
+                hasSales={sales.length > 0}
+                onNavigate={setActiveTab}
+              />
+            )}
+
+            {isOwner && sales.length > 0 && (
               <DayBook
                 dateLabel={dateLabel}
                 sales={daySalesTotal}
                 paidNow={dayPaidNow}
                 onDeni={dayOnDeni}
                 deniPaidBack={dayDeniPaidBack}
+                byMethod={byMethod}
                 spent={daySpent}
                 takeHome={dayProfit - daySpent}
                 stockValue={stats.totalStockValue}
@@ -285,6 +324,15 @@ const Index = () => {
                 lowStockCount={lowStockProducts.length}
                 onNavigate={setActiveTab}
               />
+            )}
+
+            {!isOwner && products.length === 0 && (
+              <div className="sheet">
+                <p className="text-sm text-muted-foreground">
+                  Nothing has been added to sell yet. Ask the owner to add the products
+                  you handle and they will show up here.
+                </p>
+              </div>
             )}
 
             {!isOwner && lowStockProducts.length > 0 && (
@@ -300,12 +348,14 @@ const Index = () => {
               </button>
             )}
 
+            {(sales.length > 0 || !isOwner) && (
             <DaySales
               sales={daySalesWithVoided}
               nameFor={nameFor}
               onVoid={voidSale}
               showSeller={isOwner && staffCount > 0}
             />
+            )}
           </>
         )}
 
@@ -385,6 +435,7 @@ const Index = () => {
         {activeTab === 'help' && <HelpPanel />}
         {activeTab === 'privacy' && <PrivacyPanel />}
         {activeTab === 'contact' && <ContactPanel />}
+        {activeTab === 'about' && <AboutPanel />}
       </main>
 
       <Navigation

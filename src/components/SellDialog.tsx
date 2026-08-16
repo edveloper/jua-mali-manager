@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { X, Minus, Plus, ShoppingCart, CreditCard, Wallet } from 'lucide-react';
+import { X, Minus, Plus, ShoppingCart } from 'lucide-react';
 import { Product, Customer } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PAYMENT_METHODS, PaymentMethod, lastUsedMethod, rememberMethod, takesReference } from '@/lib/payment';
 
 interface SellDialogProps {
   product: Product;
@@ -17,6 +18,8 @@ interface SellDialogProps {
       /** Typed in on the spot rather than picked from the credit book. */
       newCustomer?: { name: string; phone: string };
       unitPrice?: number;
+      paymentMethod?: PaymentMethod;
+      paymentReference?: string;
     }
   ) => void | boolean | Promise<void | boolean>;
   onClose: () => void;
@@ -32,6 +35,8 @@ export function SellDialog({ product, customers, onSell, onClose, isOwner = true
   const [customerQuery, setCustomerQuery] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(lastUsedMethod);
+  const [paymentReference, setPaymentReference] = useState('');
   // Free text, not a number, so the field can be cleared and retyped on a phone
   // without fighting a forced 0.
   const [priceInput, setPriceInput] = useState(String(product.sellingPrice ?? 0));
@@ -103,11 +108,14 @@ export function SellDialog({ product, customers, onSell, onClose, isOwner = true
             ? { name: trimmedQuery, phone: newCustomerPhone.trim() }
             : undefined,
           unitPrice: isPriceable ? effectivePrice : undefined,
+          paymentMethod: isCredit ? undefined : paymentMethod,
+          paymentReference: isCredit ? undefined : paymentReference.trim() || undefined,
         });
 
     setIsSubmitting(false);
     // Stay open on failure so nothing typed is lost.
     if (result === false) return;
+    if (!isCredit) rememberMethod(paymentMethod);
     onClose();
   };
 
@@ -199,27 +207,53 @@ export function SellDialog({ product, customers, onSell, onClose, isOwner = true
             </div>
           </div>
 
-          {(
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Payment</label>
+            <div className="flex gap-2">
+              <Button
+                variant={!isCredit ? 'default' : 'outline'}
+                className="flex-1"
+                onClick={() => setIsCredit(false)}
+              >
+                Paid now
+              </Button>
+              <Button
+                variant={isCredit ? 'default' : 'outline'}
+                className="flex-1"
+                onClick={() => setIsCredit(true)}
+              >
+                On deni
+              </Button>
+            </div>
+          </div>
+
+          {/* How the money arrived is a separate question from whether it has.
+              Collapsing the two is what made every M-Pesa sale look like cash. */}
+          {!isCredit && (
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Payment Type</label>
-              <div className="flex gap-2">
-                <Button
-                  variant={!isCredit ? 'default' : 'outline'}
-                  className="flex-1"
-                  onClick={() => setIsCredit(false)}
-                >
-                  <Wallet className="h-4 w-4 mr-2" />
-                  Cash
-                </Button>
-                <Button
-                  variant={isCredit ? 'default' : 'outline'}
-                  className="flex-1"
-                  onClick={() => setIsCredit(true)}
-                >
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Credit
-                </Button>
+              <label className="text-sm font-medium text-foreground">How did they pay?</label>
+              <div className="grid grid-cols-4 gap-1.5">
+                {PAYMENT_METHODS.map((method) => (
+                  <Button
+                    key={method.value}
+                    variant={paymentMethod === method.value ? 'default' : 'outline'}
+                    size="sm"
+                    className="px-1 text-xs"
+                    onClick={() => setPaymentMethod(method.value)}
+                  >
+                    {method.short}
+                  </Button>
+                ))}
               </div>
+              {takesReference(paymentMethod) && (
+                <Input
+                  placeholder="Transaction code (optional)"
+                  value={paymentReference}
+                  onChange={(e) => setPaymentReference(e.target.value.toUpperCase())}
+                  autoCapitalize="characters"
+                  className="num"
+                />
+              )}
             </div>
           )}
 

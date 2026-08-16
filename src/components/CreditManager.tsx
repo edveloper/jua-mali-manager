@@ -3,13 +3,14 @@ import { ArrowLeft, Plus, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Customer, CreditSale, CreditPayment } from '@/types/inventory';
+import { PAYMENT_METHODS, PaymentMethod, lastUsedMethod, rememberMethod, takesReference, methodLabel } from '@/lib/payment';
 
 interface CreditManagerProps {
   customers: Customer[];
   creditSales: CreditSale[];
   totalOwed: number;
   onAddCustomer: (name: string, phone?: string) => Promise<Customer | any>;
-  onRecordPayment: (creditSaleId: string, amount: number) => void;
+  onRecordPayment: (creditSaleId: string, amount: number, method?: string, reference?: string) => void;
   getCustomerTotalOwed: (customerId: string) => number;
   getPaymentsForCredit?: (creditSaleId: string) => CreditPayment[];
 }
@@ -31,6 +32,8 @@ export function CreditManager({
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(lastUsedMethod);
+  const [paymentReference, setPaymentReference] = useState('');
   const [selectedCredit, setSelectedCredit] = useState<CreditSale | null>(null);
 
   const handleAddCustomer = () => {
@@ -45,8 +48,10 @@ export function CreditManager({
     if (!selectedCredit || !paymentAmount) return;
     const amount = parseFloat(paymentAmount);
     if (amount > 0 && amount <= selectedCredit.balance) {
-      onRecordPayment(selectedCredit.id, amount);
+      onRecordPayment(selectedCredit.id, amount, paymentMethod, paymentReference.trim() || undefined);
+      rememberMethod(paymentMethod);
       setPaymentAmount('');
+      setPaymentReference('');
       setSelectedCredit(null);
     }
   };
@@ -106,6 +111,31 @@ export function CreditManager({
               That is more than the {money(selectedCredit.balance)} still owed.
             </p>
           )}
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium">How did they pay?</p>
+            <div className="grid grid-cols-4 gap-1.5">
+              {PAYMENT_METHODS.map((method) => (
+                <Button
+                  key={method.value}
+                  variant={paymentMethod === method.value ? 'default' : 'outline'}
+                  size="sm"
+                  className="px-1 text-xs"
+                  onClick={() => setPaymentMethod(method.value)}
+                >
+                  {method.short}
+                </Button>
+              ))}
+            </div>
+            {takesReference(paymentMethod) && (
+              <Input
+                placeholder="Transaction code (optional)"
+                value={paymentReference}
+                onChange={(e) => setPaymentReference(e.target.value.toUpperCase())}
+                className="num"
+              />
+            )}
+          </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -130,7 +160,12 @@ export function CreditManager({
             <div className="mt-2 divide-y divide-border/70">
               {payments.map((payment) => (
                 <div key={payment.id} className="flex items-baseline justify-between py-1.5 text-sm">
-                  <span className="text-muted-foreground">{shortDate(payment.paidAt)}</span>
+                  <span className="text-muted-foreground">
+                    {shortDate(payment.paidAt)}
+                    {payment.paymentMethod && (
+                      <span className="ml-2 text-xs">{methodLabel(payment.paymentMethod)}</span>
+                    )}
+                  </span>
                   <span className="amount text-success">{money(payment.amount)}</span>
                 </div>
               ))}

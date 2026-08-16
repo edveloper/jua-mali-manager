@@ -1,6 +1,6 @@
 import {
   Users, Store, Upload, HelpCircle, MessageSquare, ShieldAlert,
-  LogOut, Download, ChevronRight, LucideIcon,
+  LogOut, Download, ChevronRight, Info, LucideIcon,
 } from 'lucide-react';
 import { TabType } from '@/components/Navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,6 +42,7 @@ export function MoreMenu({ onNavigate, staffCount, canInstall, onInstall }: More
     { label: 'How this works', icon: HelpCircle, onClick: () => onNavigate('help') },
     { label: 'Contact us', icon: MessageSquare, onClick: () => onNavigate('contact') },
     { label: 'Your data', icon: ShieldAlert, onClick: () => onNavigate('privacy') },
+    { label: 'About Tarihi', icon: Info, onClick: () => onNavigate('about') },
   ];
 
   const rows = isOwner ? [...ownerRows, ...commonRows] : commonRows;

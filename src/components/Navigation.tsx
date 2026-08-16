@@ -12,7 +12,8 @@ export type TabType =
   | 'staff'
   | 'help'
   | 'privacy'
-  | 'contact';
+  | 'contact'
+  | 'about';
 
 interface NavigationProps {
   activeTab: TabType;
@@ -36,14 +37,14 @@ export function Navigation({ activeTab, onTabChange, isOwner = true, deniCount =
     { id: 'products', label: 'Sell', icon: Package },
     { id: 'credit', label: 'Deni', icon: Users, badge: deniCount },
     { id: 'money', label: 'Money', icon: Wallet },
-    { id: 'more', label: 'More', icon: MoreHorizontal, covers: ['settings', 'staff', 'help', 'privacy', 'contact'] },
+    { id: 'more', label: 'More', icon: MoreHorizontal, covers: ['settings', 'staff', 'help', 'privacy', 'contact', 'about'] },
   ];
 
   // Staff get the two screens they use and nothing that implies more exists.
   const employeeTabs: NavItem[] = [
     { id: 'dashboard', label: 'Home', icon: Home, covers: ['alerts'] },
     { id: 'products', label: 'Sell', icon: Package },
-    { id: 'more', label: 'More', icon: MoreHorizontal, covers: ['settings', 'help', 'privacy', 'contact'] },
+    { id: 'more', label: 'More', icon: MoreHorizontal, covers: ['settings', 'help', 'privacy', 'contact', 'about'] },
   ];
 
   const tabs = isOwner ? ownerTabs : employeeTabs;

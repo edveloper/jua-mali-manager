@@ -53,6 +53,8 @@ export interface Sale {
   listPriceAtSale?: number;
   priceSource?: 'list' | 'override';
   soldBy?: string | null;
+  /** null means the sale predates payment-method tracking, not that it was cash. */
+  paymentMethod?: string | null;
   /** Set when the sale was cancelled. Voided sales are excluded from all totals. */
   voidedAt?: string | null;
   totalAmount: number;
@@ -89,6 +91,7 @@ export interface CreditPayment {
   amount: number;
   /** When the money actually came in. This is the date reports use. */
   paidAt: string;
+  paymentMethod?: string | null;
   notes?: string;
   createdAt: string;
 }

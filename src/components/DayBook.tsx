@@ -8,6 +8,8 @@ interface DayBookProps {
   deniPaidBack: number;
   spent: number;
   takeHome: number;
+  /** Money actually received today, keyed by method. Excludes deni. */
+  byMethod: { method: string; label: string; amount: number }[];
   stockValue: number;
   stockRetailValue: number;
   owedToYou: number;
@@ -28,6 +30,7 @@ export function DayBook({
   paidNow,
   onDeni,
   deniPaidBack,
+  byMethod,
   spent,
   takeHome,
   stockValue,
@@ -72,6 +75,14 @@ export function DayBook({
           <span className="text-muted-foreground">Money in</span>
           <span className="amount">{money(moneyIn)}</span>
         </div>
+        {/* Only worth breaking out when more than one kind of money came in --
+            a purely cash day does not need telling that it was cash. */}
+        {byMethod.length > 1 && byMethod.map((row) => (
+          <div key={row.method} className="ledger-sub">
+            <span>{row.label}</span>
+            <span className="num">{money(row.amount)}</span>
+          </div>
+        ))}
 
         <button
           type="button"

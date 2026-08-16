@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <!-- Source for every iOS launch image. Padded generously so that when sharp
+       fits it into a tall phone screen the mark stays modest rather than filling
+       the width. -->
+  <rect width="1000" height="1000" fill="#f8f7f5"/>
+  <g transform="translate(390 326)">
+    <rect width="220" height="220" rx="48" fill="#c85a2e"/>
+    <g transform="scale(3.4375)">
+      <rect x="13" y="20" width="38" height="5.5" rx="2.75" fill="#f8f7f5"/>
+      <rect x="29.25" y="20" width="5.5" height="25" rx="2.75" fill="#f8f7f5"/>
+      <rect x="39" y="32.5" width="12" height="5" rx="2.5" fill="#4f9469"/>
+    </g>
+  </g>
+  <text x="500" y="618" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="72" font-weight="700" fill="#2b1c14">tarihi</text>
+  <text x="500" y="662" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="26" fill="#7a6a5f">biashara yako, siku kwa siku</text>
+</svg>

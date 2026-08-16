@@ -32,6 +32,7 @@ export const useCredit = () => {
         customerId: p.customer_id,
         amount: Number(p.amount || 0),
         paidAt: p.paid_at,
+        paymentMethod: p.payment_method || null,
         notes: p.notes || '',
         createdAt: p.created_at,
       })));
@@ -104,13 +105,20 @@ export const useCredit = () => {
 
   // Goes through the RPC so the balance is read and written under a row lock,
   // and so every payment leaves a dated record reports can use.
-  const recordPayment = async (creditId: string, paymentAmount: number) => {
+  const recordPayment = async (
+    creditId: string,
+    paymentAmount: number,
+    paymentMethod?: string,
+    paymentReference?: string
+  ) => {
     if (!shop?.id) return;
 
     const { error } = await supabase.rpc('record_credit_payment_atomic', {
       p_shop_id: shop.id,
       p_credit_sale_id: creditId,
       p_amount: paymentAmount,
+      p_payment_method: paymentMethod ?? null,
+      p_payment_reference: paymentReference ?? null,
     });
 
     if (error) {

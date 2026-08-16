@@ -219,10 +219,14 @@ export const useExpenses = (currentPeriodSales: number = 0) => {
     const day = startOfDay(new Date(typeof date === 'string' ? `${date}T00:00:00` : date));
     return expenses.reduce((sum, expense) => {
       if (!includeInventoryPurchases && isInventoryPurchaseExpense(expense)) return sum;
-      if (expense.allocationMode === 'cash') {
-        return occursOnDay(expense, day) ? sum + expense.amount : sum;
+      // A recurring bill is spread across the days it covers, so rent day does
+      // not read as a disaster and every other day as a windfall. Everything
+      // else lands on the date it was paid. The user is no longer asked to
+      // choose an accounting basis per entry -- the type decides it.
+      if (expense.expenseType === 'recurring') {
+        return sum + getAccruedDailyAmount(expense, day);
       }
-      return sum + getAccruedDailyAmount(expense, day);
+      return occursOnDay(expense, day) ? sum + expense.amount : sum;
     }, 0);
   };
 

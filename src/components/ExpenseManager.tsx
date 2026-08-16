@@ -59,7 +59,6 @@ export function ExpenseManager({
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [expenseType, setExpenseType] = useState<Expense['expenseType']>('one_off');
   const [recurrenceUnit, setRecurrenceUnit] = useState<Expense['recurrenceUnit']>('none');
-  const [allocationMode, setAllocationMode] = useState<Expense['allocationMode']>('cash');
   const [effectiveFrom, setEffectiveFrom] = useState(new Date().toISOString().split('T')[0]);
   const [effectiveTo, setEffectiveTo] = useState('');
   const [range, setRange] = useState<RangeType>('month');
@@ -121,7 +120,9 @@ export function ExpenseManager({
       date,
       expenseType,
       recurrenceUnit,
-      allocationMode,
+      // Recurring bills are spread over the days they cover; that is now decided
+      // by the expense type, not by asking the user to pick an accounting basis.
+      allocationMode: 'cash' as const,
       effectiveFrom: expenseType === 'recurring' ? effectiveFrom : null,
       effectiveTo: expenseType === 'recurring' && effectiveTo ? effectiveTo : null,
     });
@@ -131,7 +132,6 @@ export function ExpenseManager({
     setDate(new Date().toISOString().split('T')[0]);
     setExpenseType('one_off');
     setRecurrenceUnit('none');
-    setAllocationMode('cash');
     setEffectiveFrom(new Date().toISOString().split('T')[0]);
     setEffectiveTo('');
     setShowAddForm(false);
@@ -346,16 +346,8 @@ export function ExpenseManager({
                 }}
               >
                 <option value="one_off">One-off</option>
-                <option value="variable">Variable (random)</option>
-                <option value="recurring">Recurring</option>
-              </select>
-              <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={allocationMode}
-                onChange={(e) => setAllocationMode(e.target.value as Expense['allocationMode'])}
-              >
-                <option value="cash">Cash basis</option>
-                <option value="accrual">Accrual basis</option>
+                <option value="variable">Changes each time</option>
+                <option value="recurring">Same bill every time</option>
               </select>
               <select
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -428,7 +420,7 @@ export function ExpenseManager({
             <option value="all">All types</option>
             <option value="one_off">One-off</option>
             <option value="variable">Variable</option>
-            <option value="recurring">Recurring</option>
+            <option value="recurring">Same bill every time</option>
           </select>
           <div className="flex items-center justify-center rounded-md border border-input px-3 text-xs text-muted-foreground">
             <CalendarRange className="h-3.5 w-3.5 mr-1.5" />
@@ -463,7 +455,7 @@ export function ExpenseManager({
                 <div>
                   <p className="text-sm amount text-foreground">{expense.description}</p>
                   <p className="text-[10px] text-muted-foreground font-medium">
-                    {expense.category} | {expenseTypeLabel(expense.expenseType)} | {expense.allocationMode} | {format(new Date(expense.date), 'MMM d, yyyy')}
+                    {expense.category} | {expenseTypeLabel(expense.expenseType)} | {format(new Date(expense.date), 'MMM d, yyyy')}
                   </p>
                   {expense.expenseType === 'recurring' && (
                     <p className="text-[10px] text-muted-foreground">
