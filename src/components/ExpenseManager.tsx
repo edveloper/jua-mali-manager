@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { Plus, Receipt, Landmark, History, Trash2, Filter, CalendarRange, WalletCards } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { Expense, ExpenseDraft } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { format, startOfMonth, subDays } from 'date-fns';
+import { Label } from '@/components/ui/label';
+import { PAYMENT_METHODS, PaymentMethod, lastUsedMethod, methodLabel } from '@/lib/payment';
+import { format, startOfMonth, subDays, subMonths, startOfDay, endOfMonth } from 'date-fns';
 
 interface ExpenseManagerProps {
   expenses: Expense[];
@@ -15,32 +16,24 @@ interface ExpenseManagerProps {
   businessCategory?: string;
 }
 
-type RangeType = '7d' | '30d' | 'month' | 'all';
-type ExpenseTypeFilter = 'all' | 'one_off' | 'variable' | 'recurring';
+type RangeType = 'month' | 'lastMonth' | '30d' | 'all';
 
-const categoryByBusiness = (businessCategory: string): string[] => {
-  const common = ['Tax', 'Rent', 'Utilities', 'Transport', 'Salary', 'Licenses', 'Other'];
-  if (businessCategory === 'transport') {
-    return ['Fuel', 'Route Fees', 'Vehicle Maintenance', 'Parking', 'Insurance', ...common];
-  }
-  if (businessCategory === 'computer_center') {
-    return ['Internet', 'Printing Supplies', 'Power Backup', 'Repairs', 'Software', ...common];
-  }
-  if (businessCategory === 'barbershop_salon') {
-    return ['Beauty Supplies', 'Commission', 'Wages', 'Sanitation', 'Equipment Service', ...common];
-  }
-  // 'Stock Purchase' is deliberately absent. Buying stock has to go through
-  // Products > Restock so stock levels and unit costs move with the money;
-  // logging it here would record the cash without any of the inventory effects.
-  return ['Wages', 'Packaging', 'Marketing', ...common];
+const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
+
+const categoriesFor = (businessCategory: string): string[] => {
+  const common = ['Rent', 'Wages', 'Transport', 'Utilities', 'Airtime', 'Tax', 'Licences', 'Other'];
+  if (businessCategory === 'transport') return ['Fuel', 'Vehicle repair', 'Parking', 'Insurance', ...common];
+  if (businessCategory === 'computer_center') return ['Internet', 'Paper and ink', 'Power backup', 'Repairs', ...common];
+  if (businessCategory === 'barbershop_salon') return ['Supplies', 'Commission', 'Cleaning', 'Equipment', ...common];
+  // 'Stock' is deliberately absent: buying stock goes through Sell > Restock so
+  // that stock levels and unit costs move together with the money.
+  return ['Packaging', 'Marketing', ...common];
 };
 
-const formatCurrency = (amt: number) => `KSh ${amt.toLocaleString()}`;
-const csvEscape = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
-const expenseTypeLabel = (value: Expense['expenseType']) => value.replace('_', ' ');
-const recurrenceLabel = (value: Expense['recurrenceUnit']) => {
-  if (value === 'none') return 'No recurrence';
-  return value.charAt(0).toUpperCase() + value.slice(1);
+const TYPE_LABEL: Record<Expense['expenseType'], string> = {
+  one_off: 'One-off',
+  variable: 'Changes each time',
+  recurring: 'Same bill every time',
 };
 
 export function ExpenseManager({
@@ -49,439 +42,292 @@ export function ExpenseManager({
   onDeleteExpense,
   onQuickAddTOT,
   monthlySales,
-  businessCategory = 'retail'
+  businessCategory = 'retail',
 }: ExpenseManagerProps) {
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [showRules, setShowRules] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [range, setRange] = useState<RangeType>('month');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<string>('Other');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [category, setCategory] = useState('Rent');
+  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [expenseType, setExpenseType] = useState<Expense['expenseType']>('one_off');
-  const [recurrenceUnit, setRecurrenceUnit] = useState<Expense['recurrenceUnit']>('none');
-  const [effectiveFrom, setEffectiveFrom] = useState(new Date().toISOString().split('T')[0]);
-  const [effectiveTo, setEffectiveTo] = useState('');
-  const [range, setRange] = useState<RangeType>('month');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [typeFilter, setTypeFilter] = useState<ExpenseTypeFilter>('all');
-  const [search, setSearch] = useState('');
+  const [recurrenceUnit, setRecurrenceUnit] = useState<Expense['recurrenceUnit']>('monthly');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(lastUsedMethod);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const categories = useMemo(
-    () => categoryByBusiness(businessCategory),
-    [businessCategory]
-  );
+  const categories = useMemo(() => categoriesFor(businessCategory), [businessCategory]);
 
-  const filteredExpenses = useMemo(() => {
+  const { shown, total, byCategory, rangeLabel } = useMemo(() => {
     const now = new Date();
-    const startMonth = startOfMonth(now);
-    const start7 = subDays(now, 7);
-    const start30 = subDays(now, 30);
+    let from = startOfMonth(now);
+    let to: Date | null = null;
+    let label = format(now, 'MMMM');
 
-    return expenses.filter((e) => {
-      const d = new Date(e.date);
-      const inRange =
-        range === 'all' ||
-        (range === 'month' && d >= startMonth) ||
-        (range === '7d' && d >= start7) ||
-        (range === '30d' && d >= start30);
-      const byCategory = categoryFilter === 'all' || e.category === categoryFilter;
-      const byType = typeFilter === 'all' || e.expenseType === typeFilter;
-      const q = search.trim().toLowerCase();
-      const bySearch = !q || e.description.toLowerCase().includes(q) || e.category.toLowerCase().includes(q);
-      return inRange && byCategory && byType && bySearch;
-    });
-  }, [expenses, range, categoryFilter, typeFilter, search]);
-
-  const totals = useMemo(() => {
-    const total = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const tax = filteredExpenses.filter((e) => e.category.toLowerCase().includes('tax')).reduce((sum, e) => sum + e.amount, 0);
-    const byCategory = new Map<string, number>();
-    for (const e of filteredExpenses) {
-      byCategory.set(e.category, (byCategory.get(e.category) || 0) + e.amount);
+    if (range === 'lastMonth') {
+      const prev = subMonths(now, 1);
+      from = startOfMonth(prev);
+      to = endOfMonth(prev);
+      label = format(prev, 'MMMM');
+    } else if (range === '30d') {
+      from = startOfDay(subDays(now, 30));
+      label = 'Last 30 days';
+    } else if (range === 'all') {
+      from = new Date(0);
+      label = 'Everything';
     }
-    const topCategory = [...byCategory.entries()].sort((a, b) => b[1] - a[1])[0];
+
+    const filtered = expenses
+      .filter((e) => {
+        const d = new Date(e.date);
+        return d >= from && (!to || d <= to);
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const grouped = new Map<string, number>();
+    for (const e of filtered) {
+      grouped.set(e.category, (grouped.get(e.category) || 0) + e.amount);
+    }
+
     return {
-      total,
-      tax,
-      count: filteredExpenses.length,
-      topCategory: topCategory ? `${topCategory[0]} (${formatCurrency(topCategory[1])})` : 'Nothing yet',
-      netAfterTax: monthlySales - total,
+      shown: filtered,
+      total: filtered.reduce((sum, e) => sum + e.amount, 0),
+      byCategory: [...grouped.entries()]
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value),
+      rangeLabel: label,
     };
-  }, [filteredExpenses, monthlySales]);
+  }, [expenses, range]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || !description) return;
+    if (!amount || !description.trim()) return;
 
+    setIsSaving(true);
     await onAddExpense({
-      category: category || 'Other',
-      description,
+      category,
+      description: description.trim(),
       amount: Number(amount),
       date,
       expenseType,
-      recurrenceUnit,
-      // Recurring bills are spread over the days they cover; that is now decided
-      // by the expense type, not by asking the user to pick an accounting basis.
-      allocationMode: 'cash' as const,
-      effectiveFrom: expenseType === 'recurring' ? effectiveFrom : null,
-      effectiveTo: expenseType === 'recurring' && effectiveTo ? effectiveTo : null,
+      recurrenceUnit: expenseType === 'recurring' ? recurrenceUnit : 'none',
+      allocationMode: 'cash',
+      paymentMethod,
+      effectiveFrom: expenseType === 'recurring' ? date : null,
+      effectiveTo: null,
     });
+    setIsSaving(false);
 
     setDescription('');
     setAmount('');
-    setDate(new Date().toISOString().split('T')[0]);
     setExpenseType('one_off');
-    setRecurrenceUnit('none');
-    setEffectiveFrom(new Date().toISOString().split('T')[0]);
-    setEffectiveTo('');
-    setShowAddForm(false);
+    setShowForm(false);
   };
 
-  const quickTemplates = useMemo(() => {
-    if (businessCategory === 'transport') {
-      return [
-        { description: 'Fuel top-up', category: 'Fuel' },
-        { description: 'Vehicle maintenance', category: 'Vehicle Maintenance' },
-      ];
-    }
-    return [
-      { description: 'Shop utilities', category: 'Utilities' },
-      { description: 'Staff wages', category: 'Wages' },
-    ];
-  }, [businessCategory]);
+  const estimatedTax = monthlySales * 0.03;
 
-  const handleExportCsv = () => {
-    const headers = ['date', 'category', 'description', 'amount', 'expense_type', 'recurrence_unit', 'allocation_mode', 'effective_from', 'effective_to'];
-    const lines = filteredExpenses.map((e) => [
-      csvEscape(e.date),
-      csvEscape(e.category),
-      csvEscape(e.description),
-      csvEscape(e.amount),
-      csvEscape(e.expenseType),
-      csvEscape(e.recurrenceUnit),
-      csvEscape(e.allocationMode),
-      csvEscape(e.effectiveFrom || ''),
-      csvEscape(e.effectiveTo || ''),
-    ].join(','));
-    const csv = [headers.join(','), ...lines].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const stamp = new Date().toISOString().slice(0, 10);
-    a.href = url;
-    a.download = `expenses-${stamp}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+  const RANGES: { value: RangeType; label: string }[] = [
+    { value: 'month', label: 'This month' },
+    { value: 'lastMonth', label: 'Last month' },
+    { value: '30d', label: '30 days' },
+    { value: 'all', label: 'All' },
+  ];
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-      <Card className="p-4 border border-primary/20 bg-primary/5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm amount text-primary">Expense Rules</p>
-            <p className="text-xs text-muted-foreground">
-              Understand how expenses impact Home and Reports before saving entries.
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => setShowRules((v) => !v)}>
-            {showRules ? 'Hide' : 'How this works'}
-          </Button>
+    <div className="space-y-3">
+      <div className="sheet">
+        <div className="flex items-baseline justify-between gap-4">
+          <span className="sheet-heading">{rangeLabel}</span>
+          <span className="text-2xl amount text-destructive">{money(total)}</span>
         </div>
-        {showRules && (
-          <div className="mt-3 space-y-3 text-xs">
-            <div className="rounded-lg border border-border bg-card p-3">
-              <p className="font-semibold mb-1">Spreading a big bill out</p>
-              <p className="text-muted-foreground">
-                Rent of 9,000 paid on the 1st can either land entirely on the 1st, or count as 300 a day all month. Spreading it stops one day looking terrible and the rest looking better than they are.
-              </p>
-            </div>
-            <div className="rounded-lg border border-border bg-card p-3">
-              <p className="font-semibold mb-1">Which way to use</p>
-              <p className="text-muted-foreground">
-                Both are useful, for different questions:
-              </p>
-              <p className="text-muted-foreground mt-1">On the day paid: answers "what left my pocket today".</p>
-              <p className="text-muted-foreground">Spread out: answers "is this shop actually making money on a normal day".</p>
-            </div>
-            <div className="rounded-lg border border-border bg-card p-3">
-              <p className="font-semibold mb-1">Which type to pick</p>
-              <p className="text-muted-foreground">One-off: a permit, a repair, a fine.</p>
-              <p className="text-muted-foreground">Variable: fuel, transport, airtime — changes week to week.</p>
-              <p className="text-muted-foreground">Recurring: rent, wages, internet — same bill every time.</p>
-            </div>
-            <div className="rounded-lg border border-border bg-card p-3">
-              <p className="font-semibold mb-1">Examples by business type</p>
-              <p className="text-muted-foreground">Retail kiosk: recurring rent + salary; variable stock purchase + transport.</p>
-              <p className="text-muted-foreground">Barbershop/salon: recurring rent + internet; variable consumables + commission payouts.</p>
-              <p className="text-muted-foreground">Matatu/transport: recurring insurance/license; variable fuel + route fees + repairs.</p>
-              <p className="text-muted-foreground">Computer center: recurring internet + rent; variable toner/paper + maintenance.</p>
-            </div>
+        {byCategory.length > 0 && (
+          <div className="mt-2">
+            {byCategory.slice(0, 5).map((c) => (
+              <div key={c.name} className="ledger-sub">
+                <span>{c.name}</span>
+                <span className="num">{money(c.value)}</span>
+              </div>
+            ))}
           </div>
         )}
-      </Card>
-
-      <div className="grid grid-cols-2 gap-3">
-        <Button
-          variant="outline"
-          className="h-24 flex flex-col gap-1 border-primary/20 bg-primary/5 hover:bg-primary/10 transition-all"
-          onClick={onQuickAddTOT}
-        >
-          <Landmark className="h-6 w-6 text-primary mb-1" />
-          <span className="text-sm amount text-primary">Record turnover tax</span>
-          <span className="text-[10px] text-muted-foreground">About {formatCurrency(monthlySales * 0.03)} this month</span>
-        </Button>
-
-        <Button
-          variant="outline"
-          className="h-24 flex flex-col gap-1 border-dashed border-muted-foreground/30 hover:bg-muted/50 transition-all"
-          onClick={() => setShowAddForm(true)}
-        >
-          <Plus className="h-6 w-6 text-muted-foreground mb-1" />
-          <span className="text-sm amount">Add expense</span>
-          <span className="text-[10px] text-muted-foreground">Rent, wages, transport</span>
-        </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="sheet">
-          <p className="sheet-heading">Total shown</p>
-          <p className="text-lg amount text-destructive">-{formatCurrency(totals.total)}</p>
+      <div className="grid grid-cols-4 gap-1.5">
+        {RANGES.map((r) => (
+          <Button
+            key={r.value}
+            variant={range === r.value ? 'default' : 'outline'}
+            size="sm"
+            className="px-1 text-xs"
+            onClick={() => setRange(r.value)}
+          >
+            {r.label}
+          </Button>
+        ))}
+      </div>
+
+      {!showForm && (
+        <div className="grid grid-cols-2 gap-2">
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="h-4 w-4 mr-1.5" /> Add expense
+          </Button>
+          <Button variant="outline" onClick={onQuickAddTOT} disabled={estimatedTax <= 0}>
+            Tax · {money(estimatedTax)}
+          </Button>
         </div>
-        <div className="sheet">
-          <p className="sheet-heading">Of that, tax</p>
-          <p className="text-lg amount">{formatCurrency(totals.tax)}</p>
-        </div>
-        <div className="sheet">
-          <p className="sheet-heading">Biggest cost</p>
-          <p className="text-xs font-semibold">{totals.topCategory}</p>
-        </div>
-        <div className="sheet">
-          <p className="sheet-heading">Sales less these</p>
-          <p className={`text-sm font-bold ${totals.netAfterTax < 0 ? 'text-destructive' : 'text-success'}`}>
-            {formatCurrency(totals.netAfterTax)}
+      )}
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="sheet space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="font-medium text-sm">New expense</p>
+            <button type="button" onClick={() => setShowForm(false)} className="text-xs text-muted-foreground">
+              Cancel
+            </button>
+          </div>
+
+          <p className="text-xs text-muted-foreground rounded-md bg-muted p-2">
+            Buying stock? Record it under <span className="font-medium text-foreground">Sell &rarr; Restock</span> instead,
+            so your stock levels and unit costs move with the money.
           </p>
-        </div>
-      </div>
 
-      {showAddForm && (
-        <Card className="p-4 border-2 border-primary animate-in zoom-in-95">
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="font-bold text-sm">New expense</h3>
-              <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddForm(false)}>Cancel</Button>
-            </div>
-
-            {(
-              <p className="text-xs text-muted-foreground rounded-lg bg-muted p-2">
-                Buying stock? Record it under <span className="font-medium text-foreground">Products &rarr; Restock</span> instead,
-                so your stock levels and unit costs update along with the money.
-              </p>
-            )}
-
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {quickTemplates.map((t) => (
-                <Button
-                  key={`${t.description}-${t.category}`}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="justify-start"
-                  onClick={() => {
-                    setDescription(t.description);
-                    setCategory(t.category);
-                    setExpenseType('variable');
-                  }}
-                >
-                  <WalletCards className="h-3.5 w-3.5 mr-2" />
-                  {t.description}
-                </Button>
-              ))}
-            </div>
-
+          <div className="space-y-2">
+            <Label htmlFor="exp-desc">What was it for?</Label>
             <Input
-              placeholder="What did you pay for?"
+              id="exp-desc"
+              placeholder="e.g. September rent"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               required
             />
+          </div>
 
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2">
+              <Label htmlFor="exp-amount">How much?</Label>
               <Input
+                id="exp-amount"
                 type="number"
-                placeholder="Amount"
+                inputMode="decimal"
+                placeholder="0"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
+                className="num"
                 required
               />
-              <Input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                required
-              />
-              <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                {categories.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="exp-date">When?</Label>
+              <Input id="exp-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
+          </div>
 
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div className="space-y-2">
+            <Label htmlFor="exp-category">Kind of cost</Label>
+            <select
+              id="exp-category"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>How did you pay?</Label>
+            <div className="grid grid-cols-4 gap-1.5">
+              {PAYMENT_METHODS.map((m) => (
+                <Button
+                  key={m.value}
+                  type="button"
+                  variant={paymentMethod === m.value ? 'default' : 'outline'}
+                  size="sm"
+                  className="px-1 text-xs"
+                  onClick={() => setPaymentMethod(m.value)}
+                >
+                  {m.short}
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Only cash comes out of the till when you close up.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="exp-type">Does it come again?</Label>
+            <select
+              id="exp-type"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={expenseType}
+              onChange={(e) => setExpenseType(e.target.value as Expense['expenseType'])}
+            >
+              <option value="one_off">No, just this once</option>
+              <option value="variable">Now and then, different amounts</option>
+              <option value="recurring">Yes, the same bill every time</option>
+            </select>
+          </div>
+
+          {expenseType === 'recurring' && (
+            <div className="space-y-2">
+              <Label htmlFor="exp-recurrence">How often?</Label>
               <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={expenseType}
-                onChange={(e) => {
-                  const nextType = e.target.value as Expense['expenseType'];
-                  setExpenseType(nextType);
-                  if (nextType !== 'recurring') {
-                    setRecurrenceUnit('none');
-                  }
-                }}
-              >
-                <option value="one_off">One-off</option>
-                <option value="variable">Changes each time</option>
-                <option value="recurring">Same bill every time</option>
-              </select>
-              <select
+                id="exp-recurrence"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={recurrenceUnit}
-                disabled={expenseType !== 'recurring'}
                 onChange={(e) => setRecurrenceUnit(e.target.value as Expense['recurrenceUnit'])}
               >
-                <option value="none">No recurrence</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="annual">Annual</option>
+                <option value="daily">Every day</option>
+                <option value="weekly">Every week</option>
+                <option value="monthly">Every month</option>
+                <option value="annual">Every year</option>
               </select>
+              <p className="text-xs text-muted-foreground">
+                A bill like rent is spread across the days it covers, so one day does not
+                look ruinous and the rest better than they were.
+              </p>
             </div>
+          )}
 
-            {expenseType === 'recurring' && (
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <Input
-                  type="date"
-                  value={effectiveFrom}
-                  onChange={(e) => setEffectiveFrom(e.target.value)}
-                  required
-                />
-                <Input
-                  type="date"
-                  value={effectiveTo}
-                  onChange={(e) => setEffectiveTo(e.target.value)}
-                  placeholder="Optional end date"
-                />
-              </div>
-            )}
-
-            <Button type="submit" className="w-full">Save Expense</Button>
-          </form>
-        </Card>
+          <Button type="submit" className="w-full" disabled={isSaving || !amount || !description.trim()}>
+            {isSaving ? 'Saving...' : 'Save'}
+          </Button>
+        </form>
       )}
 
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 text-muted-foreground mb-1 px-1">
-          <Filter className="h-4 w-4" />
-          <h3 className="text-xs font-bold uppercase tracking-widest">Filters</h3>
+      {shown.length === 0 ? (
+        <div className="sheet">
+          <p className="text-sm text-muted-foreground">Nothing recorded for this period.</p>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Button variant={range === '7d' ? 'secondary' : 'outline'} size="sm" onClick={() => setRange('7d')}>7 Days</Button>
-          <Button variant={range === '30d' ? 'secondary' : 'outline'} size="sm" onClick={() => setRange('30d')}>30 Days</Button>
-          <Button variant={range === 'month' ? 'secondary' : 'outline'} size="sm" onClick={() => setRange('month')}>This Month</Button>
-          <Button variant={range === 'all' ? 'secondary' : 'outline'} size="sm" onClick={() => setRange('all')}>All</Button>
-        </div>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
-          <Input
-            placeholder="Search expense..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <select
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-          >
-            <option value="all">All categories</option>
-            {[...new Set(expenses.map((e) => e.category))].map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-          <select
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as ExpenseTypeFilter)}
-          >
-            <option value="all">All types</option>
-            <option value="one_off">One-off</option>
-            <option value="variable">Variable</option>
-            <option value="recurring">Same bill every time</option>
-          </select>
-          <div className="flex items-center justify-center rounded-md border border-input px-3 text-xs text-muted-foreground">
-            <CalendarRange className="h-3.5 w-3.5 mr-1.5" />
-            {totals.count} entries
-          </div>
-        </div>
-        <div className="flex justify-end">
-          <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={filteredExpenses.length === 0}>
-            Export CSV
-          </Button>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 text-muted-foreground mb-1 px-1">
-          <History className="h-4 w-4" />
-          <h3 className="text-xs font-bold uppercase tracking-widest">Spending History</h3>
-        </div>
-
-        {filteredExpenses.length === 0 ? (
-          <div className="text-center py-10 border-2 border-dashed rounded-3xl text-muted-foreground/40">
-            <Receipt className="h-10 w-10 mx-auto mb-2 opacity-20" />
-            <p className="text-sm">No costs for this filter</p>
-          </div>
-        ) : (
-          filteredExpenses.map((expense) => (
-            <div key={expense.id} className="group relative flex items-center justify-between p-4 bg-card border border-border rounded-lg overflow-hidden">
-              <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-muted rounded-xl text-muted-foreground">
-                  {expense.category.toLowerCase().includes('tax') ? <Landmark className="h-4 w-4" /> : <Receipt className="h-4 w-4" />}
-                </div>
-                <div>
-                  <p className="text-sm amount text-foreground">{expense.description}</p>
-                  <p className="text-[10px] text-muted-foreground font-medium">
-                    {expense.category} | {expenseTypeLabel(expense.expenseType)} | {format(new Date(expense.date), 'MMM d, yyyy')}
-                  </p>
-                  {expense.expenseType === 'recurring' && (
-                    <p className="text-[10px] text-muted-foreground">
-                      {recurrenceLabel(expense.recurrenceUnit)}
-                      {expense.effectiveFrom ? ` from ${format(new Date(expense.effectiveFrom), 'MMM d, yyyy')}` : ''}
-                      {expense.effectiveTo ? ` to ${format(new Date(expense.effectiveTo), 'MMM d, yyyy')}` : ''}
-                    </p>
-                  )}
-                </div>
+      ) : (
+        <div className="sheet p-0 overflow-hidden divide-y divide-border/70">
+          {shown.map((expense) => (
+            <div key={expense.id} className="flex items-start gap-3 px-4 py-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm truncate">{expense.description || expense.category}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {expense.category} · {format(new Date(expense.date), 'd MMM')}
+                  {expense.expenseType !== 'one_off' && ` · ${TYPE_LABEL[expense.expenseType]}`}
+                  {expense.paymentMethod && ` · ${methodLabel(expense.paymentMethod)}`}
+                </p>
               </div>
-
-              <div className="flex items-center gap-3">
-                <p className="font-bold text-destructive">-{formatCurrency(expense.amount)}</p>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground/30 hover:text-destructive hover:bg-destructive/10 transition-colors"
+              <span className="amount text-sm shrink-0">{money(expense.amount)}</span>
+              {/* Restock spend is owned by the stock record that created it, so it
+                  cannot be deleted from here without the two disagreeing. */}
+              {expense.source !== 'restock' && (
+                <button
+                  type="button"
                   onClick={() => onDeleteExpense(expense.id)}
+                  className="text-muted-foreground active:text-destructive shrink-0"
+                  aria-label="Remove"
                 >
                   <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+                </button>
+              )}
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

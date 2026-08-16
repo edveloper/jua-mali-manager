@@ -135,6 +135,7 @@ export const useExpenses = (currentPeriodSales: number = 0) => {
         recurrenceUnit: e.recurrence_unit || 'none',
         allocationMode: e.allocation_mode || 'cash',
         source: e.source === 'restock' ? 'restock' : 'manual',
+        paymentMethod: e.payment_method || null,
         effectiveFrom: e.effective_from || null,
         effectiveTo: e.effective_to || null,
         createdAt: e.created_at
@@ -157,6 +158,7 @@ export const useExpenses = (currentPeriodSales: number = 0) => {
       expense_type: expense.expenseType,
       recurrence_unit: expense.recurrenceUnit,
       allocation_mode: expense.allocationMode,
+      payment_method: expense.paymentMethod ?? null,
       effective_from: expense.effectiveFrom || null,
       effective_to: expense.effectiveTo || null,
     }]);
@@ -230,6 +232,21 @@ export const useExpenses = (currentPeriodSales: number = 0) => {
     }, 0);
   };
 
+  /**
+   * What physically left the drawer on a day. Cash basis on purpose -- spreading
+   * a monthly bill across the month is the right way to read profit and the
+   * wrong way to count a till. Expenses with no method recorded are counted as
+   * cash, which understates the drawer rather than overstating it.
+   */
+  const getCashSpentForDate = (date: Date | string) => {
+    const day = startOfDay(new Date(typeof date === 'string' ? `${date}T00:00:00` : date));
+    return expenses.reduce((sum, expense) => {
+      if (isInventoryPurchaseExpense(expense)) return sum;
+      if (expense.paymentMethod && expense.paymentMethod !== 'cash') return sum;
+      return occursOnDay(expense, day) ? sum + expense.amount : sum;
+    }, 0);
+  };
+
   const getExpenseTotalForRange = (
     start: Date | string,
     end: Date | string,
@@ -255,6 +272,7 @@ export const useExpenses = (currentPeriodSales: number = 0) => {
     quickAddTOT, 
     getTotalExpenses: () => expenses.reduce((sum, e) => sum + e.amount, 0),
     getCashExpensesForDate,
+    getCashSpentForDate,
     getAccruedExpensesForDate,
     getExpenseTotalForRange,
   };

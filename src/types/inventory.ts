@@ -124,6 +124,8 @@ export interface Expense {
    * as COGS and it must not be counted again as an operating expense.
    */
   source: 'manual' | 'restock';
+  /** null on older rows and on restock spend; treated as cash when closing the till. */
+  paymentMethod?: string | null;
   effectiveFrom?: string | null;
   effectiveTo?: string | null;
   createdAt: string;
@@ -137,6 +139,7 @@ export interface ExpenseDraft {
   expenseType: 'one_off' | 'variable' | 'recurring';
   recurrenceUnit: 'none' | 'daily' | 'weekly' | 'monthly' | 'annual';
   allocationMode: 'cash' | 'accrual';
+  paymentMethod?: string | null;
   effectiveFrom?: string | null;
   effectiveTo?: string | null;
 }

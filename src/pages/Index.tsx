@@ -101,7 +101,7 @@ const Index = () => {
     })
     .reduce((sum, s) => sum + Number(s.totalAmount || 0), 0);
 
-  const { expenses, addExpense, deleteExpense, quickAddTOT, getAccruedExpensesForDate, getExpenseTotalForRange } =
+  const { expenses, addExpense, deleteExpense, quickAddTOT, getAccruedExpensesForDate, getCashSpentForDate, getExpenseTotalForRange } =
     useExpenses(currentMonthSales);
 
   const isAppLoading = authLoading || (inventoryLoading && !shopMember);
@@ -173,9 +173,9 @@ const Index = () => {
   const cashDeniPaid = cashOf(
     paymentsBetween(viewDate, viewDate).map((p) => ({ method: p.paymentMethod || 'unknown', amount: p.amount }))
   );
-  // Expenses have no method recorded yet, so treat them all as cash out. That is
-  // the safe direction: it understates the drawer rather than overstating it.
-  const cashSpent = daySpent;
+  // Not daySpent: that figure spreads recurring bills across the month, which is
+  // right for profit and wrong for a till.
+  const cashSpent = getCashSpentForDate(viewDate);
 
   const byMethod = [...PAYMENT_METHODS.map((m) => m.value), 'unknown']
     .map((method) => ({
@@ -276,8 +276,8 @@ const Index = () => {
             </>
           ) : (
             <>
+              <h1 className="text-lg font-bold truncate flex-1 min-w-0">{shop?.name || 'Tarihi'}</h1>
               <Logo wordmark={false} size="sm" />
-              <h1 className="text-lg font-bold truncate">{shop?.name || 'Tarihi'}</h1>
             </>
           )}
         </div>
@@ -415,10 +415,10 @@ const Index = () => {
         )}
 
         {activeTab === 'money' && isOwner && (
-          <Tabs defaultValue="spending">
+          <Tabs defaultValue="reports">
             <TabsList className="w-full grid grid-cols-2 gap-1 p-1">
-              <TabsTrigger value="spending">Spending</TabsTrigger>
               <TabsTrigger value="reports">Reports</TabsTrigger>
+              <TabsTrigger value="spending">Spending</TabsTrigger>
             </TabsList>
             <TabsContent value="spending" className="pt-3">
               <ExpenseManager
