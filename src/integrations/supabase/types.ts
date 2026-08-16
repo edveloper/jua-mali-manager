@@ -583,6 +583,51 @@ export type Database = {
         ];
       };
 
+      till_counts: {
+        Row: {
+          id: string;
+          shop_id: string;
+          counted_for: string;
+          expected_cash: number;
+          counted_cash: number;
+          difference: number;
+          notes: string | null;
+          counted_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          shop_id: string;
+          counted_for: string;
+          expected_cash: number;
+          counted_cash: number;
+          difference: number;
+          notes?: string | null;
+          counted_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          shop_id?: string;
+          counted_for?: string;
+          expected_cash?: number;
+          counted_cash?: number;
+          difference?: number;
+          notes?: string | null;
+          counted_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'till_counts_shop_id_fkey';
+            columns: ['shop_id'];
+            isOneToOne: false;
+            referencedRelation: 'shops';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+
       stock_movements: {
         Row: {
           id: string;

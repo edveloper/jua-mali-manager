@@ -6,6 +6,7 @@ import { useInventory } from '@/hooks/useInventory';
 import { useCredit } from '@/hooks/useCredit';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useShopMembers } from '@/hooks/useShopMembers';
+import { useTillCount } from '@/hooks/useTillCount';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
 import { DayBook } from '@/components/DayBook';
@@ -26,6 +27,7 @@ import { PrivacyPanel } from '@/components/PrivacyPanel';
 import { ContactPanel } from '@/components/ContactPanel';
 import { AboutPanel } from '@/components/AboutPanel';
 import { GettingStarted } from '@/components/GettingStarted';
+import { CashUp } from '@/components/CashUp';
 import { Logo } from '@/components/Logo';
 import { Navigation, type TabType } from '@/components/Navigation';
 import { Product } from '@/types/inventory';
@@ -75,6 +77,7 @@ const Index = () => {
   } = useCredit();
 
   const { members, nameFor } = useShopMembers();
+  const { countFor, saveCount } = useTillCount();
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth', { replace: true });
@@ -158,6 +161,21 @@ const Index = () => {
     ...paymentsBetween(viewDate, viewDate)
       .map((p) => ({ method: p.paymentMethod || 'unknown', amount: p.amount })),
   ];
+
+  const cashOf = (rows: { method: string; amount: number }[]) =>
+    rows.filter((r) => r.method === 'cash').reduce((sum, r) => sum + r.amount, 0);
+
+  const cashSales = cashOf(
+    daySales
+      .filter((s) => !creditSaleIds.has(s.id))
+      .map((s) => ({ method: s.paymentMethod || 'unknown', amount: Number(s.totalAmount || 0) }))
+  );
+  const cashDeniPaid = cashOf(
+    paymentsBetween(viewDate, viewDate).map((p) => ({ method: p.paymentMethod || 'unknown', amount: p.amount }))
+  );
+  // Expenses have no method recorded yet, so treat them all as cash out. That is
+  // the safe direction: it understates the drawer rather than overstating it.
+  const cashSpent = daySpent;
 
   const byMethod = [...PAYMENT_METHODS.map((m) => m.value), 'unknown']
     .map((method) => ({
@@ -346,6 +364,18 @@ const Index = () => {
                   {lowStockProducts.length} {lowStockProducts.length === 1 ? 'item' : 'items'}
                 </p>
               </button>
+            )}
+
+            {isOwner && daySales.length > 0 && (
+              <CashUp
+                dateLabel={isToday ? 'today' : format(viewDate, 'MMM d')}
+                cashSales={cashSales}
+                cashDeniPaid={cashDeniPaid}
+                cashSpent={cashSpent}
+                nonCashIn={byMethod.filter((m) => m.method !== 'cash').map((m) => ({ label: m.label, amount: m.amount }))}
+                savedCount={countFor(viewDate)}
+                onSaveCount={(countedCash, expectedCash) => saveCount(viewDate, countedCash, expectedCash)}
+              />
             )}
 
             {(sales.length > 0 || !isOwner) && (
