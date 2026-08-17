@@ -18,6 +18,12 @@ export const toAuthEmail = (input: string): string => {
   return `${digits}@${PHONE_DOMAIN}`;
 };
 
+/** True if the identifier can actually receive email -- phone logins cannot. */
+export const canReceiveEmail = (identifier: string): boolean => {
+  const value = identifier.trim();
+  return value.includes('@') && !value.toLowerCase().endsWith(`@${PHONE_DOMAIN}`);
+};
+
 /** True if this address came from a phone number rather than a real email. */
 export const isPhoneAccount = (email?: string | null): boolean =>
   Boolean(email && email.toLowerCase().endsWith(`@${PHONE_DOMAIN}`));

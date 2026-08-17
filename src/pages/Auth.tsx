@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Mail, Phone, Lock, User, Building2 } from 'lucide-react';
+import { Mail, Phone, Lock, User, Building2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/Logo';
-import { toAuthEmail } from '@/lib/identity';
+import { toAuthEmail, canReceiveEmail } from '@/lib/identity';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type AuthMode = 'signin' | 'signup';
@@ -21,8 +21,10 @@ export default function Auth() {
   const [shopName, setShopName] = useState('');
   const [businessCategory, setBusinessCategory] = useState('retail');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   
-  const { signIn, signUp, user, shopMember, loading: isLoading } = useAuth();
+  const { signIn, signUp, user, shopMember, loading: isLoading, sendPasswordReset } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -37,6 +39,40 @@ export default function Auth() {
       navigate('/', { replace: true });
     }
   }, [user, shopMember, isLoading, navigate]);
+
+  const handleForgotPassword = async () => {
+    const identifierValue = identifier.trim();
+
+    if (!identifierValue) {
+      toast({ title: 'Type your phone number or email first', variant: 'destructive' });
+      return;
+    }
+
+    // A phone login has no inbox to send to -- the address is synthetic. Saying
+    // "check your email" there would strand people, so say what actually helps.
+    if (!canReceiveEmail(identifierValue)) {
+      toast({
+        title: 'We cannot email a phone login',
+        description: 'If you are staff, ask the shop owner to set you a new password. Owners, use Contact us.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsResetting(true);
+    const { error } = await sendPasswordReset(identifierValue);
+    setIsResetting(false);
+
+    if (error) {
+      toast({ title: 'Could not send it', description: error.message, variant: 'destructive' });
+      return;
+    }
+
+    toast({
+      title: 'Check your email',
+      description: 'We sent a link to set a new password. It may take a minute.',
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,20 +205,39 @@ export default function Auth() {
                 <Label>Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    type="password" 
-                    className="pl-10"
-                    value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    placeholder="Min 6 characters" 
-                    minLength={6} 
-                    required 
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    className="pl-10 pr-11"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    minLength={6}
+                    required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-0 top-0 h-10 w-11 flex items-center justify-center text-muted-foreground"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
               </div>
 
+              {mode === 'signin' && (
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={isResetting}
+                  className="text-sm text-primary text-left"
+                >
+                  {isResetting ? 'Sending...' : 'Forgot your password?'}
+                </button>
+              )}
+
               <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? 'Loading...' : mode === 'signin' ? 'Sign In' : 'Create My Duka'}
+                {isSubmitting ? 'Please wait...' : mode === 'signin' ? 'Sign in' : 'Create my shop'}
               </Button>
             </form>
           </Tabs>

@@ -9,6 +9,31 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { toAuthEmail, toDisplayIdentity } from '@/lib/identity';
 
+/** Everything an owner can hand over. Owners always hold all of these. */
+const PERMISSIONS: { key: string; title: string; detail: string; enabledToast: string; disabledToast: string }[] = [
+  {
+    key: 'override_price',
+    title: 'Agree a price with the customer',
+    detail: 'Only within the range you set on each item.',
+    enabledToast: 'can now set prices',
+    disabledToast: 'can no longer set prices',
+  },
+  {
+    key: 'manage_deni',
+    title: 'Handle deni',
+    detail: 'See who owes you and record their payments. They still cannot see your profit.',
+    enabledToast: 'can now handle deni',
+    disabledToast: 'can no longer handle deni',
+  },
+  {
+    key: 'record_expenses',
+    title: 'Record spending',
+    detail: 'Add costs like transport or airtime. They cannot delete anything already recorded.',
+    enabledToast: 'can now record spending',
+    disabledToast: 'can no longer record spending',
+  },
+];
+
 interface Employee {
   id: string;
   user_id: string;
@@ -143,10 +168,9 @@ export function EmployeeManager() {
       return;
     }
 
+    const permission = PERMISSIONS.find((p) => p.key === key);
     toast({
-      title: enabled
-        ? `${employee.full_name} can now set prices`
-        : `${employee.full_name} can no longer set prices`,
+      title: `${employee.full_name} ${enabled ? permission?.enabledToast : permission?.disabledToast}`,
     });
   };
 
@@ -295,18 +319,20 @@ export function EmployeeManager() {
                 </button>
               </div>
 
-              <label className="flex items-center justify-between gap-3 pt-3 border-t border-border/70 cursor-pointer">
-                <span className="text-sm">
-                  Can agree a price with the customer
-                  <span className="block text-xs text-muted-foreground">
-                    Only within the range you set on each item.
-                  </span>
-                </span>
-                <Switch
-                  checked={employee.permissions?.override_price === true}
-                  onCheckedChange={(checked) => handleTogglePermission(employee, 'override_price', checked)}
-                />
-              </label>
+              <div className="pt-3 border-t border-border/70 space-y-3">
+                {PERMISSIONS.map((permission) => (
+                  <label key={permission.key} className="flex items-center justify-between gap-3 cursor-pointer">
+                    <span className="text-sm">
+                      {permission.title}
+                      <span className="block text-xs text-muted-foreground">{permission.detail}</span>
+                    </span>
+                    <Switch
+                      checked={employee.permissions?.[permission.key] === true}
+                      onCheckedChange={(checked) => handleTogglePermission(employee, permission.key, checked)}
+                    />
+                  </label>
+                ))}
+              </div>
             </div>
           ))
         )}

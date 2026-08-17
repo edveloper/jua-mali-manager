@@ -14,8 +14,9 @@ const queryClient = new QueryClient();
 // Sits above the router so there is no route an employee can navigate to in
 // order to skip it.
 const AppRoutes = () => {
-  const { mustChangePassword, loading } = useAuth();
+  const { mustChangePassword, isRecovering, loading } = useAuth();
 
+  if (!loading && isRecovering) return <PasswordSetupGate recovery />;
   if (!loading && mustChangePassword) return <PasswordSetupGate />;
 
   return (

@@ -402,7 +402,7 @@ const Index = () => {
           />
         )}
 
-        {activeTab === 'credit' && isOwner && (
+        {activeTab === 'credit' && (isOwner || can('manage_deni')) && (
           <CreditManager
             customers={customers}
             creditSales={creditSales}
@@ -411,6 +411,19 @@ const Index = () => {
             onRecordPayment={recordPayment}
             getCustomerTotalOwed={getCustomerTotalOwed}
             getPaymentsForCredit={getPaymentsForCredit}
+          />
+        )}
+
+        {/* Staff with the permission get Spending on its own -- Reports would
+            show them cost prices and profit, which they are not meant to see. */}
+        {activeTab === 'money' && !isOwner && can('record_expenses') && (
+          <ExpenseManager
+            expenses={expenses}
+            onAddExpense={addExpense}
+            onDeleteExpense={deleteExpense}
+            onQuickAddTOT={quickAddTOT}
+            monthlySales={0}
+            businessCategory={shop?.business_category || 'retail'}
           />
         )}
 
@@ -472,7 +485,9 @@ const Index = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         isOwner={isOwner}
-        deniCount={isOwner ? unpaidDeniCount : 0}
+        deniCount={isOwner || can('manage_deni') ? unpaidDeniCount : 0}
+        canManageDeni={can('manage_deni')}
+        canRecordExpenses={can('record_expenses')}
       />
 
       {showProductForm && isOwner && (

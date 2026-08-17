@@ -20,6 +20,8 @@ interface NavigationProps {
   onTabChange: (tab: TabType) => void;
   isOwner?: boolean;
   deniCount?: number;
+  canManageDeni?: boolean;
+  canRecordExpenses?: boolean;
 }
 
 interface NavItem {
@@ -31,7 +33,7 @@ interface NavItem {
   covers?: TabType[];
 }
 
-export function Navigation({ activeTab, onTabChange, isOwner = true, deniCount = 0 }: NavigationProps) {
+export function Navigation({ activeTab, onTabChange, isOwner = true, deniCount = 0, canManageDeni = false, canRecordExpenses = false }: NavigationProps) {
   const ownerTabs: NavItem[] = [
     { id: 'dashboard', label: 'Home', icon: Home, covers: ['alerts'] },
     { id: 'products', label: 'Sell', icon: Package },
@@ -40,10 +42,13 @@ export function Navigation({ activeTab, onTabChange, isOwner = true, deniCount =
     { id: 'more', label: 'More', icon: MoreHorizontal, covers: ['settings', 'staff', 'help', 'privacy', 'contact', 'about'] },
   ];
 
-  // Staff get the two screens they use and nothing that implies more exists.
+  // Staff see only what the owner has opened up, so nothing on screen implies a
+  // door they cannot walk through.
   const employeeTabs: NavItem[] = [
     { id: 'dashboard', label: 'Home', icon: Home, covers: ['alerts'] },
     { id: 'products', label: 'Sell', icon: Package },
+    ...(canManageDeni ? [{ id: 'credit' as TabType, label: 'Deni', icon: Users, badge: deniCount }] : []),
+    ...(canRecordExpenses ? [{ id: 'money' as TabType, label: 'Spending', icon: Wallet }] : []),
     { id: 'more', label: 'More', icon: MoreHorizontal, covers: ['settings', 'help', 'privacy', 'contact', 'about'] },
   ];
 

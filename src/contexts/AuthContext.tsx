@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 
 /** Permission keys stored in shop_members.permissions. Owners implicitly hold all. */
-export type ShopPermission = 'override_price';
+export type ShopPermission = 'override_price' | 'record_expenses' | 'manage_deni';
 
 interface AuthContextType {
   user: User | null;
@@ -15,6 +15,9 @@ interface AuthContextType {
   /** True while an employee is still on the password their owner typed for them. */
   mustChangePassword: boolean;
   completePasswordSetup: (newPassword: string) => Promise<{ error: any }>;
+  sendPasswordReset: (email: string) => Promise<{ error: any }>;
+  /** True after arriving from a reset link, until a new password is saved. */
+  isRecovering: boolean;
   /**
    * True once a membership lookup has actually completed. Stays false if the
    * lookup errors, so a flaky connection is never mistaken for "no shop".
@@ -53,6 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [shopMember, setShopMember] = useState<any | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [membershipResolved, setMembershipResolved] = useState(false);
+  const [isRecovering, setIsRecovering] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchShopData = async (userId: string) => {
@@ -127,7 +131,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
       });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Supabase signs the user in when they follow a reset link. Without this
+      // flag they would land straight in the app and never be asked for the new
+      // password they came to set.
+      if (event === 'PASSWORD_RECOVERY') setIsRecovering(true);
+
       const userObj = session?.user ?? null;
       setCurrentUser(userObj);
       if (userObj) {
@@ -278,6 +287,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // changes the password, so the two can never drift apart.
   const mustChangePassword = Boolean(currentUser?.user_metadata?.must_change_password);
 
+  const sendPasswordReset = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth`,
+    });
+    return { error };
+  };
+
   const completePasswordSetup = async (newPassword: string) => {
     const { data, error } = await supabase.auth.updateUser({
       password: newPassword,
@@ -286,7 +302,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Update immediately rather than waiting on the USER_UPDATED event, so the
     // gate closes the moment the call succeeds.
-    if (!error && data?.user) setCurrentUser(data.user);
+    if (!error && data?.user) {
+      setCurrentUser(data.user);
+      setIsRecovering(false);
+    }
     return { error };
   };
 
@@ -321,6 +340,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         can,
         mustChangePassword,
         completePasswordSetup,
+        sendPasswordReset,
+        isRecovering,
         membershipResolved,
         loading,
         signOut, 

@@ -15,7 +15,7 @@ const MIN_LENGTH = 6;
  * stops being able to sign in as them -- which is what makes sold_by on a sale
  * mean anything.
  */
-export function PasswordSetupGate() {
+export function PasswordSetupGate({ recovery = false }: { recovery?: boolean }) {
   const { user, completePasswordSetup, signOut } = useAuth();
   const { toast } = useToast();
   const [password, setPassword] = useState('');
@@ -70,11 +70,12 @@ export function PasswordSetupGate() {
               <ShieldCheck className="h-6 w-6 text-primary" />
             </div>
             <h2 className="text-2xl font-bold">
-              {firstName ? `Karibu, ${firstName}` : 'Karibu'}
+              {recovery ? 'Choose a new password' : firstName ? `Karibu, ${firstName}` : 'Karibu'}
             </h2>
             <p className="text-muted-foreground text-sm">
-              Your manager gave you a password to get started. Choose your own now, so
-              only you can sign in to your account.
+              {recovery
+                ? 'Pick something only you know. You will use it from now on.'
+                : 'Your manager gave you a password to get started. Choose your own now, so only you can sign in to your account.'}
             </p>
           </div>
 
