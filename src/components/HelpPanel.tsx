@@ -52,7 +52,9 @@ const GUIDES: { title: string; points: string[] }[] = [
     points: [
       'Add staff under More. Give them a temporary password; they choose their own the first time they sign in.',
       'They can sell and see what is in stock. They cannot see what you paid for anything, your spending, or your profit.',
-      'You can let someone agree prices with customers. Set the lowest and highest you will accept on the item first, then switch it on for that person.',
+      'Forgotten their password? Open Staff, tap New password, and give them a temporary one. They choose their own again when they sign in.',
+      'You can let someone agree prices with customers, handle deni, or record spending. Each one is a separate switch, off until you turn it on.',
+      'For prices, set the lowest and highest you will accept on the item first, then switch it on for that person.',
     ],
   },
   {

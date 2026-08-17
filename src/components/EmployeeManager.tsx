@@ -50,6 +50,9 @@ export function EmployeeManager() {
   const [fullName, setFullName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [resettingId, setResettingId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
   
   const { createEmployee, shop, isOwner } = useAuth();
   const { toast } = useToast();
@@ -174,6 +177,48 @@ export function EmployeeManager() {
     });
   };
 
+  const messageFromFunctionError = async (error: any, fallback: string) => {
+    const response = error?.context;
+    if (response && typeof response.json === 'function') {
+      try {
+        const parsed = await response.json();
+        if (parsed?.error) return parsed.error as string;
+      } catch {
+        // fall through to the generic message
+      }
+    }
+    return fallback;
+  };
+
+  const handleResetPassword = async (employee: Employee) => {
+    if (newPassword.length < 6) {
+      toast({ title: 'Use at least 6 characters', variant: 'destructive' });
+      return;
+    }
+
+    setIsResetting(true);
+    const { data, error } = await supabase.functions.invoke('reset-employee-password', {
+      body: { memberId: employee.id, newPassword },
+    });
+    setIsResetting(false);
+
+    if (error || data?.error) {
+      toast({
+        title: 'Could not reset it',
+        description: error ? await messageFromFunctionError(error, 'Please try again.') : data.error,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    toast({
+      title: 'New password set',
+      description: `Tell ${employee.full_name} this password. They will choose their own when they sign in.`,
+    });
+    setNewPassword('');
+    setResettingId(null);
+  };
+
   const handleRemoveEmployee = async (employeeId: string, employeeName: string) => {
     const confirmed = window.confirm(
       `Remove ${employeeName} and delete their login?\n\n` +
@@ -190,16 +235,7 @@ export function EmployeeManager() {
 
     let message = '';
     if (error) {
-      message = 'Could not remove employee. Please try again.';
-      const response = (error as any)?.context;
-      if (response && typeof response.json === 'function') {
-        try {
-          const parsed = await response.json();
-          if (parsed?.error) message = parsed.error;
-        } catch {
-          // keep the generic message
-        }
-      }
+      message = await messageFromFunctionError(error, 'Could not remove employee. Please try again.');
     } else if (data?.error) {
       message = data.error;
     }
@@ -310,14 +346,51 @@ export function EmployeeManager() {
                   <p className="font-medium truncate">{employee.full_name}</p>
                   <p className="text-sm text-muted-foreground truncate">{toDisplayIdentity(employee.email)}</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveEmployee(employee.id, employee.full_name)}
-                  className="text-xs text-muted-foreground active:text-destructive shrink-0"
-                >
-                  Remove
-                </button>
+                <div className="flex items-center gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResettingId(resettingId === employee.id ? null : employee.id);
+                      setNewPassword('');
+                    }}
+                    className="text-xs text-muted-foreground active:text-primary"
+                  >
+                    {resettingId === employee.id ? 'Cancel' : 'New password'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveEmployee(employee.id, employee.full_name)}
+                    className="text-xs text-muted-foreground active:text-destructive"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
+
+              {resettingId === employee.id && (
+                <div className="pt-3 border-t border-border/70 space-y-2">
+                  <Label htmlFor={`pw-${employee.id}`}>Temporary password</Label>
+                  <Input
+                    id={`pw-${employee.id}`}
+                    type="text"
+                    placeholder="At least 6 characters"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Tell it to them yourself. They will be asked to choose their own the
+                    next time they sign in.
+                  </p>
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    onClick={() => handleResetPassword(employee)}
+                    disabled={isResetting || newPassword.length < 6}
+                  >
+                    {isResetting ? 'Setting...' : 'Set this password'}
+                  </Button>
+                </div>
+              )}
 
               <div className="pt-3 border-t border-border/70 space-y-3">
                 {PERMISSIONS.map((permission) => (
