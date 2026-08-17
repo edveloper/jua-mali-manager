@@ -7,6 +7,8 @@ import { useCredit } from '@/hooks/useCredit';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useShopMembers } from '@/hooks/useShopMembers';
 import { useTillCount } from '@/hooks/useTillCount';
+import { useStockTake } from '@/hooks/useStockTake';
+import { useSuppliers } from '@/hooks/useSuppliers';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
 import { DayBook } from '@/components/DayBook';
@@ -28,6 +30,9 @@ import { ContactPanel } from '@/components/ContactPanel';
 import { AboutPanel } from '@/components/AboutPanel';
 import { GettingStarted } from '@/components/GettingStarted';
 import { CashUp } from '@/components/CashUp';
+import { StockPanel } from '@/components/StockPanel';
+import { SupplierDebts } from '@/components/SupplierDebts';
+import { RecordsPanel } from '@/components/RecordsPanel';
 import { Logo } from '@/components/Logo';
 import { Navigation, type TabType } from '@/components/Navigation';
 import { Product } from '@/types/inventory';
@@ -55,6 +60,8 @@ const Index = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [sellingProduct, setSellingProduct] = useState<Product | null>(null);
   const [restockingProduct, setRestockingProduct] = useState<Product | null>(null);
+  const [productsView, setProductsView] = useState<'sell' | 'stock'>('sell');
+  const [deniView, setDeniView] = useState<'in' | 'out'>('in');
   const [viewDate, setViewDate] = useState(new Date());
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
 
@@ -71,13 +78,19 @@ const Index = () => {
   } = useInventory();
 
   const {
-    customers, creditSales, addCustomer,
+    customers, creditSales, payments: creditPayments, addCustomer,
     addCreditSale, recordPayment, getTotalOwed, getCustomerTotalOwed,
     getPaymentsTotalForRange, getPaymentsForCredit, paymentsBetween
   } = useCredit();
 
-  const { members, nameFor } = useShopMembers();
-  const { countFor, saveCount } = useTillCount();
+  const { members, nameFor, fullNameFor } = useShopMembers();
+  const { countFor, openingFor, saveCount } = useTillCount();
+  const { takes, recordCount } = useStockTake();
+  const {
+    suppliers, debts: supplierDebts,
+    totalOwed: totalOwedToSuppliers, addSupplier, addDebt, payDebt,
+    debtsFor, owedTo, paymentsFor, supplierName,
+  } = useSuppliers();
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth', { replace: true });
@@ -194,6 +207,17 @@ const Index = () => {
   const missingCostCount = products.filter((p) => Number(p.costPrice || 0) <= 0).length;
   const missingPriceCount = products.filter((p) => Number(p.sellingPrice || 0) <= 0).length;
 
+  const goTo = (tab: TabType) => {
+    if (tab === 'stock') {
+      setProductsView('stock');
+      setActiveTab('products');
+      return;
+    }
+    // Tapping Sell always means selling, even if Stock was the last thing open.
+    if (tab === 'products') setProductsView('sell');
+    setActiveTab(tab);
+  };
+
   const handleSaveProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!isOwner) return;
     if (editingProduct) {
@@ -308,7 +332,7 @@ const Index = () => {
             {isOwner && (missingCostCount + missingPriceCount) > 0 && (
               <button
                 type="button"
-                onClick={() => setActiveTab('products')}
+                onClick={() => goTo('products')}
                 className="sheet w-full text-left border-warning/50 bg-warning/5 pressable"
               >
                 <p className="text-sm font-semibold">Some items are missing prices</p>
@@ -322,7 +346,7 @@ const Index = () => {
               <GettingStarted
                 hasProducts={products.length > 0}
                 hasSales={sales.length > 0}
-                onNavigate={setActiveTab}
+                onNavigate={goTo}
               />
             )}
 
@@ -340,7 +364,7 @@ const Index = () => {
                 stockRetailValue={stats.totalStockRetailValue ?? 0}
                 owedToYou={getTotalOwed()}
                 lowStockCount={lowStockProducts.length}
-                onNavigate={setActiveTab}
+                onNavigate={goTo}
               />
             )}
 
@@ -356,7 +380,7 @@ const Index = () => {
             {!isOwner && lowStockProducts.length > 0 && (
               <button
                 type="button"
-                onClick={() => setActiveTab('alerts')}
+                onClick={() => goTo('alerts')}
                 className="sheet w-full text-left pressable"
               >
                 <p className="sheet-heading">Running low</p>
@@ -373,6 +397,7 @@ const Index = () => {
                 cashDeniPaid={cashDeniPaid}
                 cashSpent={cashSpent}
                 nonCashIn={byMethod.filter((m) => m.method !== 'cash').map((m) => ({ label: m.label, amount: m.amount }))}
+                openingBalance={openingFor(viewDate)}
                 savedCount={countFor(viewDate)}
                 onSaveCount={(countedCash, expectedCash) => saveCount(viewDate, countedCash, expectedCash)}
               />
@@ -389,7 +414,35 @@ const Index = () => {
           </>
         )}
 
-        {activeTab === 'products' && (
+        {activeTab === 'products' && isOwner && (
+          <div className="grid grid-cols-2 gap-1.5">
+            <Button
+              variant={productsView === 'sell' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setProductsView('sell')}
+            >
+              Sell
+            </Button>
+            <Button
+              variant={productsView === 'stock' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setProductsView('stock')}
+            >
+              Stock
+            </Button>
+          </div>
+        )}
+
+        {activeTab === 'products' && isOwner && productsView === 'stock' && (
+          <StockPanel
+            products={products}
+            sales={sales}
+            takes={takes}
+            onRecordCount={recordCount}
+          />
+        )}
+
+        {activeTab === 'products' && (!isOwner || productsView === 'sell') && (
           <ProductList
             products={products}
             onSearch={searchProducts}
@@ -402,7 +455,40 @@ const Index = () => {
           />
         )}
 
-        {activeTab === 'credit' && (isOwner || can('manage_deni')) && (
+        {activeTab === 'credit' && isOwner && (
+          <div className="grid grid-cols-2 gap-1.5">
+            <Button
+              variant={deniView === 'in' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDeniView('in')}
+            >
+              They owe me
+            </Button>
+            <Button
+              variant={deniView === 'out' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDeniView('out')}
+            >
+              I owe
+            </Button>
+          </div>
+        )}
+
+        {activeTab === 'credit' && isOwner && deniView === 'out' && (
+          <SupplierDebts
+            suppliers={suppliers}
+            totalOwed={totalOwedToSuppliers}
+            debtsFor={debtsFor}
+            owedTo={owedTo}
+            paymentsFor={paymentsFor}
+            supplierName={supplierName}
+            onAddSupplier={addSupplier}
+            onAddDebt={addDebt}
+            onPay={payDebt}
+          />
+        )}
+
+        {activeTab === 'credit' && (isOwner || can('manage_deni')) && (!isOwner || deniView === 'in') && (
           <CreditManager
             customers={customers}
             creditSales={creditSales}
@@ -429,9 +515,10 @@ const Index = () => {
 
         {activeTab === 'money' && isOwner && (
           <Tabs defaultValue="reports">
-            <TabsList className="w-full grid grid-cols-2 gap-1 p-1">
+            <TabsList className="w-full grid grid-cols-3 gap-1 p-1">
               <TabsTrigger value="reports">Reports</TabsTrigger>
               <TabsTrigger value="spending">Spending</TabsTrigger>
+              <TabsTrigger value="export">Export</TabsTrigger>
             </TabsList>
             <TabsContent value="spending" className="pt-3">
               <ExpenseManager
@@ -454,12 +541,26 @@ const Index = () => {
                 businessCategory={shop?.business_category || 'retail'}
               />
             </TabsContent>
+            <TabsContent value="export" className="pt-3">
+              <RecordsPanel
+                shopName={shop?.name || ''}
+                sales={allSales}
+                expenses={expenses}
+                creditSales={creditSales}
+                creditPayments={creditPayments}
+                supplierDebts={supplierDebts}
+                suppliers={suppliers}
+                products={products}
+                customerName={(id) => customers.find((c) => c.id === id)?.name ?? 'Customer'}
+                sellerName={fullNameFor}
+              />
+            </TabsContent>
           </Tabs>
         )}
 
         {activeTab === 'more' && (
           <MoreMenu
-            onNavigate={setActiveTab}
+            onNavigate={goTo}
             staffCount={staffCount}
             canInstall={canInstall}
             onInstall={installApp}
@@ -483,7 +584,7 @@ const Index = () => {
 
       <Navigation
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={goTo}
         isOwner={isOwner}
         deniCount={isOwner || can('manage_deni') ? unpaidDeniCount : 0}
         canManageDeni={can('manage_deni')}
@@ -510,8 +611,10 @@ const Index = () => {
       {restockingProduct && (
         <RestockDialog
           product={restockingProduct}
-          onRestock={async (productId, quantity, unitCost, happenedAt, allocationMode, notes) => {
-            await restockProduct(productId, quantity, unitCost, happenedAt, allocationMode, notes);
+          suppliers={suppliers}
+          onAddSupplier={addSupplier}
+          onRestock={async (productId, quantity, unitCost, happenedAt, allocationMode, notes, paidNow, supplierId, paymentMethod) => {
+            await restockProduct(productId, quantity, unitCost, happenedAt, allocationMode, notes, paidNow, supplierId, paymentMethod);
             setRestockingProduct(null);
           }}
           onClose={() => setRestockingProduct(null)}

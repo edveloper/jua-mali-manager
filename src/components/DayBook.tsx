@@ -130,7 +130,7 @@ export function DayBook({
 
       <button
         type="button"
-        onClick={() => onNavigate('products')}
+        onClick={() => onNavigate('stock')}
         className="sheet w-full text-left pressable"
       >
         <div className="flex items-baseline justify-between gap-4">

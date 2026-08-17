@@ -30,7 +30,10 @@ const csvEscape = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
 const isRestockExpense = (expense: Expense) => expense.source === 'restock';
 
 const download = (filename: string, contents: string, mime = 'text/csv;charset=utf-8;') => {
-  const blob = new Blob([contents], { type: mime });
+  // Excel assumes Windows-1252 for CSV unless a byte-order mark says
+  // otherwise, which turns every non-ASCII character into mojibake --
+  // dashes, and any customer or product name with an accent in it.
+  const blob = new Blob(['﻿' + contents], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

@@ -76,6 +76,7 @@ export const useInventory = () => {
           soldBy: s.sold_by || null,
           voidedAt: s.voided_at || null,
           paymentMethod: s.payment_method || null,
+          paymentReference: s.payment_reference || null,
           totalAmount,
           profit: totalAmount - (costAtSale * qty),
           createdAt: s.created_at
@@ -266,7 +267,10 @@ export const useInventory = () => {
     unitCost: number,
     happenedAt: string,
     allocationMode: 'cash' | 'accrual',
-    notes?: string
+    notes?: string,
+    paidNow: boolean = true,
+    supplierId?: string,
+    paymentMethod?: string
   ) => {
     if (!shop?.id || !isOwner) return null;
 
@@ -279,6 +283,9 @@ export const useInventory = () => {
         p_happened_at: `${happenedAt}T12:00:00`,
         p_notes: notes || null,
         p_allocation_mode: allocationMode,
+        p_paid_now: paidNow,
+        p_supplier_id: supplierId ?? null,
+        p_payment_method: paymentMethod ?? null,
       });
       if (error) throw error;
 

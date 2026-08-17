@@ -55,6 +55,8 @@ export interface Sale {
   soldBy?: string | null;
   /** null means the sale predates payment-method tracking, not that it was cash. */
   paymentMethod?: string | null;
+  /** M-Pesa or bank code captured at the till, for later reconciliation. */
+  paymentReference?: string | null;
   /** Set when the sale was cancelled. Voided sales are excluded from all totals. */
   voidedAt?: string | null;
   totalAmount: number;

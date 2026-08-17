@@ -13,7 +13,8 @@ export type TabType =
   | 'help'
   | 'privacy'
   | 'contact'
-  | 'about';
+  | 'about'
+  | 'stock';
 
 interface NavigationProps {
   activeTab: TabType;
@@ -35,7 +36,7 @@ interface NavItem {
 
 export function Navigation({ activeTab, onTabChange, isOwner = true, deniCount = 0, canManageDeni = false, canRecordExpenses = false }: NavigationProps) {
   const ownerTabs: NavItem[] = [
-    { id: 'dashboard', label: 'Home', icon: Home, covers: ['alerts'] },
+    { id: 'dashboard', label: 'Home', icon: Home, covers: ['alerts', 'stock'] },
     { id: 'products', label: 'Sell', icon: Package },
     { id: 'credit', label: 'Deni', icon: Users, badge: deniCount },
     { id: 'money', label: 'Money', icon: Wallet },
@@ -45,7 +46,7 @@ export function Navigation({ activeTab, onTabChange, isOwner = true, deniCount =
   // Staff see only what the owner has opened up, so nothing on screen implies a
   // door they cannot walk through.
   const employeeTabs: NavItem[] = [
-    { id: 'dashboard', label: 'Home', icon: Home, covers: ['alerts'] },
+    { id: 'dashboard', label: 'Home', icon: Home, covers: ['alerts', 'stock'] },
     { id: 'products', label: 'Sell', icon: Package },
     ...(canManageDeni ? [{ id: 'credit' as TabType, label: 'Deni', icon: Users, badge: deniCount }] : []),
     ...(canRecordExpenses ? [{ id: 'money' as TabType, label: 'Spending', icon: Wallet }] : []),

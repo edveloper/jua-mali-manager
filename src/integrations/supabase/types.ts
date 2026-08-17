@@ -583,6 +583,243 @@ export type Database = {
         ];
       };
 
+      suppliers: {
+        Row: {
+          id: string;
+          shop_id: string;
+          name: string;
+          phone: string | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          shop_id?: string;
+          name?: string;
+          phone?: string | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          shop_id?: string;
+          name?: string;
+          phone?: string | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'suppliers_shop_id_fkey';
+            columns: ['shop_id'];
+            isOneToOne: false;
+            referencedRelation: 'shops';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+
+      supplier_debts: {
+        Row: {
+          id: string;
+          shop_id: string;
+          supplier_id: string;
+          stock_movement_id: string | null;
+          description: string;
+          amount: number;
+          amount_paid: number;
+          status: string;
+          incurred_on: string;
+          due_date: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          shop_id?: string;
+          supplier_id?: string;
+          stock_movement_id?: string | null;
+          description?: string;
+          amount?: number;
+          amount_paid?: number;
+          status?: string;
+          incurred_on?: string;
+          due_date?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          shop_id?: string;
+          supplier_id?: string;
+          stock_movement_id?: string | null;
+          description?: string;
+          amount?: number;
+          amount_paid?: number;
+          status?: string;
+          incurred_on?: string;
+          due_date?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'supplier_debts_shop_id_fkey';
+            columns: ['shop_id'];
+            isOneToOne: false;
+            referencedRelation: 'shops';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+
+      supplier_payments: {
+        Row: {
+          id: string;
+          shop_id: string;
+          supplier_debt_id: string;
+          supplier_id: string;
+          amount: number;
+          paid_at: string;
+          payment_method: string | null;
+          payment_reference: string | null;
+          expense_id: string | null;
+          recorded_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          shop_id?: string;
+          supplier_debt_id?: string;
+          supplier_id?: string;
+          amount?: number;
+          paid_at?: string;
+          payment_method?: string | null;
+          payment_reference?: string | null;
+          expense_id?: string | null;
+          recorded_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          shop_id?: string;
+          supplier_debt_id?: string;
+          supplier_id?: string;
+          amount?: number;
+          paid_at?: string;
+          payment_method?: string | null;
+          payment_reference?: string | null;
+          expense_id?: string | null;
+          recorded_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'supplier_payments_shop_id_fkey';
+            columns: ['shop_id'];
+            isOneToOne: false;
+            referencedRelation: 'shops';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+
+      stock_takes: {
+        Row: {
+          id: string;
+          shop_id: string;
+          counted_at: string;
+          counted_by: string | null;
+          items_counted: number;
+          items_short: number;
+          items_over: number;
+          shrinkage_value: number;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          shop_id: string;
+          counted_at?: string;
+          counted_by?: string | null;
+          items_counted?: number;
+          items_short?: number;
+          items_over?: number;
+          shrinkage_value?: number;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          shop_id?: string;
+          counted_at?: string;
+          counted_by?: string | null;
+          items_counted?: number;
+          items_short?: number;
+          items_over?: number;
+          shrinkage_value?: number;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'stock_takes_shop_id_fkey';
+            columns: ['shop_id'];
+            isOneToOne: false;
+            referencedRelation: 'shops';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+
+      stock_take_lines: {
+        Row: {
+          id: string;
+          stock_take_id: string;
+          shop_id: string;
+          product_id: string;
+          product_name: string;
+          expected_qty: number;
+          counted_qty: number;
+          difference: number;
+          unit_cost: number;
+          value_difference: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          stock_take_id: string;
+          shop_id: string;
+          product_id: string;
+          product_name: string;
+          expected_qty: number;
+          counted_qty: number;
+          difference: number;
+          unit_cost?: number;
+          value_difference?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          stock_take_id?: string;
+          shop_id?: string;
+          product_id?: string;
+          product_name?: string;
+          expected_qty?: number;
+          counted_qty?: number;
+          difference?: number;
+          unit_cost?: number;
+          value_difference?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'stock_take_lines_stock_take_id_fkey';
+            columns: ['stock_take_id'];
+            isOneToOne: false;
+            referencedRelation: 'stock_takes';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+
       till_counts: {
         Row: {
           id: string;
@@ -767,6 +1004,10 @@ export type Database = {
           p_happened_at?: string | null;
           p_notes?: string | null;
           p_allocation_mode?: string | null;
+          p_paid_now?: boolean | null;
+          p_supplier_id?: string | null;
+          p_payment_method?: string | null;
+          p_due_date?: string | null;
         };
         Returns: {
           movement_id: string;
@@ -775,6 +1016,7 @@ export type Database = {
           new_cost_price: number;
           total_cost: number;
           expense_id: string;
+          debt_id: string;
           happened_at: string;
         }[];
       };
@@ -818,12 +1060,42 @@ export type Database = {
         Returns: boolean;
       };
 
+      record_supplier_payment_atomic: {
+        Args: {
+          p_shop_id: string;
+          p_debt_id: string;
+          p_amount: number;
+          p_paid_at?: string | null;
+          p_payment_method?: string | null;
+          p_payment_reference?: string | null;
+        };
+        Returns: {
+          payment_id: string;
+          debt_id: string;
+          paid_amount: number;
+          new_amount_paid: number;
+          new_balance: number;
+          new_status: string;
+        }[];
+      };
+
+      record_stock_take_atomic: {
+        Args: { p_shop_id: string; p_lines: Json; p_notes?: string | null };
+        Returns: {
+          id: string;
+          items_counted: number;
+          items_short: number;
+          items_over: number;
+          shrinkage_value: number;
+        }[];
+      };
+
       void_sale_atomic: {
         Args: { p_shop_id: string; p_sale_id: string; p_reason?: string | null };
         Returns: {
-          id: string;
-          product_id: string;
-          quantity: number;
+          voided_sale_id: string;
+          voided_product_id: string;
+          voided_quantity: number;
           restored_stock: number;
           voided_at: string;
         }[];

@@ -280,7 +280,7 @@ export function CatalogImportPanel({ onImportProducts }: CatalogImportPanelProps
       row.warnings.join(' | '),
     ].map(csvEscape).join(','));
     const csv = [headers.join(','), ...lines].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -295,7 +295,7 @@ export function CatalogImportPanel({ onImportProducts }: CatalogImportPanelProps
     const headers = ['name', 'category', 'cost_price', 'selling_price', 'quantity', 'low_stock_threshold'];
     const sample = ['Unga wa Ngano (2kg)', 'Flour', '65', '80', '20', '5'];
     const csv = `${headers.join(',')}\n${sample.join(',')}\n`;
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

@@ -241,7 +241,10 @@ export const useExpenses = (currentPeriodSales: number = 0) => {
   const getCashSpentForDate = (date: Date | string) => {
     const day = startOfDay(new Date(typeof date === 'string' ? `${date}T00:00:00` : date));
     return expenses.reduce((sum, expense) => {
-      if (isInventoryPurchaseExpense(expense)) return sum;
+      // Stock spend is NOT skipped here, unlike everywhere else. Excluding it is
+      // right for profit -- its cost already lands via COGS when the goods sell.
+      // A till holds notes: paying a supplier in cash empties the drawer whatever
+      // the accounting says about it.
       if (expense.paymentMethod && expense.paymentMethod !== 'cash') return sum;
       return occursOnDay(expense, day) ? sum + expense.amount : sum;
     }, 0);

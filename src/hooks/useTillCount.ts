@@ -44,6 +44,20 @@ export const useTillCount = () => {
 
   useEffect(() => { fetchCounts(); }, [fetchCounts]);
 
+  /**
+    * What the drawer held when the day started: the most recent count from an
+    * earlier day. Null means nobody has ever counted, in which case the opening
+    * figure is unknown and must not be assumed to be zero -- that is what made
+    * the expected till go negative after a big cash restock.
+    */
+  const openingFor = (date: Date): number | null => {
+    const key = format(date, 'yyyy-MM-dd');
+    const earlier = counts
+      .filter((c) => c.countedFor < key)
+      .sort((a, b) => (a.countedFor < b.countedFor ? 1 : -1));
+    return earlier.length > 0 ? earlier[0].countedCash : null;
+  };
+
   const countFor = (date: Date) => {
     const key = format(date, 'yyyy-MM-dd');
     return counts.find((c) => c.countedFor === key) ?? null;
@@ -81,5 +95,5 @@ export const useTillCount = () => {
     return true;
   };
 
-  return { counts, countFor, saveCount };
+  return { counts, countFor, openingFor, saveCount };
 };

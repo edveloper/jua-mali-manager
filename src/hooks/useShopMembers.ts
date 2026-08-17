@@ -65,5 +65,12 @@ export const useShopMembers = () => {
     return match.fullName.trim().split(' ')[0];
   };
 
-  return { members, nameFor };
+  /** Real name, for anything leaving the app. "You" means nothing in a file
+      somebody else opens. */
+  const fullNameFor = (userId?: string | null) => {
+    if (!userId) return '';
+    return members.find((m) => m.userId === userId)?.fullName ?? 'Staff';
+  };
+
+  return { members, nameFor, fullNameFor };
 };
