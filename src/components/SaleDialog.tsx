@@ -25,8 +25,8 @@ interface SaleDialogProps {
 interface Line {
   productId: string;
   name: string;
-  quantity: number;
-  /** Free text so the field can be cleared and retyped without fighting a 0. */
+  /** Free text so both fields can be cleared and retyped without fighting a 0. */
+  quantityInput: string;
   priceInput: string;
   listPrice: number;
   minPrice: number | null;
@@ -48,10 +48,13 @@ const num = (s: string) => {
 };
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
+/** Whole units only, and never negative. A shop cannot sell 2.5 tins or minus one. */
+const qtyOf = (line: Line) => Math.max(0, Math.floor(num(line.quantityInput)));
+
 const toLine = (p: Product): Line => ({
   productId: p.id,
   name: p.name,
-  quantity: 1,
+  quantityInput: '1',
   priceInput: String(p.sellingPrice ?? 0),
   listPrice: Number(p.sellingPrice || 0),
   minPrice: p.minPrice ?? null,
@@ -94,16 +97,19 @@ export function SaleDialog({
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
 
   const basketTotal = useMemo(
-    () => round2(lines.reduce((sum, l) => sum + num(l.priceInput) * l.quantity, 0)),
+    () => round2(lines.reduce((sum, l) => sum + num(l.priceInput) * qtyOf(l), 0)),
     [lines]
   );
   const basketProfit = useMemo(
-    () => lines.reduce((sum, l) => sum + (num(l.priceInput) - l.costPrice) * l.quantity, 0),
+    () => lines.reduce((sum, l) => sum + (num(l.priceInput) - l.costPrice) * qtyOf(l), 0),
     [lines]
   );
 
   const lineError = (l: Line): string => {
-    if (l.quantity > l.stock) return `Only ${l.stock} in stock`;
+    const qty = qtyOf(l);
+    if (l.quantityInput.trim() === '') return 'Enter how many';
+    if (qty < 1) return 'At least 1';
+    if (qty > l.stock) return `Only ${l.stock} in stock`;
     if (!canOverridePrice) return '';
     if (l.priceInput.trim() === '' || !Number.isFinite(Number(l.priceInput))) return 'Enter a price';
     const price = num(l.priceInput);
@@ -149,8 +155,13 @@ export function SaleDialog({
     setLines((current) => {
       const existing = current.findIndex((l) => l.productId === p.id);
       if (existing >= 0) {
+        // Tapping an item already in the basket adds one more rather than
+        // starting a second line for the same thing.
         const next = [...current];
-        next[existing] = { ...next[existing], quantity: next[existing].quantity + 1 };
+        next[existing] = {
+          ...next[existing],
+          quantityInput: String(Math.min(next[existing].stock, qtyOf(next[existing]) + 1)),
+        };
         return next;
       }
       return [...current, toLine(p)];
@@ -175,7 +186,7 @@ export function SaleDialog({
 
     const payload: BasketLine[] = lines.map((l) => ({
       productId: l.productId,
-      quantity: l.quantity,
+      quantity: qtyOf(l),
       unitPrice: canOverridePrice ? num(l.priceInput) : undefined,
     }));
 
@@ -250,41 +261,80 @@ export function SaleDialog({
               </Button>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => patchLine(index, { quantity: Math.max(1, line.quantity - 1) })}
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
-              <span className="w-10 text-center font-semibold num">{line.quantity}</span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => patchLine(index, { quantity: Math.min(line.stock, line.quantity + 1) })}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+            {/* The steppers are for nudging one or two. The field between them is
+                typed into, because a distributor selling 500 crates is not going
+                to tap a plus button 500 times. */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label htmlFor={`qty-${line.productId}`} className="text-xs text-muted-foreground">
+                  How many
+                </label>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    aria-label={`One less ${line.name}`}
+                    onClick={() =>
+                      patchLine(index, { quantityInput: String(Math.max(1, qtyOf(line) - 1)) })
+                    }
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    id={`qty-${line.productId}`}
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={line.stock}
+                    value={line.quantityInput}
+                    onChange={(e) => patchLine(index, { quantityInput: e.target.value })}
+                    onFocus={(e) => e.target.select()}
+                    className="text-center num px-1"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    aria-label={`One more ${line.name}`}
+                    onClick={() =>
+                      patchLine(index, {
+                        quantityInput: String(Math.min(line.stock, qtyOf(line) + 1)),
+                      })
+                    }
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
 
-              {canOverridePrice ? (
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  value={line.priceInput}
-                  onChange={(e) => patchLine(index, { priceInput: e.target.value })}
-                  className="flex-1 num"
-                  aria-label={`Price for ${line.name}`}
-                />
-              ) : (
-                <span className="flex-1 text-right text-muted-foreground text-sm">
-                  @ {money(line.listPrice)}
-                </span>
-              )}
+              <div className="space-y-1">
+                <label htmlFor={`price-${line.productId}`} className="text-xs text-muted-foreground">
+                  Price each
+                </label>
+                {canOverridePrice ? (
+                  <Input
+                    id={`price-${line.productId}`}
+                    type="number"
+                    inputMode="decimal"
+                    value={line.priceInput}
+                    onChange={(e) => patchLine(index, { priceInput: e.target.value })}
+                    onFocus={(e) => e.target.select()}
+                    className="num"
+                  />
+                ) : (
+                  <div className="flex h-10 items-center num text-sm">
+                    KSh {money(line.listPrice)}
+                  </div>
+                )}
+              </div>
+            </div>
 
-              <span className="w-20 text-right amount">
-                {money(round2(num(line.priceInput) * line.quantity))}
+            <div className="ledger-line ledger-rule text-sm">
+              <span className="text-muted-foreground">
+                {qtyOf(line) > 0 ? `${qtyOf(line)} × ${money(num(line.priceInput))}` : 'Line total'}
               </span>
+              <span className="amount">{money(round2(num(line.priceInput) * qtyOf(line)))}</span>
             </div>
 
             {error && <p className="text-xs text-destructive">{error}</p>}
@@ -403,11 +453,17 @@ export function SaleDialog({
                 </button>
               </div>
 
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="w-24">Paid by</span>
+                <span className="flex-1">How much</span>
+              </div>
+
               {parts.map((part, index) => (
                 <div key={index} className="space-y-1.5">
                   <div className="flex items-center gap-2">
                     <select
-                      className="h-10 rounded-md border border-input bg-background px-2 text-sm"
+                      className="h-10 w-24 shrink-0 rounded-md border border-input bg-background px-2 text-sm"
+                      aria-label="Payment method"
                       value={part.method}
                       onChange={(e) =>
                         setParts((c) => c.map((p, i) => (i === index ? { ...p, method: e.target.value as PaymentMethod } : p)))
@@ -420,11 +476,13 @@ export function SaleDialog({
                     <Input
                       type="number"
                       inputMode="decimal"
-                      placeholder="Amount"
+                      placeholder="0"
+                      aria-label="Amount paid this way"
                       value={part.amount}
                       onChange={(e) =>
                         setParts((c) => c.map((p, i) => (i === index ? { ...p, amount: e.target.value } : p)))
                       }
+                      onFocus={(e) => e.target.select()}
                       className="flex-1 num"
                     />
                     {parts.length > 1 && (
@@ -466,14 +524,16 @@ export function SaleDialog({
               </Button>
 
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground flex-1">On deni</span>
+                <span className="w-24 shrink-0 text-sm text-muted-foreground">On deni</span>
                 <Input
                   type="number"
                   inputMode="decimal"
                   placeholder="0"
+                  aria-label="Amount taken on deni"
                   value={deniInput}
                   onChange={(e) => setDeniInput(e.target.value)}
-                  className="w-28 num"
+                  onFocus={(e) => e.target.select()}
+                  className="flex-1 num"
                 />
               </div>
 

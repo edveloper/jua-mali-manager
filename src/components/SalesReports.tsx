@@ -433,39 +433,38 @@ export function SalesReports({
 
         {!taxBand ? (
           <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-            Once there is about a month of sales recorded, this will show which tax band
-            your shop falls in.
+            Record about a month of sales and this will show you which tax you fall under.
           </p>
         ) : (
           <>
             <div className="ledger-line ledger-rule">
-              <span className="text-muted-foreground">Sales in a year, at this rate</span>
+              <span className="text-muted-foreground">Your sales in a year</span>
               <span className="amount">{money(taxBand.annualised)}</span>
             </div>
             <p className="text-xs text-muted-foreground">
               {taxBand.fullYear
-                ? 'Your last twelve months.'
-                : `Worked out from ${taxBand.days} days of records, not a full year yet.`}
+                ? 'Your last 12 months.'
+                : `Based on ${taxBand.days} days of records, not a full year.`}
             </p>
 
             {taxBand.band === 'below' && (
               <div className="mt-3">
-                <p className="text-sm font-medium">Turnover tax does not apply to you</p>
+                <p className="text-sm font-medium">You do not pay turnover tax</p>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  It starts at {money(TURNOVER_TAX_FLOOR)} a year. Below that you are taxed
-                  on your profit, not your sales. You are about{' '}
-                  {money(TURNOVER_TAX_FLOOR - taxBand.annualised)} a year under the line.
+                  Turnover tax starts at {money(TURNOVER_TAX_FLOOR)} a year. You are about{' '}
+                  {money(TURNOVER_TAX_FLOOR - taxBand.annualised)} below that. Under the line,
+                  you pay tax on your profit, not on your sales.
                 </p>
               </div>
             )}
 
             {taxBand.band === 'turnover' && (
               <div className="mt-3">
-                <p className="text-sm font-medium">You are in turnover tax</p>
+                <p className="text-sm font-medium">You pay turnover tax</p>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Businesses turning over {money(TURNOVER_TAX_FLOOR)} to{' '}
+                  Shops selling between {money(TURNOVER_TAX_FLOOR)} and{' '}
                   {money(TURNOVER_TAX_CEILING)} a year pay {TURNOVER_TAX_RATE * 100}% of sales.
-                  It is filed monthly, by the 20th of the month after.
+                  You file it every month, by the 20th.
                 </p>
                 <div className="ledger-line ledger-rule mt-2">
                   <span className="text-muted-foreground">
@@ -478,10 +477,10 @@ export function SalesReports({
 
             {taxBand.band === 'above' && (
               <div className="mt-3">
-                <p className="text-sm font-medium">Past the turnover tax ceiling</p>
+                <p className="text-sm font-medium">Your sales are above turnover tax</p>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Turnover tax stops at {money(TURNOVER_TAX_CEILING)} a year. Above that a
-                  business is taxed on profit and needs an accountant, not this screen.
+                  Turnover tax stops at {money(TURNOVER_TAX_CEILING)} a year. Past that, tax is
+                  on profit. Get an accountant to handle it.
                 </p>
               </div>
             )}
@@ -489,12 +488,12 @@ export function SalesReports({
             {taxBand.nearVat && (
               <div className="mt-3 rounded-lg border border-warning/40 bg-warning/5 p-3">
                 <p className="text-sm font-medium">
-                  {taxBand.annualised >= VAT_LINE ? 'You are past the VAT line' : 'The VAT line is close'}
+                  {taxBand.annualised >= VAT_LINE ? 'You have passed the VAT line' : 'The VAT line is near'}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Above {money(VAT_LINE)} of turnover in any twelve months, VAT registration
-                  becomes compulsory — and once registered, turnover tax no longer applies to
-                  you. Worth talking to someone before you get there.
+                  Once your sales pass {money(VAT_LINE)} in any 12 months you have to register
+                  for VAT. After you register you stop paying turnover tax. Get advice before
+                  you reach it, not after.
                 </p>
               </div>
             )}
@@ -505,16 +504,15 @@ export function SalesReports({
             never mention: it is a county levy, not a national tax. */}
         <div className="ledger-rule mt-3 pt-2">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            <span className="font-medium text-foreground">Your county permit is separate.</span>{' '}
-            The single business permit is an annual county charge, nothing to do with KRA.
-            Record it under Licences in Spending so it lands in your running costs instead of
-            surprising you once a year.
+            <span className="font-medium text-foreground">The county permit is separate.</span>{' '}
+            Your single business permit is paid to the county once a year, not to KRA. Record it
+            under Licences in Spending so it shows up in your costs and does not catch you out.
           </p>
         </div>
 
         <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-          Worked out from what you have recorded, and not tax advice. Thresholds change with
-          each Finance Act — confirm with KRA before you file.
+          These figures come from what you have recorded. This is not tax advice. The limits
+          change with each Finance Act, so check with KRA before you file.
         </p>
       </div>
 

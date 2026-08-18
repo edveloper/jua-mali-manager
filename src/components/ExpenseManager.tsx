@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Expense, ExpenseDraft } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,50 @@ const categoriesFor = (businessCategory: string): string[] => {
   return ['Packaging', 'Marketing', ...common];
 };
 
+/*
+ * Guessing the category from what the owner typed.
+ *
+ * The form used to ask twice: "what was it for?" and then, separately, which
+ * cost it was. Somebody types "September rent" and is then made to choose Rent
+ * from a list, which reads as the app not having listened. The description is
+ * what people read later and the category is what reports add up, so both are
+ * needed -- but only one of them needs asking for.
+ *
+ * Swahili and everyday words are in here because that is what gets typed at a
+ * counter: kodi, mshahara, boda, nauli, maji, umeme.
+ */
+const CATEGORY_HINTS: { category: string; words: string[] }[] = [
+  { category: 'Fuel', words: ['fuel', 'petrol', 'diesel', 'mafuta'] },
+  { category: 'Internet', words: ['internet', 'wifi', 'fibre', 'fiber', 'router'] },
+  { category: 'Parking', words: ['parking', 'park fee'] },
+  { category: 'Insurance', words: ['insurance', 'bima'] },
+  { category: 'Vehicle repair', words: ['vehicle', 'tyre', 'tire', 'garage'] },
+  { category: 'Rent', words: ['rent', 'kodi', 'landlord'] },
+  { category: 'Wages', words: ['wage', 'salary', 'salaries', 'mshahara', 'casual', 'staff pay'] },
+  { category: 'Transport', words: ['transport', 'fare', 'nauli', 'boda', 'matatu', 'tuktuk', 'delivery', 'carriage', 'fuel', 'petrol', 'diesel'] },
+  { category: 'Utilities', words: ['power', 'electricity', 'umeme', 'kplc', 'token', 'water', 'maji', 'garbage'] },
+  { category: 'Airtime', words: ['airtime', 'bundle', 'bundles', 'data', 'safaricom', 'credo'] },
+  { category: 'Tax', words: ['tax', 'kra', 'vat', 'turnover'] },
+  { category: 'Licences', words: ['permit', 'licence', 'license', 'county', 'cess'] },
+  { category: 'Packaging', words: ['packaging', 'paper bag', 'bags', 'wrapping', 'carrier'] },
+  { category: 'Marketing', words: ['marketing', 'advert', 'poster', 'banner', 'promotion', 'flyer'] },
+  { category: 'Cleaning', words: ['cleaning', 'detergent', 'mop', 'disinfectant'] },
+  { category: 'Repairs', words: ['repair', 'fundi', 'service', 'fix'] },
+  { category: 'Paper and ink', words: ['paper', 'ink', 'toner', 'cartridge'] },
+  { category: 'Commission', words: ['commission'] },
+  { category: 'Supplies', words: ['supplies', 'supply'] },
+];
+
+const guessCategory = (description: string, available: string[]): string | null => {
+  const text = description.toLowerCase();
+  if (text.trim() === '') return null;
+  for (const hint of CATEGORY_HINTS) {
+    if (!available.includes(hint.category)) continue;
+    if (hint.words.some((w) => text.includes(w))) return hint.category;
+  }
+  return null;
+};
+
 const TYPE_LABEL: Record<Expense['expenseType'], string> = {
   one_off: 'One-off',
   variable: 'Changes each time',
@@ -48,7 +92,10 @@ export function ExpenseManager({
   const [range, setRange] = useState<RangeType>('month');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('Rent');
+  const [category, setCategory] = useState('Other');
+  // Once the owner picks for themselves, stop second-guessing them.
+  const [categoryPicked, setCategoryPicked] = useState(false);
+  const [pickingCategory, setPickingCategory] = useState(false);
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [expenseType, setExpenseType] = useState<Expense['expenseType']>('one_off');
   const [recurrenceUnit, setRecurrenceUnit] = useState<Expense['recurrenceUnit']>('monthly');
@@ -56,6 +103,12 @@ export function ExpenseManager({
   const [isSaving, setIsSaving] = useState(false);
 
   const categories = useMemo(() => categoriesFor(businessCategory), [businessCategory]);
+
+  useEffect(() => {
+    if (categoryPicked) return;
+    const guess = guessCategory(description, categories);
+    setCategory(guess ?? 'Other');
+  }, [description, categoryPicked, categories]);
 
   const { shown, total, byCategory, rangeLabel } = useMemo(() => {
     const now = new Date();
@@ -120,6 +173,9 @@ export function ExpenseManager({
     setDescription('');
     setAmount('');
     setExpenseType('one_off');
+    setCategory('Other');
+    setCategoryPicked(false);
+    setPickingCategory(false);
     setShowForm(false);
   };
 
@@ -199,6 +255,38 @@ export function ExpenseManager({
               onChange={(e) => setDescription(e.target.value)}
               required
             />
+
+            {/* Sits under the description because that is what it was worked out
+                from. One line when the guess is right, which it usually is. */}
+            {pickingCategory ? (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {categories.map((c) => (
+                  <Button
+                    key={c}
+                    type="button"
+                    variant={category === c ? 'default' : 'outline'}
+                    size="sm"
+                    className="px-2 text-xs"
+                    onClick={() => {
+                      setCategory(c);
+                      setCategoryPicked(true);
+                      setPickingCategory(false);
+                    }}
+                  >
+                    {c}
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setPickingCategory(true)}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Counted as <span className="font-medium text-foreground">{category}</span> in your
+                reports. <span className="text-primary">Change</span>
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -219,18 +307,6 @@ export function ExpenseManager({
               <Label htmlFor="exp-date">When?</Label>
               <Input id="exp-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="exp-category">Kind of cost</Label>
-            <select
-              id="exp-category"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
           </div>
 
           <div className="space-y-2">
