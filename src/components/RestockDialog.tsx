@@ -20,11 +20,13 @@ interface RestockDialogProps {
     paymentMethod?: string
   ) => Promise<void>;
   onClose: () => void;
+  /** Taking stock on credit is a debt the owner takes on, so staff cannot. */
+  canTakeOnCredit?: boolean;
   suppliers: { id: string; name: string }[];
   onAddSupplier: (name: string) => Promise<{ id: string } | null>;
 }
 
-export function RestockDialog({ product, onRestock, onClose, suppliers, onAddSupplier }: RestockDialogProps) {
+export function RestockDialog({ product, onRestock, onClose, suppliers, onAddSupplier, canTakeOnCredit = true }: RestockDialogProps) {
   const [quantity, setQuantity] = useState(1);
   const [unitCost, setUnitCost] = useState(product.costPrice || 0);
   const [happenedAt, setHappenedAt] = useState(new Date().toISOString().split('T')[0]);
@@ -125,17 +127,24 @@ export function RestockDialog({ product, onRestock, onClose, suppliers, onAddSup
 
       {/* Stock arriving and money leaving are separate events. On credit the
           cash has not moved, so no spending is recorded until you pay. */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Did you pay for it?</label>
-        <div className="flex gap-2">
-          <Button variant={paidNow ? 'default' : 'outline'} className="flex-1" onClick={() => setPaidNow(true)}>
-            Paid now
-          </Button>
-          <Button variant={!paidNow ? 'default' : 'outline'} className="flex-1" onClick={() => setPaidNow(false)}>
-            On credit
-          </Button>
+      {canTakeOnCredit ? (
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Did you pay for it?</label>
+          <div className="flex gap-2">
+            <Button variant={paidNow ? 'default' : 'outline'} className="flex-1" onClick={() => setPaidNow(true)}>
+              Paid now
+            </Button>
+            <Button variant={!paidNow ? 'default' : 'outline'} className="flex-1" onClick={() => setPaidNow(false)}>
+              On credit
+            </Button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          For stock that has already been paid for. If it was taken on credit, ask the
+          owner to record it.
+        </p>
+      )}
 
       {paidNow ? (
         <div className="grid grid-cols-4 gap-1.5">

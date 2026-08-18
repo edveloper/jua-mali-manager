@@ -441,6 +441,7 @@ export type Database = {
           payment_method: string | null;
           effective_from: string | null;
           effective_to: string | null;
+          recorded_by: string | null;
           created_at: string | null;
         };
         Insert: {

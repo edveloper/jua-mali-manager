@@ -17,6 +17,7 @@ import { DaySales } from '@/components/DaySales';
 import { ProductList } from '@/components/ProductList';
 import { ProductForm } from '@/components/ProductForm';
 import { SaleDialog } from '@/components/SaleDialog';
+import { ActivityLog } from '@/components/ActivityLog';
 import { RestockDialog } from '@/components/RestockDialog';
 import { LowStockAlerts } from '@/components/LowStockAlerts';
 import { CreditManager } from '@/components/CreditManager';
@@ -44,11 +45,12 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 /** Screens reached from More, which get a back arrow instead of a nav slot. */
-const SUB_SCREENS: TabType[] = ['settings', 'staff', 'help', 'privacy', 'contact', 'about', 'alerts'];
+const SUB_SCREENS: TabType[] = ['settings', 'staff', 'activity', 'help', 'privacy', 'contact', 'about', 'alerts'];
 
 const SCREEN_TITLES: Partial<Record<TabType, string>> = {
   settings: 'Shop details',
   staff: 'Staff',
+  activity: 'Activity',
   help: 'How this works',
   privacy: 'Your data',
   contact: 'Contact us',
@@ -90,7 +92,7 @@ const Index = () => {
   } = useCredit();
 
   const { members, nameFor, fullNameFor } = useShopMembers();
-  const { countFor, openingFor, saveCount } = useTillCount();
+  const { counts: tillCounts, countFor, openingFor, saveCount } = useTillCount();
   const {
     entries: mpesaEntries, isImporting: mpesaImporting,
     importEntries, forget: forgetMpesaEntry,
@@ -100,6 +102,7 @@ const Index = () => {
     suppliers, debts: supplierDebts,
     totalOwed: totalOwedToSuppliers, addSupplier, addDebt, payDebt,
     debtsFor, owedTo, paymentsFor, supplierName,
+    payments: supplierPayments,
   } = useSuppliers();
 
   useEffect(() => {
@@ -454,7 +457,7 @@ const Index = () => {
             onAdd={() => { setEditingProduct(null); setShowProductForm(true); }}
             onSell={(p) => { setSellingProduct(p); setShowSale(true); }}
             onStartSale={() => { setSellingProduct(null); setShowSale(true); }}
-            onRestock={isOwner ? (p) => setRestockingProduct(p) : undefined}
+            onRestock={isOwner || can('restock_stock') ? (p) => setRestockingProduct(p) : undefined}
             isOwner={isOwner}
           />
         )}
@@ -591,11 +594,28 @@ const Index = () => {
         {activeTab === 'alerts' && (
           <LowStockAlerts
             products={lowStockProducts}
-            onRestock={isOwner ? (p) => setRestockingProduct(p) : undefined}
+            onRestock={isOwner || can('restock_stock') ? (p) => setRestockingProduct(p) : undefined}
           />
         )}
 
         {activeTab === 'staff' && isOwner && <EmployeeManager />}
+        {activeTab === 'activity' && isOwner && (
+          <ActivityLog
+            sales={allSales}
+            salePayments={salePayments}
+            creditSales={creditSales}
+            creditPayments={creditPayments}
+            expenses={expenses}
+            stockMovements={stockMovements}
+            supplierDebts={supplierDebts}
+            supplierPayments={supplierPayments}
+            stockTakes={takes}
+            tillCounts={tillCounts}
+            nameFor={fullNameFor}
+            customerName={(id) => customers.find((c) => c.id === id)?.name ?? 'Customer'}
+            supplierName={supplierName}
+          />
+        )}
         {activeTab === 'settings' && <SettingsPanel onImportProducts={bulkImportProducts} />}
         {activeTab === 'help' && <HelpPanel />}
         {activeTab === 'privacy' && <PrivacyPanel />}
@@ -633,6 +653,7 @@ const Index = () => {
       {restockingProduct && (
         <RestockDialog
           product={restockingProduct}
+          canTakeOnCredit={isOwner}
           suppliers={suppliers}
           onAddSupplier={addSupplier}
           onRestock={async (productId, quantity, unitCost, happenedAt, allocationMode, notes, paidNow, supplierId, paymentMethod) => {

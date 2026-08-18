@@ -61,6 +61,7 @@ export interface Sale {
   paymentReference?: string | null;
   /** Set when the sale was cancelled. Voided sales are excluded from all totals. */
   voidedAt?: string | null;
+  voidedBy?: string | null;
   totalAmount: number;
   profit: number;
   isCredit?: boolean;
@@ -115,6 +116,7 @@ export interface CreditPayment {
   paymentMethod?: string | null;
   notes?: string;
   createdAt: string;
+  recordedBy?: string | null;
 }
 
 export interface DashboardStats {
@@ -147,6 +149,8 @@ export interface Expense {
   source: 'manual' | 'restock';
   /** null on older rows and on restock spend; treated as cash when closing the till. */
   paymentMethod?: string | null;
+  /** null on anything recorded before the column existed. */
+  recordedBy?: string | null;
   effectiveFrom?: string | null;
   effectiveTo?: string | null;
   createdAt: string;
@@ -177,4 +181,5 @@ export interface StockMovement {
   notes?: string;
   happenedAt: string;
   expenseId?: string | null;
+  createdBy?: string | null;
 }

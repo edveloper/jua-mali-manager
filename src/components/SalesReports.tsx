@@ -5,7 +5,8 @@ import { Sale, CreditSale, StockMovement, Expense, SalePayment } from '@/types/i
 import { Button } from '@/components/ui/button';
 import { methodLabel } from '@/lib/payment';
 import {
-  format, startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, subMonths, isWithinInterval,
+  format, startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, subMonths,
+  isWithinInterval, differenceInCalendarDays,
 } from 'date-fns';
 
 interface SalesReportsProps {
@@ -30,6 +31,22 @@ type RangeType = 'week' | 'month' | 'lastMonth' | 'custom';
 
 const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
 const isRestockExpense = (expense: Expense) => expense.source === 'restock';
+
+/*
+ * Kenyan thresholds, as bands rather than a single rate.
+ *
+ * The old card showed 3% of sales to everybody, which is wrong in both
+ * directions: a shop turning over 700k a year owes no turnover tax at all and
+ * was being told to set aside money it does not owe, and a shop past the ceiling
+ * has left the regime entirely. Which side of a line you are on is the useful
+ * fact, and it is arithmetic rather than advice.
+ */
+const TURNOVER_TAX_FLOOR = 1_000_000;
+const TURNOVER_TAX_CEILING = 25_000_000;
+const TURNOVER_TAX_RATE = 0.03;
+const VAT_LINE = 5_000_000;
+/** Below this many days of records, a yearly figure is a guess, not a projection. */
+const ENOUGH_DAYS = 30;
 
 const download = (filename: string, contents: string, mime = 'text/csv;charset=utf-8;') => {
   // Excel assumes Windows-1252 for CSV unless a byte-order mark says
@@ -163,9 +180,59 @@ export function SalesReports({
       topItems, categorySpend, methodSplit, trend, tradingDays,
       averageDay: tradingDays ? totalSales / tradingDays : 0,
       restockSpend: periodPurchases.reduce((sum, p) => sum + Number(p.totalCost || 0), 0),
-      estimatedTax: totalSales * 0.03,
+      estimatedTax: totalSales * TURNOVER_TAX_RATE,
     };
   }, [sales, creditSales, expenses, salePayments, stockPurchases, start, end, getExpenseTotalForRange, getCreditPaymentsTotalForRange]);
+
+  /**
+   * Which side of the tax lines this shop sits on.
+   *
+   * Deliberately measured over the whole trading history rather than the report
+   * period: the thresholds are annual, so a figure taken from the last seven days
+   * would move a shop in and out of turnover tax week by week. Annualised from
+   * calendar days, not trading days -- a shop closed on Sundays does not turn over
+   * a seventh more than it did.
+   */
+  const taxBand = useMemo(() => {
+    const live = sales.filter((s) => !s.voidedAt);
+    if (live.length === 0) return null;
+
+    const now = new Date();
+    const earliest = live.reduce(
+      (min, s) => (new Date(s.createdAt) < min ? new Date(s.createdAt) : min),
+      new Date(live[0].createdAt)
+    );
+
+    const yearAgo = subDays(now, 364);
+    const windowStart = startOfDay(earliest > yearAgo ? earliest : yearAgo);
+    const days = Math.max(1, differenceInCalendarDays(now, windowStart) + 1);
+
+    const turnover = live
+      .filter((s) => new Date(s.createdAt) >= windowStart)
+      .reduce((sum, s) => sum + Number(s.totalAmount || 0), 0);
+
+    // Too little history to project a year from honestly. Say so rather than
+    // multiply four days of trading by ninety and call it a liability.
+    if (days < ENOUGH_DAYS) return null;
+
+    const fullYear = days >= 365;
+    const annualised = fullYear ? turnover : (turnover / days) * 365;
+
+    const band =
+      annualised < TURNOVER_TAX_FLOOR ? 'below'
+      : annualised > TURNOVER_TAX_CEILING ? 'above'
+      : 'turnover';
+
+    return {
+      days,
+      fullYear,
+      annualised,
+      band,
+      // Flagged early rather than on the day it is crossed: registering for VAT
+      // changes how the shop operates, and it is not a same-week job.
+      nearVat: annualised >= VAT_LINE * 0.8,
+    };
+  }, [sales]);
 
   /** Short enough to paste into WhatsApp, which is how this will actually travel. */
   const shareSummary = async () => {
@@ -362,13 +429,92 @@ export function SalesReports({
       )}
 
       <div className="sheet">
-        <p className="sheet-heading">Turnover tax</p>
-        <div className="ledger-line">
-          <span className="text-muted-foreground">3% of {money(report.totalSales)}</span>
-          <span className="text-lg amount">{money(report.estimatedTax)}</span>
+        <p className="sheet-heading">Tax</p>
+
+        {!taxBand ? (
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+            Once there is about a month of sales recorded, this will show which tax band
+            your shop falls in.
+          </p>
+        ) : (
+          <>
+            <div className="ledger-line ledger-rule">
+              <span className="text-muted-foreground">Sales in a year, at this rate</span>
+              <span className="amount">{money(taxBand.annualised)}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {taxBand.fullYear
+                ? 'Your last twelve months.'
+                : `Worked out from ${taxBand.days} days of records, not a full year yet.`}
+            </p>
+
+            {taxBand.band === 'below' && (
+              <div className="mt-3">
+                <p className="text-sm font-medium">Turnover tax does not apply to you</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  It starts at {money(TURNOVER_TAX_FLOOR)} a year. Below that you are taxed
+                  on your profit, not your sales. You are about{' '}
+                  {money(TURNOVER_TAX_FLOOR - taxBand.annualised)} a year under the line.
+                </p>
+              </div>
+            )}
+
+            {taxBand.band === 'turnover' && (
+              <div className="mt-3">
+                <p className="text-sm font-medium">You are in turnover tax</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Businesses turning over {money(TURNOVER_TAX_FLOOR)} to{' '}
+                  {money(TURNOVER_TAX_CEILING)} a year pay {TURNOVER_TAX_RATE * 100}% of sales.
+                  It is filed monthly, by the 20th of the month after.
+                </p>
+                <div className="ledger-line ledger-rule mt-2">
+                  <span className="text-muted-foreground">
+                    {TURNOVER_TAX_RATE * 100}% of {money(report.totalSales)}
+                  </span>
+                  <span className="text-lg amount">{money(report.estimatedTax)}</span>
+                </div>
+              </div>
+            )}
+
+            {taxBand.band === 'above' && (
+              <div className="mt-3">
+                <p className="text-sm font-medium">Past the turnover tax ceiling</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Turnover tax stops at {money(TURNOVER_TAX_CEILING)} a year. Above that a
+                  business is taxed on profit and needs an accountant, not this screen.
+                </p>
+              </div>
+            )}
+
+            {taxBand.nearVat && (
+              <div className="mt-3 rounded-lg border border-warning/40 bg-warning/5 p-3">
+                <p className="text-sm font-medium">
+                  {taxBand.annualised >= VAT_LINE ? 'You are past the VAT line' : 'The VAT line is close'}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Above {money(VAT_LINE)} of turnover in any twelve months, VAT registration
+                  becomes compulsory — and once registered, turnover tax no longer applies to
+                  you. Worth talking to someone before you get there.
+                </p>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* The charge a duka actually feels, and the one a KRA-shaped card would
+            never mention: it is a county levy, not a national tax. */}
+        <div className="ledger-rule mt-3 pt-2">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            <span className="font-medium text-foreground">Your county permit is separate.</span>{' '}
+            The single business permit is an annual county charge, nothing to do with KRA.
+            Record it under Licences in Spending so it lands in your running costs instead of
+            surprising you once a year.
+          </p>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          A rough guide from your recorded sales, not advice. Confirm with KRA before filing.
+
+        <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+          Worked out from what you have recorded, and not tax advice. Thresholds change with
+          each Finance Act — confirm with KRA before you file.
         </p>
       </div>
 

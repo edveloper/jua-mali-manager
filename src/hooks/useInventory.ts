@@ -98,6 +98,7 @@ export const useInventory = () => {
           priceSource: s.price_source || 'list',
           soldBy: s.sold_by || null,
           voidedAt: s.voided_at || null,
+          voidedBy: s.voided_by || null,
           paymentMethod: s.payment_method || null,
           paymentReference: s.payment_reference || null,
           totalAmount,
@@ -156,6 +157,7 @@ export const useInventory = () => {
         notes: m.notes || '',
         happenedAt: m.happened_at,
         expenseId: m.expense_id || null,
+        createdBy: m.created_by || null,
       })));
     } catch (error: any) {
       console.error("Stock movements error:", error);
@@ -335,7 +337,9 @@ export const useInventory = () => {
     supplierId?: string,
     paymentMethod?: string
   ) => {
-    if (!shop?.id || !isOwner) return null;
+    // No client-side owner check: the RPC decides, using the same permission the
+    // owner toggles. Two gates that can disagree is one gate too many.
+    if (!shop?.id) return null;
 
     try {
       const { data, error } = await supabase.rpc('record_product_restock_atomic', {

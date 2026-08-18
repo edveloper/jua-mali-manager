@@ -136,6 +136,7 @@ export const useExpenses = (currentPeriodSales: number = 0) => {
         allocationMode: e.allocation_mode || 'cash',
         source: e.source === 'restock' ? 'restock' : 'manual',
         paymentMethod: e.payment_method || null,
+        recordedBy: e.recorded_by || null,
         effectiveFrom: e.effective_from || null,
         effectiveTo: e.effective_to || null,
         createdAt: e.created_at

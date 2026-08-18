@@ -1,6 +1,6 @@
 import {
   Users, Store, Upload, HelpCircle, MessageSquare, ShieldAlert,
-  LogOut, Download, ChevronRight, Info, LucideIcon,
+  LogOut, Download, ChevronRight, Info, History, LucideIcon,
 } from 'lucide-react';
 import { TabType } from '@/components/Navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,6 +33,12 @@ export function MoreMenu({ onNavigate, staffCount, canInstall, onInstall }: More
       hint: staffCount === 0 ? 'Nobody added yet' : `${staffCount} ${staffCount === 1 ? 'person' : 'people'}`,
       icon: Users,
       onClick: () => onNavigate('staff'),
+    },
+    {
+      label: 'Activity',
+      hint: 'Everything that happened, and who did it',
+      icon: History,
+      onClick: () => onNavigate('activity'),
     },
     { label: 'Shop details', hint: shop?.name, icon: Store, onClick: () => onNavigate('settings') },
     { label: 'Import stock from a file', icon: Upload, onClick: () => onNavigate('settings') },

@@ -27,6 +27,7 @@ export interface SupplierPayment {
   amount: number;
   paidAt: string;
   paymentMethod: string | null;
+  recordedBy: string | null;
 }
 
 export const useSuppliers = () => {
@@ -88,6 +89,7 @@ export const useSuppliers = () => {
           amount: Number(p.amount || 0),
           paidAt: p.paid_at,
           paymentMethod: p.payment_method,
+          recordedBy: p.recorded_by || null,
         }))
       );
     }

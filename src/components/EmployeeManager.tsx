@@ -26,6 +26,14 @@ const PERMISSIONS: { key: string; title: string; detail: string; enabledToast: s
     disabledToast: 'can no longer handle deni',
   },
   {
+    key: 'restock_stock',
+    title: 'Add stock that has been paid for',
+    detail:
+      'Lets them record deliveries paid from the till. Note this shows them what each item costs you, so they can work out your margin. Taking stock on credit stays with you.',
+    enabledToast: 'can now add stock',
+    disabledToast: 'can no longer add stock',
+  },
+  {
     key: 'record_expenses',
     title: 'Record spending',
     detail: 'Add costs like transport or airtime. They cannot delete anything already recorded.',

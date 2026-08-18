@@ -33,6 +33,7 @@ export const useCredit = () => {
         amount: Number(p.amount || 0),
         paidAt: p.paid_at,
         paymentMethod: p.payment_method || null,
+        recordedBy: p.recorded_by || null,
         notes: p.notes || '',
         createdAt: p.created_at,
       })));
