@@ -44,6 +44,8 @@ export interface ServiceSale {
 
 export interface Sale {
   id: string;
+  /** Groups the lines a customer bought in one go. Its own id for older sales. */
+  receiptId: string;
   productId: string;
   productName: string;
   quantity: number;
@@ -78,11 +80,28 @@ export interface CreditSale {
   id: string;
   customerId: string;
   saleId: string;
+  /** Set when the debt is the unpaid part of a whole receipt. */
+  receiptId?: string | null;
   productName: string;
   quantity: number;
   amount: number;
   balance: number; 
   status: 'pending' | 'partially_paid' | 'paid';
+  createdAt: string;
+}
+
+/**
+ * One way a receipt was settled. A receipt paid part in cash and part by M-Pesa
+ * has two of these; an ordinary cash sale has one. This -- not
+ * `Sale.paymentMethod` -- is the answer to "how did the money arrive", because
+ * a sale line cannot describe a payment that was split across several lines.
+ */
+export interface SalePayment {
+  id: string;
+  receiptId: string;
+  amount: number;
+  method: string;
+  reference?: string | null;
   createdAt: string;
 }
 

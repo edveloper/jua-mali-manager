@@ -1,14 +1,28 @@
 import { useMemo, useState } from 'react';
-import { Download } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, subMonths, startOfYear, isWithinInterval } from 'date-fns';
+import { Download, Printer } from 'lucide-react';
+import {
+  format, startOfMonth, endOfMonth, subMonths, startOfYear, startOfDay, endOfDay, subDays,
+  isWithinInterval,
+} from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Sale, Expense, CreditSale, CreditPayment, Product } from '@/types/inventory';
+import { Sale, Expense, CreditSale, CreditPayment, Product, SalePayment } from '@/types/inventory';
 import { SupplierDebt, Supplier } from '@/hooks/useSuppliers';
+import { MpesaEntry } from '@/hooks/useMpesa';
+import { BankStatement } from '@/components/BankStatement';
 import { methodLabel } from '@/lib/payment';
 
 interface RecordsPanelProps {
   shopName: string;
+  ownerName: string;
+  mpesaEntries: MpesaEntry[];
+  getExpenseTotalForRange: (
+    start: Date | string,
+    end: Date | string,
+    basis?: 'cash' | 'accrual',
+    options?: { includeInventoryPurchases?: boolean }
+  ) => number;
   sales: Sale[];
+  salePayments: SalePayment[];
   expenses: Expense[];
   creditSales: CreditSale[];
   creditPayments: CreditPayment[];
@@ -19,7 +33,7 @@ interface RecordsPanelProps {
   sellerName: (id?: string | null) => string;
 }
 
-type RangeKey = 'month' | 'lastMonth' | 'year';
+type RangeKey = 'month' | 'lastMonth' | 'year' | 'custom';
 
 const csv = (v: string | number) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
@@ -49,10 +63,13 @@ const download = (filename: string, contents: string) => {
  * line-by-line file is the backup behind it.
  */
 export function RecordsPanel({
-  shopName, sales, expenses, creditSales, creditPayments, supplierDebts,
+  shopName, ownerName, mpesaEntries, getExpenseTotalForRange,
+  sales, salePayments, expenses, creditSales, creditPayments, supplierDebts,
   suppliers, products, customerName, sellerName,
 }: RecordsPanelProps) {
   const [rangeKey, setRangeKey] = useState<RangeKey>('lastMonth');
+  const [customStart, setCustomStart] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
+  const [customEnd, setCustomEnd] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   const { start, end, label } = useMemo(() => {
     const now = new Date();
@@ -63,8 +80,13 @@ export function RecordsPanel({
     if (rangeKey === 'year') {
       return { start: startOfYear(now), end: now, label: format(now, 'yyyy') };
     }
+    if (rangeKey === 'custom') {
+      const from = startOfDay(new Date(customStart));
+      const to = endOfDay(new Date(customEnd));
+      return { start: from, end: to, label: `${format(from, 'd MMM')} to ${format(to, 'd MMM yyyy')}` };
+    }
     return { start: startOfMonth(now), end: now, label: format(now, 'MMMM yyyy') };
-  }, [rangeKey]);
+  }, [rangeKey, customStart, customEnd]);
 
   const inRange = (d: string | Date) => isWithinInterval(new Date(d), { start, end });
   const supplierName = (id: string) => suppliers.find((s) => s.id === id)?.name ?? 'Supplier';
@@ -143,30 +165,101 @@ export function RecordsPanel({
       'moves_cash', 'payment_method', 'reference', 'recorded_by',
     ];
 
-    const creditSaleIds = new Set(creditSales.map((c) => c.saleId));
     const entries: { at: Date; cells: string[] }[] = [];
 
+    // Grouped by receipt, because one customer's purchase may be several lines
+    // settled several ways, and the file has to let both totals be checked.
+    const byReceipt = new Map<string, Sale[]>();
     for (const s of sales) {
       if (!inRange(s.createdAt)) continue;
-      const at = new Date(s.createdAt);
-      const onDeni = creditSaleIds.has(s.id);
-      const voided = Boolean(s.voidedAt);
-      entries.push({
-        at,
-        cells: [
-          format(at, 'yyyy-MM-dd'), format(at, 'HH:mm'),
-          voided ? 'sale cancelled' : 'sale',
-          s.productName, onDeni ? 'on deni' : '', 'Sales',
-          String(s.quantity),
-          voided || onDeni ? '' : fixed(Number(s.totalAmount || 0)),
-          '',
-          voided ? '' : fixed((s.costPrice ?? 0) * s.quantity),
-          voided || onDeni ? 'no' : 'yes',
-          s.paymentMethod ? methodLabel(s.paymentMethod) : '',
-          s.paymentReference ?? '',
-          sellerName(s.soldBy),
-        ],
-      });
+      const group = byReceipt.get(s.receiptId);
+      if (group) group.push(s);
+      else byReceipt.set(s.receiptId, [s]);
+    }
+
+    for (const [receiptId, lines] of byReceipt) {
+      const at = new Date(lines[0].createdAt);
+      const voided = lines.every((l) => Boolean(l.voidedAt));
+      const payments = salePayments.filter((p) => p.receiptId === receiptId);
+      const debt = creditSales.find(
+        (c) => c.receiptId === receiptId || c.saleId === lines[0].id
+      );
+      const total = lines.reduce((sum, l) => sum + Number(l.totalAmount || 0), 0);
+
+      // The ordinary case -- one item, paid once, in full -- stays exactly one
+      // row, the way it has always read. Splitting every sale in two to serve
+      // the rare basket would make the common file harder, not easier.
+      const isSimple =
+        lines.length === 1 &&
+        !debt &&
+        payments.length <= 1 &&
+        (payments.length === 0 || Math.abs(payments[0].amount - total) < 0.01);
+
+      if (isSimple) {
+        const line = lines[0];
+        const paid = payments[0];
+        entries.push({
+          at,
+          cells: [
+            format(at, 'yyyy-MM-dd'), format(at, 'HH:mm'),
+            voided ? 'sale cancelled' : 'sale',
+            line.productName, '', 'Sales',
+            String(line.quantity),
+            voided ? '' : fixed(total),
+            '',
+            voided ? '' : fixed((line.costPrice ?? 0) * line.quantity),
+            voided ? 'no' : 'yes',
+            paid ? methodLabel(paid.method) : (line.paymentMethod ? methodLabel(line.paymentMethod) : ''),
+            paid?.reference ?? line.paymentReference ?? '',
+            sellerName(line.soldBy),
+          ],
+        });
+        continue;
+      }
+
+      // Otherwise the two questions are answered separately: what was sold, and
+      // how it was settled. money_in stays on the payment rows only, so summing
+      // the column still gives money that actually arrived.
+      for (const line of lines) {
+        entries.push({
+          at: new Date(line.createdAt),
+          cells: [
+            format(at, 'yyyy-MM-dd'), format(at, 'HH:mm'),
+            voided ? 'sale cancelled' : 'sale item',
+            line.productName,
+            debt ? 'part on deni' : '', 'Sales',
+            String(line.quantity),
+            '',
+            '',
+            voided ? '' : fixed((line.costPrice ?? 0) * line.quantity),
+            'no',
+            '', '',
+            sellerName(line.soldBy),
+          ],
+        });
+      }
+
+      if (!voided) {
+        for (const paid of payments) {
+          entries.push({
+            at: new Date(paid.createdAt),
+            cells: [
+              format(at, 'yyyy-MM-dd'), format(at, 'HH:mm'),
+              'sale payment',
+              `Paid for ${lines[0].productName}${lines.length > 1 ? ` and ${lines.length - 1} more` : ''}`,
+              '', 'Sales',
+              '',
+              fixed(paid.amount),
+              '',
+              '',
+              'yes',
+              methodLabel(paid.method),
+              paid.reference ?? '',
+              sellerName(lines[0].soldBy),
+            ],
+          });
+        }
+      }
     }
 
     for (const p of creditPayments) {
@@ -225,11 +318,12 @@ export function RecordsPanel({
     { key: 'lastMonth', label: 'Last month' },
     { key: 'month', label: 'This month' },
     { key: 'year', label: 'This year' },
+    { key: 'custom', label: 'Pick dates' },
   ];
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className="grid grid-cols-4 gap-1.5">
         {RANGES.map((r) => (
           <Button
             key={r.key}
@@ -242,6 +336,23 @@ export function RecordsPanel({
           </Button>
         ))}
       </div>
+
+      {rangeKey === 'custom' && (
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            type="date"
+            value={customStart}
+            onChange={(e) => setCustomStart(e.target.value)}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          />
+          <input
+            type="date"
+            value={customEnd}
+            onChange={(e) => setCustomEnd(e.target.value)}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          />
+        </div>
+      )}
 
       {/* Shown on screen as well as exported, so the owner can sanity-check the
           figures before sending them to anyone. */}
@@ -300,6 +411,33 @@ export function RecordsPanel({
         <Button variant="outline" className="w-full" onClick={exportTransactions}>
           <Download className="h-4 w-4 mr-2" /> Line-by-line spreadsheet
         </Button>
+      </div>
+
+      <div className="sheet space-y-2">
+        <span className="font-medium text-sm">For a bank or lender</span>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          A one-page statement of the last six months, on paper. Your phone will offer to
+          save it as a PDF instead of printing.
+        </p>
+        <Button variant="outline" className="w-full" onClick={() => window.print()}>
+          <Printer className="h-4 w-4 mr-2" /> Print statement
+        </Button>
+      </div>
+
+      {/* Only visible on paper. Kept mounted so printing needs no new window,
+          which mobile browsers handle badly. */}
+      <div className="print-only">
+        <BankStatement
+          shopName={shopName}
+          salePayments={salePayments}
+          ownerName={ownerName}
+          sales={sales}
+          creditSales={creditSales}
+          supplierDebts={supplierDebts}
+          products={products}
+          mpesaEntries={mpesaEntries}
+          getExpenseTotalForRange={getExpenseTotalForRange}
+        />
       </div>
 
       <div className="sheet">

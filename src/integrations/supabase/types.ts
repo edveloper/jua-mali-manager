@@ -176,6 +176,22 @@ export type Database = {
         ];
       };
 
+      sale_payments: {
+        Row: {
+          id: string;
+          shop_id: string;
+          receipt_id: string;
+          amount: number;
+          payment_method: string;
+          payment_reference: string | null;
+          recorded_by: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+
       sales: {
         Row: {
           id: string;
@@ -188,6 +204,7 @@ export type Database = {
           unit_price: number | null;
           list_price_at_sale: number | null;
           price_source: string;
+          receipt_id: string;
           sold_by: string | null;
           payment_method: string | null;
           payment_reference: string | null;
@@ -294,6 +311,7 @@ export type Database = {
           shop_id: string;
           customer_id: string;
           sale_id: string | null;
+          receipt_id: string | null;
           product_name: string;
           quantity: number;
           amount: number;
@@ -721,6 +739,102 @@ export type Database = {
         ];
       };
 
+      mpesa_imports: {
+        Row: {
+          id: string;
+          shop_id: string;
+          imported_at: string;
+          imported_by: string | null;
+          entries_seen: number;
+          entries_new: number;
+          matched: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          shop_id?: string;
+          imported_at?: string;
+          imported_by?: string | null;
+          entries_seen?: number;
+          entries_new?: number;
+          matched?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          shop_id?: string;
+          imported_at?: string;
+          imported_by?: string | null;
+          entries_seen?: number;
+          entries_new?: number;
+          matched?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'mpesa_imports_shop_id_fkey';
+            columns: ['shop_id'];
+            isOneToOne: false;
+            referencedRelation: 'shops';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+
+      mpesa_entries: {
+        Row: {
+          id: string;
+          shop_id: string;
+          import_id: string | null;
+          code: string;
+          amount: number;
+          paid_at: string | null;
+          counterparty: string | null;
+          direction: string;
+          raw_text: string | null;
+          matched_sale_id: string | null;
+          matched_credit_payment_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          shop_id?: string;
+          import_id?: string | null;
+          code?: string;
+          amount?: number;
+          paid_at?: string | null;
+          counterparty?: string | null;
+          direction?: string;
+          raw_text?: string | null;
+          matched_sale_id?: string | null;
+          matched_credit_payment_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          shop_id?: string;
+          import_id?: string | null;
+          code?: string;
+          amount?: number;
+          paid_at?: string | null;
+          counterparty?: string | null;
+          direction?: string;
+          raw_text?: string | null;
+          matched_sale_id?: string | null;
+          matched_credit_payment_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'mpesa_entries_shop_id_fkey';
+            columns: ['shop_id'];
+            isOneToOne: false;
+            referencedRelation: 'shops';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+
       stock_takes: {
         Row: {
           id: string;
@@ -945,31 +1059,6 @@ export type Database = {
     };
 
     Functions: {
-      record_product_sale_atomic: {
-        Args: {
-          p_shop_id: string;
-          p_product_id: string;
-          p_quantity: number;
-          p_unit_price?: number | null;
-          p_payment_method?: string | null;
-          p_payment_reference?: string | null;
-        };
-        Returns: {
-          id: string;
-          product_id: string;
-          product_name: string;
-          quantity: number;
-          total_amount: number;
-          cost_price_at_sale: number;
-          unit_price: number;
-          list_price_at_sale: number;
-          price_source: string;
-          payment_method: string;
-          sold_by: string;
-          created_at: string;
-        }[];
-      };
-
       record_service_sale_atomic: {
         Args: {
           p_shop_id: string;
@@ -1079,6 +1168,16 @@ export type Database = {
         }[];
       };
 
+      import_mpesa_entries_atomic: {
+        Args: { p_shop_id: string; p_entries: Json };
+        Returns: {
+          import_id: string;
+          entries_seen: number;
+          entries_new: number;
+          matched: number;
+        }[];
+      };
+
       record_stock_take_atomic: {
         Args: { p_shop_id: string; p_lines: Json; p_notes?: string | null };
         Returns: {
@@ -1093,11 +1192,28 @@ export type Database = {
       void_sale_atomic: {
         Args: { p_shop_id: string; p_sale_id: string; p_reason?: string | null };
         Returns: {
-          voided_sale_id: string;
-          voided_product_id: string;
-          voided_quantity: number;
-          restored_stock: number;
+          voided_receipt_id: string;
+          voided_lines: number;
+          voided_amount: number;
           voided_at: string;
+        }[];
+      };
+
+      record_basket_sale_atomic: {
+        Args: {
+          p_shop_id: string;
+          p_lines: Json;
+          p_payments?: Json;
+          p_customer_id?: string | null;
+          p_credit_amount?: number;
+        };
+        Returns: {
+          out_receipt_id: string;
+          out_line_count: number;
+          out_basket_total: number;
+          out_paid_now: number;
+          out_credit_amount: number;
+          out_credit_sale_id: string | null;
         }[];
       };
 

@@ -164,4 +164,51 @@
   .pressable {
     @apply transition-transform active:scale-[0.98];
   }
+
+  /* Off-screen, not display:none -- the print rules below work on visibility,
+     which cannot bring back an element that is not laid out at all. */
+  .print-only {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Printing
+   A statement for a bank is the one thing here that leaves as paper. The
+   browser makes the PDF, so no PDF library is carried in the bundle for it.
+   --------------------------------------------------------------------------- */
+@media print {
+  .print-only {
+    display: block;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .print-document,
+  .print-document * {
+    visibility: visible;
+  }
+
+  .print-document {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    padding: 0;
+    background: #fff;
+    color: #000;
+  }
+
+  .print-document .print-rule {
+    border-top: 1px solid #999;
+  }
+
+  .print-document .print-heavy {
+    border-top: 2px solid #000;
+  }
+
+  @page {
+    margin: 16mm;
+  }
 }

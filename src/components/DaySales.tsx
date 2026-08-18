@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { Undo2 } from 'lucide-react';
 import { Sale } from '@/types/inventory';
@@ -28,6 +28,17 @@ export function DaySales({ sales, nameFor, onVoid, showSeller = true }: DaySales
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
+  // Lines are still listed one by one -- that is what somebody checking the day
+  // wants to see. But a line bought as part of a basket is marked, because
+  // cancelling it takes the whole basket with it.
+  const receiptSize = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const sale of sales) {
+      counts.set(sale.receiptId, (counts.get(sale.receiptId) || 0) + 1);
+    }
+    return counts;
+  }, [sales]);
+
   const handleVoid = async (saleId: string) => {
     setBusyId(saleId);
     const ok = await onVoid(saleId);
@@ -54,6 +65,7 @@ export function DaySales({ sales, nameFor, onVoid, showSeller = true }: DaySales
       <div className="mt-2 divide-y divide-border/70">
         {ordered.map((sale) => {
           const voided = Boolean(sale.voidedAt);
+          const inBasket = (receiptSize.get(sale.receiptId) || 1) > 1;
           const above =
             sale.priceSource === 'override' && sale.listPriceAtSale
               ? (sale.unitPrice ?? 0) - sale.listPriceAtSale
@@ -87,6 +99,11 @@ export function DaySales({ sales, nameFor, onVoid, showSeller = true }: DaySales
                     {nameFor(sale.soldBy)}
                   </span>
                 )}
+                {inBasket && !voided && (
+                  <span className="text-xs text-muted-foreground">
+                    1 of {receiptSize.get(sale.receiptId)} in one sale
+                  </span>
+                )}
                 {voided && <span className="text-xs text-muted-foreground">cancelled</span>}
 
                 {!voided && (
@@ -108,7 +125,9 @@ export function DaySales({ sales, nameFor, onVoid, showSeller = true }: DaySales
                           disabled={busyId === sale.id}
                           onClick={() => handleVoid(sale.id)}
                         >
-                          {busyId === sale.id ? 'Cancelling...' : 'Yes, cancel'}
+                          {busyId === sale.id
+                            ? 'Cancelling...'
+                            : inBasket ? `Cancel all ${receiptSize.get(sale.receiptId)}` : 'Yes, cancel'}
                         </Button>
                       </div>
                     ) : (

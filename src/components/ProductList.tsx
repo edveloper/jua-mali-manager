@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, Plus, AlertTriangle, Pencil, PackagePlus, Trash2, MoreHorizontal } from 'lucide-react';
+import { Search, Plus, AlertTriangle, Pencil, PackagePlus, Trash2, MoreHorizontal, ShoppingCart } from 'lucide-react';
 import { Product } from '@/types/inventory';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,8 @@ interface ProductListProps {
   onDelete: (id: string) => void;
   onAdd: () => void;
   onSell: (product: Product) => void;
+  /** Opens an empty basket, for a customer buying several things at once. */
+  onStartSale?: () => void;
   onRestock?: (product: Product) => void;
   isOwner?: boolean;
 }
@@ -19,7 +21,7 @@ const PAGE_SIZE = 15;
 const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
 
 export function ProductList({
-  products, onSearch, onEdit, onDelete, onAdd, onSell, onRestock, isOwner = true,
+  products, onSearch, onEdit, onDelete, onAdd, onSell, onStartSale, onRestock, isOwner = true,
 }: ProductListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -52,6 +54,14 @@ export function ProductList({
           </Button>
         )}
       </div>
+
+      {/* Tapping an item is still the fast path for a single sale. This is for
+          the customer who puts four things on the counter. */}
+      {onStartSale && products.length > 0 && (
+        <Button variant="outline" className="w-full" onClick={onStartSale}>
+          <ShoppingCart className="h-4 w-4 mr-2" /> Sell several items at once
+        </Button>
+      )}
 
       {displayProducts.length === 0 ? (
         <div className="sheet text-center py-10">

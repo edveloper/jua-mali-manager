@@ -48,6 +48,7 @@ export const useCredit = () => {
           id: cs.id,
           customerId: cs.customer_id,
           saleId: cs.sale_id,
+          receiptId: cs.receipt_id || null,
           productName: cs.product_name, // Mapping from DB snake_case to UI camelCase
           quantity: cs.quantity,
           amount: totalAmount,
@@ -77,31 +78,10 @@ export const useCredit = () => {
     return data;
   };
 
-  const addCreditSale = async (customerId: string, saleId: string, productName: string, quantity: number, amount: number) => {
-    if (!shop?.id) return;
-
-    const { error } = await supabase.from('credit_sales').insert([{
-      shop_id: shop.id,
-      customer_id: customerId,
-      sale_id: saleId,
-      product_name: productName, // Ensure this matches DB column exactly
-      quantity: quantity,
-      amount: amount,
-      amount_paid: 0,
-      status: 'pending'
-    }]);
-
-    if (!error) {
-      fetchData();
-    } else {
-      console.error("Supabase Credit Error:", error);
-      toast({ 
-        title: "Error saving credit", 
-        description: error.message, 
-        variant: "destructive" 
-      });
-    }
-  };
+  // There is deliberately no addCreditSale here any more. A debt is the unpaid
+  // part of a sale, so record_basket_sale_atomic writes both in one transaction;
+  // creating one from the client afterwards was how a sale could end up looking
+  // paid with nobody owing anything.
 
   // Goes through the RPC so the balance is read and written under a row lock,
   // and so every payment leaves a dated record reports can use.
@@ -145,7 +125,7 @@ export const useCredit = () => {
     payments,
     isLoading,
     addCustomer,
-    addCreditSale,
+    refresh: fetchData,
     recordPayment,
     paymentsBetween,
     getPaymentsTotalForRange: (start: Date | string, end: Date | string) =>

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip } from 'recharts';
-import { Download } from 'lucide-react';
-import { Sale, CreditSale, StockMovement, Expense } from '@/types/inventory';
+import { Share2 } from 'lucide-react';
+import { Sale, CreditSale, StockMovement, Expense, SalePayment } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { methodLabel } from '@/lib/payment';
 import {
@@ -19,14 +19,16 @@ interface SalesReportsProps {
     options?: { includeInventoryPurchases?: boolean }
   ) => number;
   expenses?: Expense[];
+  salePayments?: SalePayment[];
   stockPurchases?: StockMovement[];
   businessCategory?: string;
+  /** Sends the owner to Money -> Export, where every downloadable file lives. */
+  onGoToExport: () => void;
 }
 
 type RangeType = 'week' | 'month' | 'lastMonth' | 'custom';
 
 const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
-const csvEscape = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
 const isRestockExpense = (expense: Expense) => expense.source === 'restock';
 
 const download = (filename: string, contents: string, mime = 'text/csv;charset=utf-8;') => {
@@ -50,7 +52,9 @@ export function SalesReports({
   getCreditPaymentsTotalForRange,
   getExpenseTotalForRange,
   expenses = [],
+  salePayments = [],
   stockPurchases = [],
+  onGoToExport,
 }: SalesReportsProps) {
   const [rangeType, setRangeType] = useState<RangeType>('month');
   const [customStart, setCustomStart] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
@@ -118,13 +122,22 @@ export function SalesReports({
       .map(([name, amount]) => ({ name, amount }))
       .sort((a, b) => b.amount - a.amount);
 
-    // NULL gets its own row rather than being folded into cash -- those sales
-    // predate payment tracking and we genuinely do not know how they were paid.
+    // Read from the payment rows, not the sales. A receipt settled partly in cash
+    // and partly by M-Pesa contributes to both, which a single column on the sale
+    // could never express.
+    const periodPayments = salePayments.filter((p) => inRange(p.createdAt));
     const byMethod = new Map<string, number>();
-    for (const s of periodSales) {
-      const key = s.paymentMethod || 'unknown';
-      byMethod.set(key, (byMethod.get(key) || 0) + Number(s.totalAmount || 0));
+    for (const p of periodPayments) {
+      byMethod.set(p.method, (byMethod.get(p.method) || 0) + p.amount);
     }
+
+    // Whatever the payment rows and the deni do not account for is takings from
+    // before methods were recorded. Shown as its own line rather than folded
+    // into cash, because we genuinely do not know how it arrived.
+    const paidNow = periodPayments.reduce((sum, p) => sum + p.amount, 0);
+    const unrecorded = Math.max(0, totalSales - onDeni - paidNow);
+    if (unrecorded > 0) byMethod.set('unknown', unrecorded);
+
     const methodSplit = [...byMethod.entries()]
       .map(([method, amount]) => ({
         method,
@@ -145,7 +158,6 @@ export function SalesReports({
     ).size;
 
     return {
-      periodSales, periodExpenses,
       totalSales, grossProfit, onDeni, deniPaidBack, runningCosts,
       takeHome: grossProfit - runningCosts,
       topItems, categorySpend, methodSplit, trend, tradingDays,
@@ -153,39 +165,7 @@ export function SalesReports({
       restockSpend: periodPurchases.reduce((sum, p) => sum + Number(p.totalCost || 0), 0),
       estimatedTax: totalSales * 0.03,
     };
-  }, [sales, creditSales, expenses, stockPurchases, start, end, getExpenseTotalForRange, getCreditPaymentsTotalForRange]);
-
-  const exportSales = () => {
-    const headers = ['date', 'item', 'quantity', 'unit_price', 'total', 'profit', 'paid_by'];
-    const rows = report.periodSales.map((s) => [
-      csvEscape(format(new Date(s.createdAt), 'yyyy-MM-dd HH:mm')),
-      csvEscape(s.productName),
-      csvEscape(s.quantity),
-      csvEscape(s.unitPrice ?? ''),
-      csvEscape(Number(s.totalAmount || 0)),
-      csvEscape(Number(s.profit || 0)),
-      csvEscape(s.paymentMethod || 'not recorded'),
-    ].join(','));
-    download(
-      `sales-${format(start, 'yyyy-MM-dd')}-to-${format(end, 'yyyy-MM-dd')}.csv`,
-      [headers.join(','), ...rows].join('\n')
-    );
-  };
-
-  const exportExpenses = () => {
-    const headers = ['date', 'category', 'description', 'amount', 'type'];
-    const rows = report.periodExpenses.map((e) => [
-      csvEscape(format(new Date(e.date), 'yyyy-MM-dd')),
-      csvEscape(e.category || ''),
-      csvEscape(e.description || ''),
-      csvEscape(Number(e.amount || 0)),
-      csvEscape(e.expenseType || ''),
-    ].join(','));
-    download(
-      `spending-${format(start, 'yyyy-MM-dd')}-to-${format(end, 'yyyy-MM-dd')}.csv`,
-      [headers.join(','), ...rows].join('\n')
-    );
-  };
+  }, [sales, creditSales, expenses, salePayments, stockPurchases, start, end, getExpenseTotalForRange, getCreditPaymentsTotalForRange]);
 
   /** Short enough to paste into WhatsApp, which is how this will actually travel. */
   const shareSummary = async () => {
@@ -392,27 +372,23 @@ export function SalesReports({
         </p>
       </div>
 
+      {/* Spreadsheets used to live here too, which meant exports existed in two
+          places and neither was complete. They are all in Export now; this stays
+          because sharing a few figures on WhatsApp is a different act from
+          downloading a file. */}
       <div className="sheet space-y-2">
         <p className="sheet-heading">Take it with you</p>
         <Button variant="outline" className="w-full justify-start" onClick={shareSummary}>
-          Share a summary
+          <Share2 className="h-4 w-4 mr-2" /> Share these figures
         </Button>
-        <Button
-          variant="outline"
-          className="w-full justify-start"
-          onClick={exportSales}
-          disabled={report.periodSales.length === 0}
+        <button
+          type="button"
+          onClick={onGoToExport}
+          className="w-full text-left text-xs text-muted-foreground leading-relaxed hover:text-foreground transition-colors"
         >
-          <Download className="h-4 w-4 mr-2" /> Sales as a spreadsheet
-        </Button>
-        <Button
-          variant="outline"
-          className="w-full justify-start"
-          onClick={exportExpenses}
-          disabled={report.periodExpenses.length === 0}
-        >
-          <Download className="h-4 w-4 mr-2" /> Spending as a spreadsheet
-        </Button>
+          Need a spreadsheet, or a statement for the bank? Those are in{' '}
+          <span className="text-primary font-medium">Export</span>.
+        </button>
       </div>
     </div>
   );

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { X, PackagePlus } from 'lucide-react';
+import { PackagePlus } from 'lucide-react';
 import { Product } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Modal } from '@/components/Modal';
 import { PAYMENT_METHODS, PaymentMethod, lastUsedMethod, rememberMethod } from '@/lib/payment';
 
 interface RestockDialogProps {
@@ -63,130 +64,123 @@ export function RestockDialog({ product, onRestock, onClose, suppliers, onAddSup
   const canSave = quantity > 0 && (paidNow || Boolean(supplierId) || Boolean(newSupplier.trim()));
 
   return (
-    <div className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center">
-      <div className="bg-card w-full max-w-md rounded-t-2xl sm:rounded-lg animate-slide-up">
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Restock Product</h2>
-          <Button variant="ghost" size="icon-sm" onClick={onClose}>
-            <X className="h-5 w-5" />
+    <Modal
+      title="Restock product"
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
+          <Button className="flex-1" onClick={handleConfirm} disabled={isSaving || !canSave}>
+            <PackagePlus className="h-4 w-4 mr-2" />
+            {isSaving ? 'Saving...' : 'Confirm restock'}
+          </Button>
+        </>
+      }
+    >
+      <div className="bg-muted rounded-xl p-4">
+        <p className="font-semibold text-foreground">{product.name}</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Current stock: {product.quantity} | Current cost: KSh {product.costPrice.toLocaleString()}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Input
+          type="number"
+          min={1}
+          value={quantity}
+          onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value || '1', 10)))}
+          placeholder="Qty added"
+        />
+        <Input
+          type="number"
+          min={0}
+          value={unitCost}
+          onChange={(e) => setUnitCost(Math.max(0, Number(e.target.value || 0)))}
+          placeholder="Unit cost"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Input
+          type="date"
+          value={happenedAt}
+          onChange={(e) => setHappenedAt(e.target.value)}
+        />
+        <select
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          value={allocationMode}
+          onChange={(e) => setAllocationMode(e.target.value as 'cash' | 'accrual')}
+        >
+          <option value="cash">Cash basis</option>
+          <option value="accrual">Accrual basis</option>
+        </select>
+      </div>
+
+      <Input
+        placeholder="Notes (optional)"
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+      />
+
+      {/* Stock arriving and money leaving are separate events. On credit the
+          cash has not moved, so no spending is recorded until you pay. */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Did you pay for it?</label>
+        <div className="flex gap-2">
+          <Button variant={paidNow ? 'default' : 'outline'} className="flex-1" onClick={() => setPaidNow(true)}>
+            Paid now
+          </Button>
+          <Button variant={!paidNow ? 'default' : 'outline'} className="flex-1" onClick={() => setPaidNow(false)}>
+            On credit
           </Button>
         </div>
+      </div>
 
-        <div className="p-4 space-y-4">
-          <div className="bg-muted rounded-xl p-4">
-            <p className="font-semibold text-foreground">{product.name}</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Current stock: {product.quantity} | Current cost: KSh {product.costPrice.toLocaleString()}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              type="number"
-              min={1}
-              value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value || '1', 10)))}
-              placeholder="Qty added"
-            />
-            <Input
-              type="number"
-              min={0}
-              value={unitCost}
-              onChange={(e) => setUnitCost(Math.max(0, Number(e.target.value || 0)))}
-              placeholder="Unit cost"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              type="date"
-              value={happenedAt}
-              onChange={(e) => setHappenedAt(e.target.value)}
-            />
+      {paidNow ? (
+        <div className="grid grid-cols-4 gap-1.5">
+          {PAYMENT_METHODS.map((m) => (
+            <Button
+              key={m.value}
+              variant={paymentMethod === m.value ? 'default' : 'outline'}
+              size="sm"
+              className="px-1 text-xs"
+              onClick={() => setPaymentMethod(m.value)}
+            >
+              {m.short}
+            </Button>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Who did you take it from?</label>
+          {suppliers.length > 0 && (
             <select
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={allocationMode}
-              onChange={(e) => setAllocationMode(e.target.value as 'cash' | 'accrual')}
+              value={supplierId}
+              onChange={(e) => setSupplierId(e.target.value)}
             >
-              <option value="cash">Cash basis</option>
-              <option value="accrual">Accrual basis</option>
+              <option value="">Someone new...</option>
+              {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
-          </div>
-
-          <Input
-            placeholder="Notes (optional)"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-
-          {/* Stock arriving and money leaving are separate events. On credit the
-              cash has not moved, so no spending is recorded until you pay. */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Did you pay for it?</label>
-            <div className="flex gap-2">
-              <Button variant={paidNow ? 'default' : 'outline'} className="flex-1" onClick={() => setPaidNow(true)}>
-                Paid now
-              </Button>
-              <Button variant={!paidNow ? 'default' : 'outline'} className="flex-1" onClick={() => setPaidNow(false)}>
-                On credit
-              </Button>
-            </div>
-          </div>
-
-          {paidNow ? (
-            <div className="grid grid-cols-4 gap-1.5">
-              {PAYMENT_METHODS.map((m) => (
-                <Button
-                  key={m.value}
-                  variant={paymentMethod === m.value ? 'default' : 'outline'}
-                  size="sm"
-                  className="px-1 text-xs"
-                  onClick={() => setPaymentMethod(m.value)}
-                >
-                  {m.short}
-                </Button>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Who did you take it from?</label>
-              {suppliers.length > 0 && (
-                <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={supplierId}
-                  onChange={(e) => setSupplierId(e.target.value)}
-                >
-                  <option value="">Someone new...</option>
-                  {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              )}
-              {!supplierId && (
-                <Input
-                  placeholder="Supplier name"
-                  value={newSupplier}
-                  onChange={(e) => setNewSupplier(e.target.value)}
-                />
-              )}
-              <p className="text-xs text-muted-foreground">
-                This goes to what you owe. No spending is recorded until you pay them.
-              </p>
-            </div>
           )}
-
-          <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
-            <p className="text-sm text-muted-foreground">{paidNow ? 'You are paying' : 'You will owe'}</p>
-            <p className="text-lg font-bold text-primary">KSh {totalCost.toLocaleString()}</p>
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <Button variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
-            <Button className="flex-1" onClick={handleConfirm} disabled={isSaving || !canSave}>
-              <PackagePlus className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Confirm Restock'}
-            </Button>
-          </div>
+          {!supplierId && (
+            <Input
+              placeholder="Supplier name"
+              value={newSupplier}
+              onChange={(e) => setNewSupplier(e.target.value)}
+            />
+          )}
+          <p className="text-xs text-muted-foreground">
+            This goes to what you owe. No spending is recorded until you pay them.
+          </p>
         </div>
+      )}
+
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
+        <p className="text-sm text-muted-foreground">{paidNow ? 'You are paying' : 'You will owe'}</p>
+        <p className="text-lg font-bold text-primary">KSh {totalCost.toLocaleString()}</p>
       </div>
-    </div>
+    </Modal>
   );
 }

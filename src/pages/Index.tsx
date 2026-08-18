@@ -2,20 +2,21 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import { format, subDays, addDays, isSameDay } from 'date-fns';
-import { useInventory } from '@/hooks/useInventory';
+import { useInventory, BasketLine, BasketPayment } from '@/hooks/useInventory';
 import { useCredit } from '@/hooks/useCredit';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useShopMembers } from '@/hooks/useShopMembers';
 import { useTillCount } from '@/hooks/useTillCount';
 import { useStockTake } from '@/hooks/useStockTake';
 import { useSuppliers } from '@/hooks/useSuppliers';
+import { useMpesa } from '@/hooks/useMpesa';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
 import { DayBook } from '@/components/DayBook';
 import { DaySales } from '@/components/DaySales';
 import { ProductList } from '@/components/ProductList';
 import { ProductForm } from '@/components/ProductForm';
-import { SellDialog } from '@/components/SellDialog';
+import { SaleDialog } from '@/components/SaleDialog';
 import { RestockDialog } from '@/components/RestockDialog';
 import { LowStockAlerts } from '@/components/LowStockAlerts';
 import { CreditManager } from '@/components/CreditManager';
@@ -33,6 +34,7 @@ import { CashUp } from '@/components/CashUp';
 import { StockPanel } from '@/components/StockPanel';
 import { SupplierDebts } from '@/components/SupplierDebts';
 import { RecordsPanel } from '@/components/RecordsPanel';
+import { MpesaReconcile } from '@/components/MpesaReconcile';
 import { Logo } from '@/components/Logo';
 import { Navigation, type TabType } from '@/components/Navigation';
 import { Product } from '@/types/inventory';
@@ -56,6 +58,9 @@ const SCREEN_TITLES: Partial<Record<TabType, string>> = {
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  // Controlled so Reports can send the owner to Export, where the files live.
+  const [moneyTab, setMoneyTab] = useState('reports');
+  const [showSale, setShowSale] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [sellingProduct, setSellingProduct] = useState<Product | null>(null);
@@ -74,17 +79,22 @@ const Index = () => {
   const {
     products, sales, allSales, stockMovements, isLoading: inventoryLoading,
     addProduct, bulkImportProducts, updateProduct, deleteProduct,
-    recordSale, voidSale, restockProduct, getLowStockProducts, getStats, searchProducts
+    recordBasketSale, voidSale, restockProduct, getLowStockProducts, getStats, searchProducts,
+    salePayments
   } = useInventory();
 
   const {
     customers, creditSales, payments: creditPayments, addCustomer,
-    addCreditSale, recordPayment, getTotalOwed, getCustomerTotalOwed,
+    refresh: refreshCredit, recordPayment, getTotalOwed, getCustomerTotalOwed,
     getPaymentsTotalForRange, getPaymentsForCredit, paymentsBetween
   } = useCredit();
 
   const { members, nameFor, fullNameFor } = useShopMembers();
   const { countFor, openingFor, saveCount } = useTillCount();
+  const {
+    entries: mpesaEntries, isImporting: mpesaImporting,
+    importEntries, forget: forgetMpesaEntry,
+  } = useMpesa();
   const { takes, recordCount } = useStockTake();
   const {
     suppliers, debts: supplierDebts,
@@ -157,32 +167,33 @@ const Index = () => {
   const dayProfit = daySales.reduce((sum, s) => sum + Number(s.profit || 0), 0);
   const daySpent = getAccruedExpensesForDate(viewDate, { includeInventoryPurchases: false });
 
-  // A sale is "on deni" when a credit record points at it.
-  const creditSaleIds = new Set(creditSales.map((c) => c.saleId));
-  const dayOnDeni = daySales
-    .filter((s) => creditSaleIds.has(s.id))
-    .reduce((sum, s) => sum + Number(s.totalAmount || 0), 0);
-  const dayPaidNow = daySalesTotal - dayOnDeni;
+  // What was taken on deni today. Read from the credit book rather than from the
+  // sales, because a receipt can be part paid and part deni -- the debt is the
+  // only place the unpaid share is actually written down.
+  const dayCredits = creditSales.filter((c) => isSameDay(new Date(c.createdAt), viewDate));
+  const dayOnDeni = dayCredits.reduce((sum, c) => sum + Number(c.amount || 0), 0);
+
+  // How the money that did arrive arrived. One receipt can have several of
+  // these, which is exactly why they are rows and not a column on the sale.
+  const dayPayments = salePayments.filter((p) => isSameDay(new Date(p.createdAt), viewDate));
+  const dayPaidNow = dayPayments.reduce((sum, p) => sum + p.amount, 0);
   const dayDeniPaidBack = getPaymentsTotalForRange(viewDate, viewDate);
 
-  // Cash in hand is not the same as money taken, so group what actually arrived
-  // by how it arrived. Sales on deni are excluded -- that money has not landed.
+  // Whatever is left over is takings from before payment methods were recorded.
+  // It is shown as "not recorded" rather than assumed to be cash.
+  const dayUnrecorded = Math.max(0, daySalesTotal - dayOnDeni - dayPaidNow);
+
   const receivedToday: { method: string; amount: number }[] = [
-    ...daySales
-      .filter((s) => !creditSaleIds.has(s.id))
-      .map((s) => ({ method: s.paymentMethod || 'unknown', amount: Number(s.totalAmount || 0) })),
+    ...dayPayments.map((p) => ({ method: p.method, amount: p.amount })),
     ...paymentsBetween(viewDate, viewDate)
       .map((p) => ({ method: p.paymentMethod || 'unknown', amount: p.amount })),
+    ...(dayUnrecorded > 0 ? [{ method: 'unknown', amount: dayUnrecorded }] : []),
   ];
 
   const cashOf = (rows: { method: string; amount: number }[]) =>
     rows.filter((r) => r.method === 'cash').reduce((sum, r) => sum + r.amount, 0);
 
-  const cashSales = cashOf(
-    daySales
-      .filter((s) => !creditSaleIds.has(s.id))
-      .map((s) => ({ method: s.paymentMethod || 'unknown', amount: Number(s.totalAmount || 0) }))
-  );
+  const cashSales = cashOf(dayPayments.map((p) => ({ method: p.method, amount: p.amount })));
   const cashDeniPaid = cashOf(
     paymentsBetween(viewDate, viewDate).map((p) => ({ method: p.paymentMethod || 'unknown', amount: p.amount }))
   );
@@ -229,33 +240,26 @@ const Index = () => {
     setEditingProduct(null);
   };
 
+  // Items, payments and any deni go to the database as one call, so a basket
+  // cannot end up half recorded. The customer is still resolved first: creating
+  // them afterwards and failing would leave a sale nobody owed.
   const handleSell = async (
-    itemId: string,
-    quantity: number,
-    options?: {
-      isCredit?: boolean;
-      customerId?: string;
-      newCustomer?: { name: string; phone: string };
-      unitPrice?: number;
-      paymentMethod?: string;
-      paymentReference?: string;
-    }
+    lines: BasketLine[],
+    payments: BasketPayment[],
+    credit?: { customerId?: string; newCustomer?: { name: string; phone: string }; amount: number }
   ) => {
-    const { isCredit, customerId, newCustomer, unitPrice, paymentMethod, paymentReference } = options || {};
+    let resolvedCustomerId = credit?.customerId;
 
-    // Resolve the customer BEFORE the sale. If we created them afterwards and it
-    // failed, stock would already be gone and the sale would look like cash.
-    let resolvedCustomerId = customerId;
-    if (isCredit && !resolvedCustomerId && newCustomer?.name) {
+    if (credit && !resolvedCustomerId && credit.newCustomer?.name) {
       const created = await addCustomer({
-        name: newCustomer.name,
-        phone: newCustomer.phone || '',
+        name: credit.newCustomer.name,
+        phone: credit.newCustomer.phone || '',
         email: '',
       });
       resolvedCustomerId = created?.id;
     }
 
-    if (isCredit && !resolvedCustomerId) {
+    if (credit && !resolvedCustomerId) {
       toast({
         title: 'Could not save the customer',
         description: 'Nothing was recorded. Check your connection and try again.',
@@ -264,18 +268,17 @@ const Index = () => {
       return false;
     }
 
-    const sale = await recordSale(itemId, quantity, unitPrice, paymentMethod, paymentReference);
-    if (!sale) return false;
+    const result = await recordBasketSale(
+      lines,
+      payments,
+      credit && resolvedCustomerId
+        ? { customerId: resolvedCustomerId, amount: credit.amount }
+        : undefined
+    );
+    if (!result) return false;
 
-    if (isCredit && resolvedCustomerId) {
-      await addCreditSale(
-        resolvedCustomerId,
-        sale.id,
-        sale.product_name,
-        quantity,
-        Number(sale.total_amount)
-      );
-    }
+    if (credit) await refreshCredit();
+    setShowSale(false);
     setSellingProduct(null);
     return true;
   };
@@ -449,7 +452,8 @@ const Index = () => {
             onEdit={(p) => { setEditingProduct(p); setShowProductForm(true); }}
             onDelete={deleteProduct}
             onAdd={() => { setEditingProduct(null); setShowProductForm(true); }}
-            onSell={(p) => setSellingProduct(p)}
+            onSell={(p) => { setSellingProduct(p); setShowSale(true); }}
+            onStartSale={() => { setSellingProduct(null); setShowSale(true); }}
             onRestock={isOwner ? (p) => setRestockingProduct(p) : undefined}
             isOwner={isOwner}
           />
@@ -514,11 +518,12 @@ const Index = () => {
         )}
 
         {activeTab === 'money' && isOwner && (
-          <Tabs defaultValue="reports">
-            <TabsList className="w-full grid grid-cols-3 gap-1 p-1">
-              <TabsTrigger value="reports">Reports</TabsTrigger>
-              <TabsTrigger value="spending">Spending</TabsTrigger>
-              <TabsTrigger value="export">Export</TabsTrigger>
+          <Tabs value={moneyTab} onValueChange={setMoneyTab}>
+            <TabsList className="w-full grid grid-cols-4 gap-1 p-1">
+              <TabsTrigger value="reports" className="text-xs px-1">Reports</TabsTrigger>
+              <TabsTrigger value="spending" className="text-xs px-1">Spending</TabsTrigger>
+              <TabsTrigger value="mpesa" className="text-xs px-1">M-Pesa</TabsTrigger>
+              <TabsTrigger value="export" className="text-xs px-1">Export</TabsTrigger>
             </TabsList>
             <TabsContent value="spending" className="pt-3">
               <ExpenseManager
@@ -537,13 +542,29 @@ const Index = () => {
                 getCreditPaymentsTotalForRange={getPaymentsTotalForRange}
                 getExpenseTotalForRange={getExpenseTotalForRange}
                 expenses={expenses}
+                salePayments={salePayments}
                 stockPurchases={stockMovements.filter((m) => m.reason === 'restock' && m.movementType === 'in')}
                 businessCategory={shop?.business_category || 'retail'}
+                onGoToExport={() => setMoneyTab('export')}
+              />
+            </TabsContent>
+            <TabsContent value="mpesa" className="pt-3">
+              <MpesaReconcile
+                sales={allSales}
+                salePayments={salePayments}
+                entries={mpesaEntries}
+                isImporting={mpesaImporting}
+                onImport={importEntries}
+                onForget={forgetMpesaEntry}
               />
             </TabsContent>
             <TabsContent value="export" className="pt-3">
               <RecordsPanel
                 shopName={shop?.name || ''}
+                salePayments={salePayments}
+                ownerName={String(user?.user_metadata?.full_name || '')}
+                mpesaEntries={mpesaEntries}
+                getExpenseTotalForRange={getExpenseTotalForRange}
                 sales={allSales}
                 expenses={expenses}
                 creditSales={creditSales}
@@ -598,12 +619,13 @@ const Index = () => {
           onClose={() => { setShowProductForm(false); setEditingProduct(null); }}
         />
       )}
-      {sellingProduct && (
-        <SellDialog
-          product={sellingProduct}
+      {showSale && (
+        <SaleDialog
+          products={products}
           customers={customers}
-          onSell={handleSell}
-          onClose={() => setSellingProduct(null)}
+          initialProduct={sellingProduct}
+          onSubmit={handleSell}
+          onClose={() => { setShowSale(false); setSellingProduct(null); }}
           isOwner={isOwner}
           canOverridePrice={can('override_price')}
         />

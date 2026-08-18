@@ -1,12 +1,33 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Product, Sale, DashboardStats, StockMovement } from '@/types/inventory';
+import { Product, Sale, SalePayment, DashboardStats, StockMovement } from '@/types/inventory';
 import { useToast } from '@/hooks/use-toast';
+
+export interface BasketLine {
+  productId: string;
+  quantity: number;
+  /** The negotiated price per unit, when it differs from the catalog price. */
+  unitPrice?: number;
+}
+
+export interface BasketPayment {
+  method: string;
+  amount: number;
+  reference?: string;
+}
+
+/**
+ * Money is decimal and JavaScript is not, so 15.7 * 3 is 47.099999999999994.
+ * The database refuses a basket whose payments do not add up to its items, and
+ * that refusal must come from a real mistake, not from binary floating point.
+ */
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
 export const useInventory = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [allSales, setAllSales] = useState<Sale[]>([]);
+  const [salePayments, setSalePayments] = useState<SalePayment[]>([]);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { shop, isOwner } = useAuth();
@@ -16,6 +37,7 @@ export const useInventory = () => {
     if (!shop?.id) {
       setProducts([]);
       setAllSales([]);
+      setSalePayments([]);
       setStockMovements([]);
       setIsLoading(false);
       return;
@@ -66,6 +88,7 @@ export const useInventory = () => {
         const qty = Number(s.quantity || 0);
         return {
           id: s.id,
+          receiptId: s.receipt_id || s.id,
           productId: s.product_id,
           productName: s.product_name,
           quantity: qty,
@@ -84,6 +107,30 @@ export const useInventory = () => {
       }));
     } catch (error: any) {
       console.error("Sales error:", error);
+    }
+  };
+
+  // How the money actually arrived. Kept separate from sales because one
+  // payment can cover several lines, and one receipt can take several payments.
+  const fetchSalePayments = async () => {
+    if (!shop?.id) return;
+    try {
+      const { data, error } = await supabase.from('sale_payments')
+        .select('*')
+        .eq('shop_id', shop.id);
+
+      if (error) throw error;
+
+      setSalePayments((data || []).map((p: any) => ({
+        id: p.id,
+        receiptId: p.receipt_id,
+        amount: Number(p.amount || 0),
+        method: p.payment_method,
+        reference: p.payment_reference || null,
+        createdAt: p.created_at,
+      })));
+    } catch (error: any) {
+      console.error("Sale payments error:", error);
     }
   };
 
@@ -118,6 +165,7 @@ export const useInventory = () => {
   useEffect(() => {
     fetchProducts();
     fetchSales();
+    fetchSalePayments();
     fetchStockMovements();
   }, [shop?.id]);
 
@@ -141,6 +189,7 @@ export const useInventory = () => {
     toast({ title: 'Sale cancelled', description: 'The stock has been put back.' });
     await fetchProducts();
     await fetchSales();
+    await fetchSalePayments();
     return true;
   };
 
@@ -230,30 +279,44 @@ export const useInventory = () => {
     }
   };
 
-  // unitPrice is the negotiated price per unit. Omit it to sell at the catalog
+  // One sale, however many items and however many ways it was paid for. A single
+  // item paid in cash is just the smallest case of this, which is why there is
+  // no separate single-item path to drift out of step.
+  //
+  // unitPrice is the negotiated price per line. Omit it to sell at the catalog
   // price; the RPC re-checks permission and the owner's band either way.
-  const recordSale = async (
-    productId: string,
-    quantity: number,
-    unitPrice?: number,
-    paymentMethod?: string,
-    paymentReference?: string
+  //
+  // Items, payments and the deni all land in one transaction. The old flow wrote
+  // the sale first and the debt afterwards, so a failure in between left a sale
+  // looking paid that nobody owed.
+  const recordBasketSale = async (
+    lines: BasketLine[],
+    payments: BasketPayment[],
+    credit?: { customerId: string; amount: number }
   ) => {
-    if (!shop?.id) return;
+    if (!shop?.id || lines.length === 0) return null;
 
     try {
-      const { data, error } = await supabase.rpc('record_product_sale_atomic', {
+      const { data, error } = await supabase.rpc('record_basket_sale_atomic', {
         p_shop_id: shop.id,
-        p_product_id: productId,
-        p_quantity: quantity,
-        p_unit_price: unitPrice ?? null,
-        p_payment_method: paymentMethod ?? null,
-        p_payment_reference: paymentReference ?? null,
+        p_lines: lines.map((l) => ({
+          product_id: l.productId,
+          quantity: l.quantity,
+          unit_price: l.unitPrice ?? null,
+        })),
+        p_payments: payments.map((p) => ({
+          method: p.method,
+          amount: round2(p.amount),
+          reference: p.reference ?? null,
+        })),
+        p_customer_id: credit?.customerId ?? null,
+        p_credit_amount: round2(credit?.amount ?? 0),
       });
       if (error) throw error;
 
       await fetchProducts();
       await fetchSales();
+      await fetchSalePayments();
       return Array.isArray(data) ? data[0] : data;
     } catch (error: any) {
       toast({ title: "Sale failed", description: error.message, variant: "destructive" });
@@ -320,6 +383,7 @@ export const useInventory = () => {
     products,
     sales,
     allSales,
+    salePayments,
     voidSale,
     stockMovements,
     isLoading,
@@ -327,7 +391,7 @@ export const useInventory = () => {
     bulkImportProducts,
     updateProduct,
     deleteProduct,
-    recordSale,
+    recordBasketSale,
     restockProduct,
     getStats,
     getLowStockProducts: () => products.filter(p => p.quantity <= p.lowStockThreshold),

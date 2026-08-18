@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
 import { Product } from '@/types/inventory';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Modal } from '@/components/Modal';
 
 interface ProductFormProps {
   product?: Product | null;
@@ -72,142 +72,135 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
   const profit = (parseFloat(formData.sellingPrice) || 0) - (parseFloat(formData.costPrice) || 0);
 
   return (
-    <div className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center">
-      <div className="bg-card w-full max-w-md rounded-t-2xl sm:rounded-lg max-h-[90vh] overflow-y-auto animate-slide-up">
-        <div className="sticky top-0 bg-card p-4 border-b border-border flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
-            {product ? 'Edit product' : 'Add product'}
-          </h2>
-          <Button variant="ghost" size="icon-sm" onClick={onClose}>
-            <X className="h-5 w-5" />
+    <Modal
+      title={product ? 'Edit product' : 'Add product'}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      footer={
+        <>
+          <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
+            Cancel
           </Button>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Product name *</Label>
-            <Input
-              id="name"
-              placeholder="e.g. Unga wa Ngano (2kg)"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="costPrice">What it costs you *</Label>
-              <Input
-                id="costPrice"
-                type="number"
-                placeholder="0"
-                value={formData.costPrice}
-                onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
-                required
-                min="0"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="sellingPrice">What you sell it for *</Label>
-              <Input
-                id="sellingPrice"
-                type="number"
-                placeholder="0"
-                value={formData.sellingPrice}
-                onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
-                required
-                min="0"
-              />
-            </div>
-          </div>
-
-          {(
-            <div className="space-y-2 rounded-xl border border-border p-3">
-              <Label>Negotiable price range (Optional)</Label>
-              <p className="text-xs text-muted-foreground">
-                If staff are allowed to agree a price with the customer, set how low and
-                how high they may go. Leave blank to keep the price fixed.
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  type="number"
-                  placeholder="Lowest"
-                  value={formData.minPrice}
-                  onChange={(e) => setFormData({ ...formData, minPrice: e.target.value })}
-                  min="0"
-                />
-                <Input
-                  type="number"
-                  placeholder="Highest"
-                  value={formData.maxPrice}
-                  onChange={(e) => setFormData({ ...formData, maxPrice: e.target.value })}
-                  min="0"
-                />
-              </div>
-              {bandInverted && (
-                <p className="text-xs text-destructive">
-                  The lowest price cannot be higher than the highest.
-                </p>
-              )}
-            </div>
-          )}
-
-          {profit !== 0 && (
-            <div className={`p-3 rounded-lg ${profit > 0 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
-              <p className="text-sm font-medium">
-                Profit per item: KSh {profit.toLocaleString()}
-              </p>
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="quantity">How many you have *</Label>
-              <Input
-                id="quantity"
-                type="number"
-                placeholder="0"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                required
-                min="0"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lowStockThreshold">Warn me at</Label>
-              <Input
-                id="lowStockThreshold"
-                type="number"
-                placeholder="5"
-                value={formData.lowStockThreshold}
-                onChange={(e) => setFormData({ ...formData, lowStockThreshold: e.target.value })}
-                min="0"
-              />
-            </div>
-          </div>
-
-
-          <div className="space-y-2">
-            <Label htmlFor="category">Category (Optional)</Label>
-            <Input
-              id="category"
-              placeholder="e.g. Food, Dairy, Soap"
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-            />
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" className="flex-1" disabled={bandInverted}>
-              {product ? 'Save changes' : 'Add product'}
-            </Button>
-          </div>
-        </form>
+          <Button type="submit" className="flex-1" disabled={bandInverted}>
+            {product ? 'Save changes' : 'Add product'}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-2">
+        <Label htmlFor="name">Product name *</Label>
+        <Input
+          id="name"
+          placeholder="e.g. Unga wa Ngano (2kg)"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          required
+        />
       </div>
-    </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="costPrice">What it costs you *</Label>
+          <Input
+            id="costPrice"
+            type="number"
+            placeholder="0"
+            value={formData.costPrice}
+            onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
+            required
+            min="0"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="sellingPrice">What you sell it for *</Label>
+          <Input
+            id="sellingPrice"
+            type="number"
+            placeholder="0"
+            value={formData.sellingPrice}
+            onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
+            required
+            min="0"
+          />
+        </div>
+      </div>
+
+      {(
+        <div className="space-y-2 rounded-xl border border-border p-3">
+          <Label>Negotiable price range (Optional)</Label>
+          <p className="text-xs text-muted-foreground">
+            If staff are allowed to agree a price with the customer, set how low and
+            how high they may go. Leave blank to keep the price fixed.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              type="number"
+              placeholder="Lowest"
+              value={formData.minPrice}
+              onChange={(e) => setFormData({ ...formData, minPrice: e.target.value })}
+              min="0"
+            />
+            <Input
+              type="number"
+              placeholder="Highest"
+              value={formData.maxPrice}
+              onChange={(e) => setFormData({ ...formData, maxPrice: e.target.value })}
+              min="0"
+            />
+          </div>
+          {bandInverted && (
+            <p className="text-xs text-destructive">
+              The lowest price cannot be higher than the highest.
+            </p>
+          )}
+        </div>
+      )}
+
+      {profit !== 0 && (
+        <div className={`p-3 rounded-lg ${profit > 0 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+          <p className="text-sm font-medium">
+            Profit per item: KSh {profit.toLocaleString()}
+          </p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="quantity">How many you have *</Label>
+          <Input
+            id="quantity"
+            type="number"
+            placeholder="0"
+            value={formData.quantity}
+            onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+            required
+            min="0"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="lowStockThreshold">Warn me at</Label>
+          <Input
+            id="lowStockThreshold"
+            type="number"
+            placeholder="5"
+            value={formData.lowStockThreshold}
+            onChange={(e) => setFormData({ ...formData, lowStockThreshold: e.target.value })}
+            min="0"
+          />
+        </div>
+      </div>
+
+
+      <div className="space-y-2">
+        <Label htmlFor="category">Category (Optional)</Label>
+        <Input
+          id="category"
+          placeholder="e.g. Food, Dairy, Soap"
+          value={formData.category}
+          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+        />
+      </div>
+
+    </Modal>
   );
 }
