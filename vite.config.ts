@@ -16,8 +16,8 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'og-image.png'],
       manifest: {
-        name: 'Tarihi — biashara yako, siku kwa siku',
-        short_name: 'Tarihi',
+        name: 'DukaKonnect · biashara yako, siku kwa siku',
+        short_name: 'DukaKonnect',
         description: 'Sales, stock, deni and expenses for small shops in Kenya.',
         theme_color: '#c85a2e',
         background_color: '#f8f7f5',

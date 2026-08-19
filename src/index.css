@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -35,7 +35,22 @@
     --input: 30 15% 88%;
     --ring: 16 65% 50%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
+
+    /* The bottom bar is dark in this family of apps, which lifts it off the
+       paper without a border and makes the active tab the brightest thing on
+       the screen. Its own tokens because it is the one surface that does not
+       follow the page. */
+    --nav-background: 22 16% 12%;
+    --nav-foreground: 30 10% 62%;
+    --nav-active: 16 72% 62%;
+
+    /* Warm-tinted rather than neutral black, so shadows sit on the paper
+       instead of greying it. */
+    --shadow-sm: 0 1px 2px hsl(24 20% 20% / 0.05);
+    --shadow-md: 0 2px 6px hsl(24 20% 20% / 0.07);
+    --shadow-lg: 0 6px 18px hsl(24 20% 20% / 0.09);
+    --shadow-nav: 0 -1px 12px hsl(24 20% 10% / 0.14);
 
     --warning: 45 93% 47%;
     --warning-foreground: 20 20% 15%;
@@ -87,6 +102,16 @@
 
     --success: 145 30% 40%;
     --success-foreground: 0 0% 100%;
+
+    /* Already dark, so the bar sits a shade above the page rather than below. */
+    --nav-background: 22 16% 16%;
+    --nav-foreground: 30 10% 60%;
+    --nav-active: 16 72% 62%;
+
+    --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.3);
+    --shadow-md: 0 2px 6px hsl(0 0% 0% / 0.35);
+    --shadow-lg: 0 6px 18px hsl(0 0% 0% / 0.4);
+    --shadow-nav: 0 -1px 12px hsl(0 0% 0% / 0.45);
   }
 }
 
@@ -99,7 +124,7 @@
     /* Plain ground. The gradient wash that used to live here was decoration
        borrowed from marketing pages; a daybook sits on paper, not on glass. */
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'DM Sans', system-ui, sans-serif;
   }
 }
 

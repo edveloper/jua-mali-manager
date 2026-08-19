@@ -92,7 +92,7 @@ export function MpesaReconcile({ sales, salePayments, entries, isImporting, onIm
         <p className="font-medium">Paste your M-Pesa messages</p>
         <p className="text-xs text-muted-foreground leading-relaxed">
           Open M-Pesa in your messages, copy them, and paste here. Copy as many as you
-          like at once. Nothing is sent to Safaricom — this only reads the text.
+          like at once. Nothing is sent to Safaricom. This only reads the text.
         </p>
         <textarea
           value={text}
@@ -124,7 +124,7 @@ export function MpesaReconcile({ sales, salePayments, entries, isImporting, onIm
             <span className="num">{result.entries_seen}</span>
           </div>
           <div className="ledger-line">
-            <span className="text-muted-foreground">New to Tarihi</span>
+            <span className="text-muted-foreground">New to DukaKonnect</span>
             <span className="num">{result.entries_new}</span>
           </div>
           <div className="ledger-line">
@@ -229,8 +229,8 @@ export function MpesaReconcile({ sales, salePayments, entries, isImporting, onIm
       {entries.length === 0 && !result && (
         <div className="sheet">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Nothing checked yet. Paste a few messages above and Tarihi will tell you which
-            ones match a sale you recorded — and, more usefully, which do not.
+            Nothing checked yet. Paste a few messages above and DukaKonnect will tell you which
+            ones match a sale you recorded, and more usefully, which do not.
           </p>
         </div>
       )}

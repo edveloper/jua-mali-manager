@@ -3,13 +3,13 @@ const SECTIONS: { title: string; paragraphs: string[] }[] = [
     title: 'What we keep',
     paragraphs: [
       'What you type in: your shop name, the things you sell and their prices, every sale, your spending, and the names and phone numbers of customers you record for deni.',
-      'Tarihi stores it on Supabase servers, not on your phone. That is why you can lose your phone and still have your records.',
+      'DukaKonnect stores it on Supabase servers, not on your phone. That is why you can lose your phone and still have your records.',
     ],
   },
   {
     title: 'Who can see it',
     paragraphs: [
-      'You and the staff you add, and nobody else. Another shop using Tarihi cannot see any of your records, and we do not sell or share your data.',
+      'You and the staff you add, and nobody else. Another shop using DukaKonnect cannot see any of your records, and we do not sell or share your data.',
       'Staff see less than you do. They can sell and check stock, but not what you paid for goods, your spending, or your profit.',
     ],
   },
@@ -23,7 +23,7 @@ const SECTIONS: { title: string; paragraphs: string[] }[] = [
   {
     title: 'Getting it out, or getting rid of it',
     paragraphs: [
-      'Money can export your sales and spending to a spreadsheet whenever you want. It is your business record — take a copy.',
+      'Money can export your sales and spending to a spreadsheet whenever you want. It is your business record, so take a copy.',
       'If you want your shop and everything in it deleted for good, ask through Contact us and we will do it.',
     ],
   },

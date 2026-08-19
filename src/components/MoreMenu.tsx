@@ -48,7 +48,7 @@ export function MoreMenu({ onNavigate, staffCount, canInstall, onInstall }: More
     { label: 'How this works', icon: HelpCircle, onClick: () => onNavigate('help') },
     { label: 'Contact us', icon: MessageSquare, onClick: () => onNavigate('contact') },
     { label: 'Your data', icon: ShieldAlert, onClick: () => onNavigate('privacy') },
-    { label: 'About Tarihi', icon: Info, onClick: () => onNavigate('about') },
+    { label: 'About DukaKonnect', icon: Info, onClick: () => onNavigate('about') },
   ];
 
   const rows = isOwner ? [...ownerRows, ...commonRows] : commonRows;

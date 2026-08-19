@@ -1,7 +1,7 @@
-// Duka Manager lets people sign in with a phone number instead of an email.
+// DukaKonnect lets people sign in with a phone number instead of an email.
 // Supabase only understands emails, so phone numbers are mapped to a synthetic
 // address. Login and employee creation MUST use the same mapping or the account
-// that gets created is not the account the employee can log into — so this lives
+// that gets created is not the account the employee can log into, so this lives
 // in one place and both call sites use it.
 
 const PHONE_DOMAIN = 'duka.local';
@@ -41,3 +41,34 @@ export const toDisplayIdentity = (email?: string | null): string => {
   }
   return digits;
 };
+
+/**
+ * What the person appears to be typing.
+ *
+ * The sign-in form asks one question rather than making somebody choose between
+ * a phone tab and an email tab before they have typed anything. `toAuthEmail`
+ * already accepts either, so this exists only to show the right icon and to
+ * warn before submitting rather than after.
+ *
+ * 'unknown' is a real answer, not a failure: an empty box, or three characters
+ * in, is not yet either one.
+ */
+export type IdentifierKind = 'phone' | 'email' | 'unknown';
+
+export const identifierKind = (input: string): IdentifierKind => {
+  const value = input.trim();
+  if (value === '') return 'unknown';
+  if (value.includes('@')) return 'email';
+
+  // Kenyan numbers land at 9 digits local, 10 with the leading zero, 12 with the
+  // country code. Anything shorter is somebody mid-way through typing.
+  const digits = value.replace(/\D/g, '');
+  const looksNumeric = /^[+\d][\d\s()-]*$/.test(value);
+  if (looksNumeric && digits.length >= 9) return 'phone';
+
+  return 'unknown';
+};
+
+/** How the typed number will actually be stored, shown back for confirmation. */
+export const prettyPhone = (input: string): string =>
+  toDisplayIdentity(toAuthEmail(input));

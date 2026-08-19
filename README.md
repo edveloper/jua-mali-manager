@@ -1,8 +1,8 @@
-# Tarihi
+# DukaKonnect
 
 *biashara yako, siku kwa siku*
 
-Tarihi keeps the books for small shops in Kenya — the kind of business in Voi,
+DukaKonnect keeps the books for small shops in Kenya — the kind of business in Voi,
 Oyugis or Kilifi that runs on a paper daybook and a good memory. It records
 sales, tracks stock, follows up deni, and tells the owner what they actually took
 home that day.

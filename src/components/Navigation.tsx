@@ -57,7 +57,10 @@ export function Navigation({ activeTab, onTabChange, isOwner = true, deniCount =
   const tabs = isOwner ? ownerTabs : employeeTabs;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border safe-area-pb z-40">
+    <nav
+      className="fixed bottom-0 left-0 right-0 bg-nav safe-area-pb z-40"
+      style={{ boxShadow: 'var(--shadow-nav)' }}
+    >
       <div className="flex items-stretch justify-around max-w-md mx-auto">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -69,7 +72,7 @@ export function Navigation({ activeTab, onTabChange, isOwner = true, deniCount =
               onClick={() => onTabChange(tab.id)}
               className={cn(
                 'flex-1 flex flex-col items-center gap-1 pt-2.5 pb-2 relative transition-colors',
-                isActive ? 'text-primary' : 'text-muted-foreground'
+                isActive ? 'text-nav-active' : 'text-nav-foreground'
               )}
             >
               {/* A rule above the active tab rather than a pill behind it --
@@ -77,7 +80,7 @@ export function Navigation({ activeTab, onTabChange, isOwner = true, deniCount =
               <span
                 className={cn(
                   'absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full transition-colors',
-                  isActive ? 'bg-primary' : 'bg-transparent'
+                  isActive ? 'bg-nav-active' : 'bg-transparent'
                 )}
               />
               <div className="relative">

@@ -19,7 +19,7 @@ const GUIDES: { title: string; points: string[] }[] = [
     title: 'A sale recorded by mistake',
     points: [
       'Find it in the list on Home and tap Cancel. The stock goes back and the day stops counting it.',
-      'Nothing is erased — a cancelled sale stays visible, crossed out, so the correction is on the record.',
+      'Nothing is erased. A cancelled sale stays visible, crossed out, so the correction is on the record.',
       'Staff can cancel their own sales for 12 hours. After that, only the owner can.',
     ],
   },
@@ -36,7 +36,7 @@ const GUIDES: { title: string; points: string[] }[] = [
     points: [
       'The Deni tab shows who owes you and how much, biggest first.',
       'Record part payments as they come. Each one is saved with its date and how it was paid.',
-      'A sale on deni counts as income the day it happens. The payment later is not income again — it is the money finally arriving.',
+      'A sale on deni counts as income the day it happens. The payment later is not income again, it is the money finally arriving.',
     ],
   },
   {

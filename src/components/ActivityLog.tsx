@@ -121,7 +121,7 @@ export function ActivityLog({
         at,
         lens: 'in',
         title: what,
-        detail: how || 'Payment not recorded',
+        detail: how || (total === 0 ? 'Given away, no charge' : 'Payment not recorded'),
         amount: total,
         flow: 'in',
         actor: nameFor(lines[0].soldBy),
@@ -330,7 +330,7 @@ export function ActivityLog({
       <div className="sheet">
         <p className="text-xs text-muted-foreground leading-relaxed">
           Built from your records themselves, so it cannot disagree with them. It shows
-          money and stock moving — it does not yet show a price being edited or a
+          money and stock moving. It does not yet show a price being edited or a
           permission being changed, because those are not recorded anywhere.
         </p>
       </div>

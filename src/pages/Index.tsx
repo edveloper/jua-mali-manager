@@ -54,7 +54,7 @@ const SCREEN_TITLES: Partial<Record<TabType, string>> = {
   help: 'How this works',
   privacy: 'Your data',
   contact: 'Contact us',
-  about: 'About Tarihi',
+  about: 'About DukaKonnect',
   alerts: 'Running low',
 };
 
@@ -306,7 +306,7 @@ const Index = () => {
             </>
           ) : (
             <>
-              <h1 className="text-lg font-bold truncate flex-1 min-w-0">{shop?.name || 'Tarihi'}</h1>
+              <h1 className="text-lg font-bold truncate flex-1 min-w-0">{shop?.name || 'DukaKonnect'}</h1>
               <Logo wordmark={false} size="sm" />
             </>
           )}

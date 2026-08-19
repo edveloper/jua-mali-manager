@@ -114,6 +114,9 @@ export function SaleDialog({
     if (l.priceInput.trim() === '' || !Number.isFinite(Number(l.priceInput))) return 'Enter a price';
     const price = num(l.priceInput);
     if (price < 0) return 'Price cannot be negative';
+    // Zero means giving it away, which is a decision rather than a low price,
+    // so it is not measured against the negotiating band.
+    if (price === 0) return '';
     if (l.minPrice !== null && price < l.minPrice) return `Lowest is KSh ${money(l.minPrice)}`;
     if (l.maxPrice !== null && price > l.maxPrice) return `Highest is KSh ${money(l.maxPrice)}`;
     return '';
@@ -173,10 +176,12 @@ export function SaleDialog({
   const patchLine = (index: number, patch: Partial<Line>) =>
     setLines((current) => current.map((l, i) => (i === index ? { ...l, ...patch } : l)));
 
+  // A basket totalling nothing is allowed: everything in it was given away.
+  const isGiveaway = lines.length > 0 && basketTotal === 0;
+
   const canSubmit =
     !isSubmitting &&
     lines.length > 0 &&
-    basketTotal > 0 &&
     !anyLineError &&
     (splitMode ? remaining === 0 : true) &&
     !(deniAmount > 0 && !hasCustomer);
@@ -190,7 +195,9 @@ export function SaleDialog({
       unitPrice: canOverridePrice ? num(l.priceInput) : undefined,
     }));
 
-    const payments: BasketPayment[] = splitMode
+    const payments: BasketPayment[] = isGiveaway
+      ? []
+      : splitMode
       ? parts
           .filter((p) => num(p.amount) > 0)
           .map((p) => ({
@@ -235,6 +242,7 @@ export function SaleDialog({
             <ShoppingCart className="h-4 w-4 mr-2" />
             {isSubmitting
               ? 'Saving...'
+              : isGiveaway ? 'Record giveaway'
               : deniAmount > 0 && deniAmount === basketTotal ? 'Record on deni' : 'Complete sale'}
           </Button>
         </>
@@ -389,11 +397,22 @@ export function SaleDialog({
         <>
           <div className="ledger-total flex items-baseline justify-between">
             <span className="font-semibold">Total</span>
-            <span className="text-xl amount">KSh {money(basketTotal)}</span>
+            <span className="text-xl amount">
+              {isGiveaway ? 'Free' : `KSh ${money(basketTotal)}`}
+            </span>
           </div>
 
-          {/* Payment */}
-          {!splitMode ? (
+          {/* Nothing is being paid, so there is nothing to ask about. Saying so
+              is better than showing payment buttons that cannot mean anything. */}
+          {isGiveaway ? (
+            <div className="rounded-lg border border-border bg-muted/40 p-3">
+              <p className="text-sm font-medium">Going out for free</p>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                No money is being collected. The stock still leaves your shelf and what it
+                cost you still counts, so today will show the loss.
+              </p>
+            </div>
+          ) : !splitMode ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">How are they paying?</label>

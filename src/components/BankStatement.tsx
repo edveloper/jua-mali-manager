@@ -159,7 +159,7 @@ export function BankStatement({
       <div className="mt-5 pt-3 border-t border-foreground/20 print-rule text-xs text-muted-foreground leading-relaxed">
         <p>
           Prepared on {format(new Date(), 'd MMMM yyyy')} from records kept by the business
-          owner in Tarihi. These records are not audited.
+          owner in DukaKonnect. These records are not audited.
         </p>
         <p className="mt-1">
           No bank, cash or M-Pesa account balance is included. Where a figure is shown as

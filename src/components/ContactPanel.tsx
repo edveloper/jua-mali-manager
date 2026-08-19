@@ -10,7 +10,7 @@ const CONTACT = {
 export function ContactPanel() {
   const mailto = (kind: 'problem' | 'idea') => {
     const subject = encodeURIComponent(
-      kind === 'problem' ? 'Tarihi: something is wrong' : 'Tarihi: an idea'
+      kind === 'problem' ? 'DukaKonnect: something is wrong' : 'DukaKonnect: an idea'
     );
     const body = encodeURIComponent(
       kind === 'problem'
@@ -24,7 +24,7 @@ export function ContactPanel() {
     <div className="space-y-3">
       <div className="sheet">
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Something broken, or an idea for what it should do? Say so. Tarihi is small
+          Something broken, or an idea for what it should do? Say so. DukaKonnect is small
           enough that one message reaches the person who builds it.
         </p>
       </div>

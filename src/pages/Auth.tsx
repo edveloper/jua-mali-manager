@@ -1,21 +1,43 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Mail, Phone, Lock, User, Building2, Eye, EyeOff } from 'lucide-react';
+import { AtSign, Lock, User, Building2, Eye, EyeOff, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/Logo';
-import { toAuthEmail, canReceiveEmail } from '@/lib/identity';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toAuthEmail, canReceiveEmail, identifierKind, prettyPhone } from '@/lib/identity';
 
 type AuthMode = 'signin' | 'signup';
 
+const CATEGORIES = [
+  { value: 'retail', label: 'Retail shop / Duka' },
+  { value: 'barbershop_salon', label: 'Barbershop / Salon' },
+  { value: 'computer_center', label: 'Computer centre / Cyber' },
+  { value: 'transport', label: 'Transport / Matatu' },
+  { value: 'food_hospitality', label: 'Food / Hospitality' },
+  { value: 'repair_services', label: 'Repair services' },
+  { value: 'health_beauty', label: 'Health / Beauty' },
+  { value: 'education_training', label: 'Education / Training' },
+  { value: 'other_services', label: 'Other service business' },
+];
+
+/**
+ * One form, one identity box.
+ *
+ * This used to open on a pair of tabs, Mobile Number and Email Address, which
+ * asked people to classify themselves before they had typed anything. The tabs
+ * were only ever cosmetic: `toAuthEmail` has always accepted either and mapped a
+ * phone number onto a synthetic address. So the choice bought nothing and cost
+ * a decision, plus a cleared field every time somebody guessed wrong.
+ *
+ * Now the box works it out while you type, shows which one it thinks you meant,
+ * and reads back the number it will actually store. The tab strip is gone.
+ */
 export default function Auth() {
   const [mode, setMode] = useState<AuthMode>('signin');
-  const [identifier, setIdentifier] = useState(''); 
-  const [authMethod, setAuthMethod] = useState<'phone' | 'email'>('phone');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [shopName, setShopName] = useState('');
@@ -23,12 +45,15 @@ export default function Auth() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  
+
   const { signIn, signUp, user, shopMember, loading: isLoading, sendPasswordReset } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const wasRemoved = searchParams.get('removed') === '1';
+
+  const kind = useMemo(() => identifierKind(identifier), [identifier]);
+  const isSignUp = mode === 'signup';
 
   // Waits for the membership, not just the user. During sign-up the auth user
   // exists for a moment before create_shop_with_owner has run; redirecting on
@@ -41,16 +66,16 @@ export default function Auth() {
   }, [user, shopMember, isLoading, navigate]);
 
   const handleForgotPassword = async () => {
-    const identifierValue = identifier.trim();
+    const value = identifier.trim();
 
-    if (!identifierValue) {
+    if (!value) {
       toast({ title: 'Type your phone number or email first', variant: 'destructive' });
       return;
     }
 
-    // A phone login has no inbox to send to -- the address is synthetic. Saying
-    // "check your email" there would strand people, so say what actually helps.
-    if (!canReceiveEmail(identifierValue)) {
+    // A phone login has no inbox to send to, because the address is synthetic.
+    // Saying "check your email" there would strand people.
+    if (!canReceiveEmail(value)) {
       toast({
         title: 'We cannot email a phone login',
         description: 'If you are staff, ask the shop owner to set you a new password. Owners, use Contact us.',
@@ -60,7 +85,7 @@ export default function Auth() {
     }
 
     setIsResetting(true);
-    const { error } = await sendPasswordReset(identifierValue);
+    const { error } = await sendPasswordReset(value);
     setIsResetting(false);
 
     if (error) {
@@ -76,58 +101,75 @@ export default function Auth() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (kind === 'unknown') {
+      toast({
+        title: 'Check that phone number or email',
+        description: 'A Kenyan number like 0712 345 678, or an address with an @ in it.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     const emailToUse = toAuthEmail(identifier);
 
     try {
-      if (mode === 'signin') {
+      if (!isSignUp) {
         const { error } = await signIn(emailToUse, password);
         if (error) {
-          toast({ title: 'Sign In Failed', description: 'Check your details and try again.', variant: 'destructive' });
+          toast({ title: 'Could not sign you in', description: 'Check your details and try again.', variant: 'destructive' });
         } else {
           toast({ title: 'Karibu tena' });
           navigate('/');
         }
       } else {
         if (!fullName.trim() || !shopName.trim()) {
-          toast({ title: 'Missing Info', description: 'Fill in all fields.', variant: 'destructive' });
+          toast({ title: 'Something is missing', description: 'Fill in your name and your shop name.', variant: 'destructive' });
           setIsSubmitting(false);
           return;
         }
-        const { error } = await signUp(emailToUse, password, fullName, shopName, {
-          businessCategory,
-        });
+        const { error } = await signUp(emailToUse, password, fullName, shopName, { businessCategory });
         if (error) {
-          toast({ title: 'Sign Up Failed', description: error.message, variant: 'destructive' });
+          toast({ title: 'Could not create your shop', description: error.message, variant: 'destructive' });
         } else {
-          toast({ title: 'Your shop is ready', description: 'Karibu Tarihi.' });
+          toast({ title: 'Your shop is ready', description: 'Karibu DukaKonnect.' });
           navigate('/');
         }
       }
-    } catch (error) {
-      toast({ title: 'Error', description: 'Something went wrong.', variant: 'destructive' });
+    } catch {
+      toast({ title: 'Something went wrong', description: 'Try again in a moment.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center animate-pulse">Loading...</div>;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Logo size="md" wordmark={false} className="animate-pulse" />
+      </div>
+    );
+  }
+
+  const IdentityIcon = kind === 'phone' ? Phone : AtSign;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="p-6 flex justify-center">
-        <Logo size="md" />
-      </header>
-
-      <main className="flex-1 flex items-center justify-center px-4 pb-8">
-        <div className="w-full max-w-sm space-y-6">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold">{mode === 'signin' ? 'Welcome Back' : 'Create Your Shop'}</h2>
-            <p className="text-muted-foreground text-sm">Biashara yako, siku kwa siku</p>
+      <main className="flex-1 flex items-center justify-center px-4 py-10">
+        <div className="w-full max-w-sm space-y-5">
+          <div className="flex flex-col items-center text-center gap-3">
+            <Logo size="lg" wordmark={false} />
+            <div>
+              <p className="text-2xl font-bold tracking-tight">
+                Duka<span className="text-primary">Konnect</span>
+              </p>
+              <p className="text-sm text-muted-foreground">biashara yako, siku kwa siku</p>
+            </div>
           </div>
 
           {wasRemoved && (
-            <div className="rounded-xl border border-warning/40 bg-warning/5 p-4 text-center">
+            <div className="rounded-lg border border-warning/40 bg-warning/5 p-4 text-center">
               <p className="text-sm font-semibold">You no longer have access to this shop</p>
               <p className="text-xs text-muted-foreground mt-1">
                 The owner has removed your account. Talk to them if you think this is a mistake.
@@ -135,82 +177,114 @@ export default function Auth() {
             </div>
           )}
 
-          <Tabs defaultValue="phone" onValueChange={(v) => {
-            setAuthMethod(v as 'phone' | 'email');
-            setIdentifier(''); // Clear when switching
-          }}>
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="phone">Mobile Number</TabsTrigger>
-              <TabsTrigger value="email">Email Address</TabsTrigger>
-            </TabsList>
+          <div className="sheet p-5 space-y-4">
+            <div>
+              <h1 className="text-lg font-semibold">
+                {isSignUp ? 'Create your shop' : 'Sign in'}
+              </h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {isSignUp
+                  ? 'Takes a minute. You can add staff afterwards.'
+                  : 'Use the phone number or email you signed up with.'}
+              </p>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {mode === 'signup' && (
+              {isSignUp && (
                 <>
-                  <div className="space-y-2">
-                    <Label>Owner Full Name</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="auth-name">Your name</Label>
                     <div className="relative">
-                       <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                       <Input className="pl-10" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="e.g. Jane Doe" required />
+                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="auth-name"
+                        className="pl-10"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="e.g. Jane Wanjiku"
+                        autoComplete="name"
+                        required
+                      />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Duka Name</Label>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="auth-shop">Shop name</Label>
                     <div className="relative">
-                       <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                       <Input className="pl-10" value={shopName} onChange={(e) => setShopName(e.target.value)} placeholder="e.g. Best Price Duka" required />
+                      <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="auth-shop"
+                        className="pl-10"
+                        value={shopName}
+                        onChange={(e) => setShopName(e.target.value)}
+                        placeholder="e.g. Best Price Duka"
+                        required
+                      />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Business Category</Label>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="auth-category">What kind of business?</Label>
                     <select
+                      id="auth-category"
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       value={businessCategory}
                       onChange={(e) => setBusinessCategory(e.target.value)}
                     >
-                      <option value="retail">Retail Shop / Duka</option>
-                      <option value="barbershop_salon">Barbershop / Salon</option>
-                      <option value="computer_center">Computer Center / Cyber</option>
-                      <option value="transport">Transport / Matatu</option>
-                      <option value="food_hospitality">Food / Hospitality</option>
-                      <option value="repair_services">Repair Services</option>
-                      <option value="health_beauty">Health / Beauty Services</option>
-                      <option value="education_training">Education / Training</option>
-                      <option value="other_services">Other Service Business</option>
+                      {CATEGORIES.map((c) => (
+                        <option key={c.value} value={c.value}>{c.label}</option>
+                      ))}
                     </select>
                   </div>
                 </>
               )}
 
-              <div className="space-y-2">
-                <Label>{authMethod === 'phone' ? 'Phone Number' : 'Email Address'}</Label>
+              {/* One box for both. The icon and the hint below it are the only
+                  things that change, and they change as you type. */}
+              <div className="space-y-1.5">
+                <Label htmlFor="auth-identity">Phone number or email</Label>
                 <div className="relative">
-                  {authMethod === 'phone' ? (
-                    <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  )}
-                  <Input 
-                    type={authMethod === 'phone' ? 'tel' : 'email'}
+                  <IdentityIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="auth-identity"
+                    type="text"
+                    inputMode={kind === 'email' ? 'email' : 'text'}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    autoComplete="username"
                     className="pl-10"
-                    value={identifier} 
-                    onChange={(e) => setIdentifier(e.target.value)} 
-                    placeholder={authMethod === 'phone' ? '0712 345 678' : 'you@example.com'}
-                    required 
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    placeholder="0712 345 678 or you@example.com"
+                    required
                   />
                 </div>
+                {kind === 'phone' && (
+                  <p className="text-xs text-muted-foreground">
+                    Signing {isSignUp ? 'up' : 'in'} as{' '}
+                    <span className="num text-foreground">{prettyPhone(identifier)}</span>
+                  </p>
+                )}
+                {kind === 'unknown' && identifier.trim().length > 3 && (
+                  <p className="text-xs text-warning">
+                    That does not look like a Kenyan number or an email yet.
+                  </p>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <Label>Password</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="auth-password">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
+                    id="auth-password"
                     type={showPassword ? 'text' : 'password'}
                     className="pl-10 pr-11"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="At least 6 characters"
+                    placeholder={isSignUp ? 'At least 6 characters' : 'Your password'}
+                    autoComplete={isSignUp ? 'new-password' : 'current-password'}
                     minLength={6}
                     required
                   />
@@ -225,28 +299,35 @@ export default function Auth() {
                 </div>
               </div>
 
-              {mode === 'signin' && (
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting
+                  ? 'Please wait...'
+                  : isSignUp ? 'Create my shop' : 'Sign in'}
+              </Button>
+
+              {!isSignUp && (
                 <button
                   type="button"
                   onClick={handleForgotPassword}
                   disabled={isResetting}
-                  className="text-sm text-primary text-left"
+                  className="w-full text-center text-sm text-primary hover:underline"
                 >
                   {isResetting ? 'Sending...' : 'Forgot your password?'}
                 </button>
               )}
-
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? 'Please wait...' : mode === 'signin' ? 'Sign in' : 'Create my shop'}
-              </Button>
             </form>
-          </Tabs>
-
-          <div className="text-center">
-            <button onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')} className="text-sm text-primary hover:underline">
-              {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-            </button>
           </div>
+
+          <p className="text-center text-sm text-muted-foreground">
+            {isSignUp ? 'Already have a shop?' : 'New to DukaKonnect?'}{' '}
+            <button
+              type="button"
+              onClick={() => setMode(isSignUp ? 'signin' : 'signup')}
+              className="text-primary font-medium hover:underline"
+            >
+              {isSignUp ? 'Sign in' : 'Create your shop'}
+            </button>
+          </p>
         </div>
       </main>
     </div>

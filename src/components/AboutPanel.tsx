@@ -6,21 +6,24 @@ export function AboutPanel() {
       <div className="sheet flex flex-col items-center text-center py-6 gap-3">
         <Logo size="lg" wordmark={false} />
         <div>
-          <p className="text-2xl font-bold lowercase tracking-tight">tarihi</p>
+          <p className="text-2xl font-bold tracking-tight">
+            Duka<span className="text-primary">Konnect</span>
+          </p>
           <p className="text-sm text-muted-foreground">biashara yako, siku kwa siku</p>
         </div>
       </div>
 
       <div className="sheet space-y-3 text-sm text-muted-foreground leading-relaxed">
         <p>
-          <span className="text-foreground font-medium">Tarihi</span> means a date, and
-          the record you keep over time. That is what this is: your daybook, the same
-          one you would keep on paper, except it adds up on its own and does not get
+          <span className="text-foreground font-medium">Duka</span> is your shop.{' '}
+          <span className="text-foreground font-medium">Konnect</span> is the family this
+          belongs to, alongside RentKonnect for landlords. This one is your daybook: the
+          same one you would keep on paper, except it adds up on its own and does not get
           rained on.
         </p>
         <p>
-          It is built for shops in towns like Voi, Oyugis and Kilifi — businesses that
-          know exactly what they sold today but not what they made this month.
+          It is built for shops in towns like Voi, Oyugis and Kilifi. Businesses that know
+          exactly what they sold today, but not what they made this month.
         </p>
       </div>
 
@@ -36,7 +39,7 @@ export function AboutPanel() {
         <p className="sheet-heading">A note on your numbers</p>
         <p className="text-sm text-muted-foreground leading-relaxed">
           Everything here is only as good as what goes in. If an item has no cost
-          price, Tarihi cannot work out profit on it and your day will look better
+          price, DukaKonnect cannot work out profit on it and your day will look better
           than it was. The Home screen will tell you when that is happening.
         </p>
       </div>

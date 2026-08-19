@@ -127,7 +127,7 @@ export function RecordsPanel({
 
   const exportSummary = () => {
     const rows: string[] = [
-      [csv(shopName || 'Tarihi'), csv(''), csv('')].join(','),
+      [csv(shopName || 'DukaKonnect'), csv(''), csv('')].join(','),
       [csv('Summary of trading'), csv(''), csv('')].join(','),
       [csv('Period'), csv(`${format(start, 'd MMM yyyy')} to ${format(end, 'd MMM yyyy')}`), csv('')].join(','),
       [csv('Prepared'), csv(format(new Date(), 'd MMM yyyy')), csv('')].join(','),
@@ -151,11 +151,11 @@ export function RecordsPanel({
       [csv('ALSO WORTH KNOWING'), csv('Amount'), csv('')].join(','),
       [csv('Stock bought in the period'), csv(fixed(figures.stockBought)), csv('Cash paid for stock, not a running cost')].join(','),
       '',
-      [csv('Records kept by the owner in Tarihi. Not audited.'), csv(''), csv('')].join(','),
+      [csv('Records kept by the owner in DukaKonnect. Not audited.'), csv(''), csv('')].join(','),
       [csv('No cash, bank or M-Pesa balance is included.'), csv(''), csv('')].join(','),
     ];
 
-    download(`tarihi-summary-${format(start, 'yyyy-MM')}.csv`, rows.join('\n'));
+    download(`dukakonnect-summary-${format(start, 'yyyy-MM')}.csv`, rows.join('\n'));
   };
 
   const exportTransactions = () => {
@@ -202,7 +202,7 @@ export function RecordsPanel({
           at,
           cells: [
             format(at, 'yyyy-MM-dd'), format(at, 'HH:mm'),
-            voided ? 'sale cancelled' : 'sale',
+            voided ? 'sale cancelled' : total === 0 ? 'giveaway' : 'sale',
             line.productName, '', 'Sales',
             String(line.quantity),
             voided ? '' : fixed(total),
@@ -309,7 +309,7 @@ export function RecordsPanel({
     entries.sort((a, b) => a.at.getTime() - b.at.getTime());
 
     download(
-      `tarihi-transactions-${format(start, 'yyyy-MM')}.csv`,
+      `dukakonnect-transactions-${format(start, 'yyyy-MM')}.csv`,
       [headers.join(','), ...entries.map((e) => e.cells.map(csv).join(','))].join('\n')
     );
   };
@@ -443,7 +443,7 @@ export function RecordsPanel({
       <div className="sheet">
         <p className="text-xs text-muted-foreground leading-relaxed">
           These are records you kept yourself. They are not audited, and they contain no
-          cash, bank or M-Pesa balance — so they show how the shop traded, not everything
+          cash, bank or M-Pesa balance, so they show how the shop traded, not everything
           it is worth.
         </p>
       </div>

@@ -13,6 +13,9 @@ export const takesReference = (method: PaymentMethod) => method !== 'cash';
 export const methodLabel = (method?: string | null) =>
   PAYMENT_METHODS.find((m) => m.value === method)?.short ?? 'Not recorded';
 
+// Deliberately still the old brand name. This key is already sitting in the
+// browser of everyone using the app, and renaming it would quietly forget which
+// payment method each of them last used.
 const STORAGE_KEY = 'tarihi:last-payment-method';
 
 /**

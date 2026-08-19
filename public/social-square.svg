@@ -1,29 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
-  <!-- Square card for WhatsApp status and Instagram, where a 1.91:1 link image
-       gets cropped to nothing. Everything sits centred and inside the safe area. -->
-  <rect width="1080" height="1080" fill="#f8f7f5"/>
-  <rect x="0" y="0" width="1080" height="14" fill="#c85a2e"/>
-
-  <g transform="translate(430 210)">
-    <rect width="220" height="220" rx="48" fill="#c85a2e"/>
-    <g transform="scale(3.4375)">
-      <rect x="13" y="20" width="38" height="5.5" rx="2.75" fill="#f8f7f5"/>
-      <rect x="29.25" y="20" width="5.5" height="25" rx="2.75" fill="#f8f7f5"/>
-      <rect x="39" y="32.5" width="12" height="5" rx="2.5" fill="#4f9469"/>
-    </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080" role="img" aria-label="DukaKonnect"><rect width="1080" height="1080" fill="#f8f7f5"/>
+   <rect width="1080" height="14" fill="#c85a2e"/>
+   <g transform="translate(420 300) scale(3.75)"><rect width="64" height="64" rx="14" fill="#c85a2e"/>
+  <g fill="none" stroke="#f8f7f5" stroke-width="6.5" stroke-linecap="round">
+    <path d="M18.5 19 V48"/>
+    <path d="M21.5 34.5 L36.5 22"/>
+    <path d="M21.5 34.5 L38 48"/>
   </g>
-
-  <text x="540" y="560" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="96" font-weight="700" fill="#2b1c14">tarihi</text>
-  <text x="540" y="614" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="34" fill="#7a6a5f">biashara yako, siku kwa siku</text>
-
-  <line x1="240" y1="690" x2="840" y2="690" stroke="#ddd2c8" stroke-width="2"/>
-
-  <text x="540" y="762" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="38" fill="#4a3a30">Mauzo, stock, deni na matumizi</text>
-  <text x="540" y="818" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="38" fill="#4a3a30">kwa biashara ndogo</text>
-
-  <g transform="translate(430 900)">
-    <rect x="0" y="0" width="220" height="7" rx="3.5" fill="#c85a2e"/>
-    <rect x="0" y="28" width="150" height="7" rx="3.5" fill="#ddd2c8"/>
-    <rect x="0" y="56" width="185" height="7" rx="3.5" fill="#ddd2c8"/>
-  </g>
-</svg>
+  <circle cx="43.5" cy="17.5" r="5" fill="#4f9469"/></g>
+   <text x="540" y="700" text-anchor="middle" font-family="DM Sans, Segoe UI, Helvetica, Arial, sans-serif"
+         font-size="86" font-weight="700" letter-spacing="-1">
+     <tspan fill="#2b2320">Duka</tspan><tspan fill="#c85a2e">Konnect</tspan>
+   </text>
+   <text x="540" y="762" text-anchor="middle" font-family="DM Sans, Segoe UI, Helvetica, Arial, sans-serif"
+         font-size="36" font-weight="500" fill="#7a6a5f">biashara yako, siku kwa siku</text></svg>

@@ -89,7 +89,7 @@ export const useTillCount = () => {
 
     const diff = countedCash - expectedCash;
     toast({
-      title: diff === 0 ? 'Till matches' : diff > 0 ? 'Saved — more than expected' : 'Saved — till is short',
+      title: diff === 0 ? 'Till matches' : diff > 0 ? 'Saved, more than expected' : 'Saved, till is short',
     });
     await fetchCounts();
     return true;

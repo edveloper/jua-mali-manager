@@ -131,7 +131,7 @@ export function StockPanel({ products, sales, takes, onRecordCount }: StockPanel
         <div className="sheet">
           <p className="font-semibold">Count the shelf</p>
           <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-            Type what you actually have. You do not have to do everything — count what
+            Type what you actually have. You do not have to do everything. Count what
             you can and save. The most valuable items are first.
           </p>
           <p className="text-xs text-muted-foreground mt-2">
@@ -151,7 +151,7 @@ export function StockPanel({ products, sales, takes, onRecordCount }: StockPanel
               <Input
                 type="number"
                 inputMode="numeric"
-                placeholder="—"
+                placeholder="0"
                 value={counts[product.id] ?? ''}
                 onChange={(e) => setCounts((prev) => ({ ...prev, [product.id]: e.target.value }))}
                 className="w-20 h-9 text-center num shrink-0"

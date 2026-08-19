@@ -64,8 +64,8 @@ export function CashUp({
             {savedCount.difference === 0
               ? 'Counted and it matched'
               : savedCount.difference > 0
-                ? `Counted ${money(savedCount.countedCash)} — ${money(savedCount.difference)} more than expected`
-                : `Counted ${money(savedCount.countedCash)} — ${money(Math.abs(savedCount.difference))} short`}
+                ? `Counted ${money(savedCount.countedCash)}, ${money(savedCount.difference)} more than expected`
+                : `Counted ${money(savedCount.countedCash)}, ${money(Math.abs(savedCount.difference))} short`}
           </p>
         ) : (
           <p className="text-xs text-muted-foreground mt-1">
