@@ -1,43 +1,86 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
+/** The three ways installing can go, from most to least automatic. */
+export type InstallRoute = 'prompt' | 'ios' | 'none';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+declare global {
+  interface Window {
+    __installPrompt: BeforeInstallPromptEvent | null;
+  }
+}
+
+const isStandalone = (): boolean =>
+  window.matchMedia('(display-mode: standalone)').matches ||
+  // Safari's own flag, which predates the media query and is still what older
+  // iOS versions set.
+  (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+/**
+ * iPadOS reports itself as a Mac by default, so the old /iPad|iPhone|iPod/ test
+ * missed every iPad and told those users their browser did not support
+ * installing. A Mac with a touchscreen is the reliable tell that it is not one.
+ */
+export const isIosDevice = (): boolean => {
+  const ua = navigator.userAgent;
+  if (/iPad|iPhone|iPod/.test(ua)) return true;
+  return /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+};
+
+export const isIpad = (): boolean =>
+  /iPad/.test(navigator.userAgent) ||
+  (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+
+/** Other iOS browsers can add to the home screen, but Safari is the sure route. */
+export const isIosSafari = (): boolean =>
+  isIosDevice() && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(navigator.userAgent);
 
 export const usePwaInstall = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(
+    () => (typeof window !== 'undefined' ? window.__installPrompt : null)
+  );
+  const [installed, setInstalled] = useState(isStandalone);
 
   useEffect(() => {
-    // Check if app is already installed/running in standalone
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstalled(true);
-    }
-
-    const handler = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
+    // The event may have been caught in index.html before this mounted, so the
+    // initial state reads window first and this only keeps it in step.
+    const sync = () => {
+      setPrompt(window.__installPrompt);
+      setInstalled(isStandalone());
     };
-
-    window.addEventListener('beforeinstallprompt', handler);
-
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    window.addEventListener('installpromptchange', sync);
+    return () => window.removeEventListener('installpromptchange', sync);
   }, []);
 
-  const installApp = async () => {
-    if (!deferredPrompt) {
-      // Logic for iOS or already installed
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      if (isIOS) {
-        alert("To install on iPhone: \n1. Tap the 'Share' icon (square with arrow) \n2. Scroll down and tap 'Add to Home Screen' 📲");
-      } else {
-        alert("App is already installed or your browser doesn't support one-click install.");
-      }
-      return;
-    }
+  const route: InstallRoute = installed
+    ? 'none'
+    : prompt
+      ? 'prompt'
+      : isIosDevice()
+        ? 'ios'
+        : 'none';
 
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null);
-    }
-  };
+  /**
+   * Returns true when the browser handled it, false when the caller needs to
+   * show instructions instead. Deliberately not throwing an alert from in here:
+   * a hook should not be deciding what the interface looks like.
+   */
+  const install = useCallback(async (): Promise<boolean> => {
+    if (!prompt) return false;
 
-  return { installApp, canInstall: !!deferredPrompt || (!isInstalled && /iPad|iPhone|iPod/.test(navigator.userAgent)) };
+    await prompt.prompt();
+    const { outcome } = await prompt.userChoice;
+
+    // A prompt can only be used once, accepted or not.
+    window.__installPrompt = null;
+    setPrompt(null);
+    if (outcome === 'accepted') setInstalled(true);
+    return true;
+  }, [prompt]);
+
+  return { route, install, isInstalled: installed, canInstall: route !== 'none' };
 };

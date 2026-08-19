@@ -62,6 +62,26 @@
     <meta name="twitter:description" content="Sales, stock, deni and expenses for small shops in Kenya." />
     <meta name="twitter:image" content="%VITE_SITE_URL%/og-image.png" />
 
+    <script>
+      /*
+        Chrome fires beforeinstallprompt during page load, often before React has
+        mounted and attached its own listener. A missed event means no install
+        route at all on a phone that fully supports it, which is the common case
+        on a slow connection. So it is caught here, in the document head, and
+        parked on window for the app to pick up whenever it is ready.
+      */
+      window.__installPrompt = null;
+      window.addEventListener('beforeinstallprompt', function (event) {
+        event.preventDefault();
+        window.__installPrompt = event;
+        window.dispatchEvent(new Event('installpromptchange'));
+      });
+      window.addEventListener('appinstalled', function () {
+        window.__installPrompt = null;
+        window.dispatchEvent(new Event('installpromptchange'));
+      });
+    </script>
+
     <style>
       /* Shown before any JavaScript runs, so it is deliberately self-contained
          and uses the brand colours directly rather than CSS variables. */

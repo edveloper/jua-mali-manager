@@ -12,6 +12,8 @@ import { useSuppliers } from '@/hooks/useSuppliers';
 import { useMpesa } from '@/hooks/useMpesa';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
+import { InstallNudge } from '@/components/InstallNudge';
+import { InstallSheet } from '@/components/InstallSheet';
 import { DayBook } from '@/components/DayBook';
 import { DaySales } from '@/components/DaySales';
 import { ProductList } from '@/components/ProductList';
@@ -74,7 +76,16 @@ const Index = () => {
 
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { installApp, canInstall } = usePwaInstall();
+  const { route: installRoute, install, canInstall } = usePwaInstall();
+  const [showInstallSheet, setShowInstallSheet] = useState(false);
+
+  // Both install routes go through here so the caller never has to know which
+  // kind of device it is on. The browser prompt is tried first; iOS has none, so
+  // it falls through to the instructions.
+  const startInstall = async () => {
+    const handled = await install();
+    if (!handled) setShowInstallSheet(true);
+  };
 
   const { user, loading: authLoading, isOwner, can, shop, shopMember, membershipResolved, signOut } = useAuth();
 
@@ -587,7 +598,7 @@ const Index = () => {
             onNavigate={goTo}
             staffCount={staffCount}
             canInstall={canInstall}
-            onInstall={installApp}
+            onInstall={startInstall}
           />
         )}
 
@@ -663,6 +674,15 @@ const Index = () => {
           onClose={() => setRestockingProduct(null)}
         />
       )}
+
+      {/* Asked once, after the shop has recorded enough sales to have formed a
+          view. Hidden entirely on a device with no way to install. */}
+      <InstallNudge
+        canInstall={installRoute !== 'none'}
+        salesCount={sales.length}
+        onInstall={startInstall}
+      />
+      {showInstallSheet && <InstallSheet onClose={() => setShowInstallSheet(false)} />}
     </div>
   );
 };
