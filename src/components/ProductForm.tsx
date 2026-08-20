@@ -135,14 +135,18 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
           <div className="grid grid-cols-2 gap-3">
             <Input
               type="number"
+              inputMode="decimal"
               placeholder="Lowest"
+              aria-label="Lowest price staff may agree"
               value={formData.minPrice}
               onChange={(e) => setFormData({ ...formData, minPrice: e.target.value })}
               min="0"
             />
             <Input
               type="number"
+              inputMode="decimal"
               placeholder="Highest"
+              aria-label="Highest price staff may agree"
               value={formData.maxPrice}
               onChange={(e) => setFormData({ ...formData, maxPrice: e.target.value })}
               min="0"

@@ -152,6 +152,7 @@ export function StockPanel({ products, sales, takes, onRecordCount }: StockPanel
                 type="number"
                 inputMode="numeric"
                 placeholder="0"
+                aria-label={`Counted quantity for ${product.name}`}
                 value={counts[product.id] ?? ''}
                 onChange={(e) => setCounts((prev) => ({ ...prev, [product.id]: e.target.value }))}
                 className="w-20 h-9 text-center num shrink-0"
