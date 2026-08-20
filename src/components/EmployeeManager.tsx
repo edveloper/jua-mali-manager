@@ -29,7 +29,7 @@ const PERMISSIONS: { key: string; title: string; detail: string; enabledToast: s
     key: 'restock_stock',
     title: 'Add stock that has been paid for',
     detail:
-      'Lets them record deliveries paid from the till. Note this shows them what each item costs you, so they can work out your margin. Taking stock on credit stays with you.',
+      'Lets them record deliveries paid from the till, from the low stock alerts or from any item in Sell. Note this shows them what each item costs you, so they can work out your margin. Taking stock on credit stays with you.',
     enabledToast: 'can now add stock',
     disabledToast: 'can no longer add stock',
   },

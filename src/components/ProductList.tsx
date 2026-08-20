@@ -36,6 +36,17 @@ export function ProductList({
 
   const isLow = (p: Product) => p.quantity <= p.lowStockThreshold;
 
+  /*
+   * The row of actions belongs to anyone who has something to do in it.
+   *
+   * It used to be gated on isOwner alone, which meant a staff member holding
+   * restock permission could restock from the low stock alert but not from the
+   * product list, where they are actually standing when the delivery arrives.
+   * The permission was already granted and the handler already passed down; the
+   * only thing in the way was this row being hidden.
+   */
+  const hasActions = isOwner || Boolean(onRestock);
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -109,7 +120,7 @@ export function ProductList({
                     </div>
                   </button>
 
-                  {isOwner && (
+                  {hasActions && (
                     <button
                       type="button"
                       onClick={() => setOpenId(open ? null : product.id)}
@@ -121,24 +132,31 @@ export function ProductList({
                   )}
                 </div>
 
-                {isOwner && open && (
+                {hasActions && open && (
                   <div className="flex items-center gap-2 px-4 pb-3 pt-1 bg-muted/40">
                     {onRestock && (
                       <Button variant="outline" size="sm" className="flex-1" onClick={() => { onRestock(product); setOpenId(null); }}>
                         <PackagePlus className="h-4 w-4 mr-1.5" /> Restock
                       </Button>
                     )}
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => { onEdit(product); setOpenId(null); }}>
-                      <Pencil className="h-4 w-4 mr-1.5" /> Edit
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => { onDelete(product.id); setOpenId(null); }}
-                      aria-label="Remove product"
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    {/* Changing what an item is, or removing it, stays with the
+                        owner. Restocking is a delivery arriving; editing is a
+                        decision about the catalogue. */}
+                    {isOwner && (
+                      <>
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => { onEdit(product); setOpenId(null); }}>
+                          <Pencil className="h-4 w-4 mr-1.5" /> Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => { onDelete(product.id); setOpenId(null); }}
+                          aria-label="Remove product"
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
