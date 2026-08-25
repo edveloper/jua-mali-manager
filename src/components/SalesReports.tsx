@@ -27,7 +27,7 @@ interface SalesReportsProps {
   onGoToExport: () => void;
 }
 
-type RangeType = 'week' | 'month' | 'lastMonth' | 'custom';
+type RangeType = 'today' | 'week' | 'month' | 'lastMonth' | 'custom';
 
 const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
 const isRestockExpense = (expense: Expense) => expense.source === 'restock';
@@ -79,6 +79,9 @@ export function SalesReports({
 
   const { start, end, label } = useMemo(() => {
     const now = new Date();
+    if (rangeType === 'today') {
+      return { start: startOfDay(now), end: endOfDay(now), label: 'Today' };
+    }
     if (rangeType === 'week') {
       return { start: startOfDay(subDays(now, 6)), end: endOfDay(now), label: 'Last 7 days' };
     }
@@ -264,6 +267,7 @@ export function SalesReports({
   };
 
   const RANGES: { value: RangeType; label: string }[] = [
+    { value: 'today', label: 'Today' },
     { value: 'week', label: '7 days' },
     { value: 'month', label: 'This month' },
     { value: 'lastMonth', label: 'Last month' },
@@ -272,7 +276,7 @@ export function SalesReports({
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-4 gap-1.5">
+      <div className="grid grid-cols-3 gap-1.5">
         {RANGES.map((r) => (
           <Button
             key={r.value}

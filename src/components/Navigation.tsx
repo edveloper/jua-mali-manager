@@ -1,4 +1,4 @@
-import { Home, Package, Users, Wallet, MoreHorizontal, LucideIcon } from 'lucide-react';
+import { Home, Package, Users, Wallet, MoreHorizontal, LucideIcon, Receipt } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type TabType =
@@ -15,6 +15,7 @@ export type TabType =
   | 'contact'
   | 'about'
   | 'stock'
+  | 'spending'
   | 'activity';
 
 interface NavigationProps {
@@ -41,6 +42,7 @@ export function Navigation({ activeTab, onTabChange, isOwner = true, deniCount =
     { id: 'products', label: 'Sell', icon: Package },
     { id: 'credit', label: 'Deni', icon: Users, badge: deniCount },
     { id: 'money', label: 'Money', icon: Wallet },
+    { id: 'spending', label: 'Spending', icon: Receipt },
     { id: 'more', label: 'More', icon: MoreHorizontal, covers: ['settings', 'staff', 'activity', 'help', 'privacy', 'contact', 'about'] },
   ];
 
@@ -50,7 +52,7 @@ export function Navigation({ activeTab, onTabChange, isOwner = true, deniCount =
     { id: 'dashboard', label: 'Home', icon: Home, covers: ['alerts', 'stock'] },
     { id: 'products', label: 'Sell', icon: Package },
     ...(canManageDeni ? [{ id: 'credit' as TabType, label: 'Deni', icon: Users, badge: deniCount }] : []),
-    ...(canRecordExpenses ? [{ id: 'money' as TabType, label: 'Spending', icon: Wallet }] : []),
+    ...(canRecordExpenses ? [{ id: 'spending' as TabType, label: 'Spending', icon: Receipt }] : []),
     { id: 'more', label: 'More', icon: MoreHorizontal, covers: ['settings', 'help', 'privacy', 'contact', 'about'] },
   ];
 

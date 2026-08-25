@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Expense, ExpenseDraft } from '@/types/inventory';
 import { useToast } from '@/hooks/use-toast';
+import { dateKey } from '@/lib/dates';
 import {
   differenceInCalendarDays,
   eachDayOfInterval,
@@ -23,7 +24,8 @@ type ExpenseComputeOptions = {
 
 const toDateOnly = (value: Date | string) => {
   if (typeof value === 'string') return value.split('T')[0];
-  return value.toISOString().split('T')[0];
+  // Local, not UTC. See src/lib/dates.ts for why that matters at UTC+3.
+  return dateKey(value);
 };
 
 const parseDate = (value?: string | null) => {

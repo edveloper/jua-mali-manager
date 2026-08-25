@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PAYMENT_METHODS, PaymentMethod, lastUsedMethod, methodLabel } from '@/lib/payment';
-import { format, startOfMonth, subDays, subMonths, startOfDay, endOfMonth } from 'date-fns';
+import { format, startOfMonth, subDays, subMonths, startOfDay, endOfDay, endOfMonth } from 'date-fns';
 
 interface ExpenseManagerProps {
   expenses: Expense[];
@@ -14,9 +14,11 @@ interface ExpenseManagerProps {
   onQuickAddTOT: () => void;
   monthlySales: number;
   businessCategory?: string;
+  /** Owners see what the shop spent in total. Staff only see what they added. */
+  showSummary?: boolean;
 }
 
-type RangeType = 'month' | 'lastMonth' | '30d' | 'all';
+type RangeType = 'today' | 'month' | 'lastMonth' | '30d' | 'all';
 
 const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
 
@@ -87,6 +89,7 @@ export function ExpenseManager({
   onQuickAddTOT,
   monthlySales,
   businessCategory = 'retail',
+  showSummary = true,
 }: ExpenseManagerProps) {
   const [showForm, setShowForm] = useState(false);
   const [range, setRange] = useState<RangeType>('month');
@@ -116,7 +119,11 @@ export function ExpenseManager({
     let to: Date | null = null;
     let label = format(now, 'MMMM');
 
-    if (range === 'lastMonth') {
+    if (range === 'today') {
+      from = startOfDay(now);
+      to = endOfDay(now);
+      label = 'Today';
+    } else if (range === 'lastMonth') {
       const prev = subMonths(now, 1);
       from = startOfMonth(prev);
       to = endOfMonth(prev);
@@ -182,6 +189,7 @@ export function ExpenseManager({
   const estimatedTax = monthlySales * 0.03;
 
   const RANGES: { value: RangeType; label: string }[] = [
+    { value: 'today', label: 'Today' },
     { value: 'month', label: 'This month' },
     { value: 'lastMonth', label: 'Last month' },
     { value: '30d', label: '30 days' },
@@ -190,24 +198,26 @@ export function ExpenseManager({
 
   return (
     <div className="space-y-3">
-      <div className="sheet">
-        <div className="flex items-baseline justify-between gap-4">
-          <span className="sheet-heading">{rangeLabel}</span>
-          <span className="text-2xl amount text-destructive">{money(total)}</span>
-        </div>
-        {byCategory.length > 0 && (
-          <div className="mt-2">
-            {byCategory.slice(0, 5).map((c) => (
-              <div key={c.name} className="ledger-sub">
-                <span>{c.name}</span>
-                <span className="num">{money(c.value)}</span>
-              </div>
-            ))}
+      {showSummary && (
+        <div className="sheet">
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="sheet-heading">{rangeLabel}</span>
+            <span className="text-2xl amount text-destructive">{money(total)}</span>
           </div>
-        )}
-      </div>
+          {byCategory.length > 0 && (
+            <div className="mt-2">
+              {byCategory.slice(0, 5).map((c) => (
+                <div key={c.name} className="ledger-sub">
+                  <span>{c.name}</span>
+                  <span className="num">{money(c.value)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
-      <div className="grid grid-cols-4 gap-1.5">
+      <div className="grid grid-cols-3 gap-1.5">
         {RANGES.map((r) => (
           <Button
             key={r.value}
@@ -222,13 +232,15 @@ export function ExpenseManager({
       </div>
 
       {!showForm && (
-        <div className="grid grid-cols-2 gap-2">
-          <Button onClick={() => setShowForm(true)}>
+        <div className={showSummary ? 'grid grid-cols-2 gap-2' : ''}>
+          <Button className={showSummary ? '' : 'w-full'} onClick={() => setShowForm(true)}>
             <Plus className="h-4 w-4 mr-1.5" /> Add expense
           </Button>
-          <Button variant="outline" onClick={onQuickAddTOT} disabled={estimatedTax <= 0}>
-            Tax · {money(estimatedTax)}
-          </Button>
+          {showSummary && (
+            <Button variant="outline" onClick={onQuickAddTOT} disabled={estimatedTax <= 0}>
+              Tax · {money(estimatedTax)}
+            </Button>
+          )}
         </div>
       )}
 

@@ -57,10 +57,7 @@ export function DaySales({ sales, nameFor, onVoid, showSeller = true }: DaySales
 
   return (
     <div className="sheet">
-      <div className="flex items-baseline justify-between">
-        <p className="sheet-heading">Sales</p>
-        <p className="text-xs text-muted-foreground num">{ordered.length}</p>
-      </div>
+      <p className="sheet-heading">Sales</p>
 
       <div className="mt-2 divide-y divide-border/70">
         {ordered.map((sale) => {

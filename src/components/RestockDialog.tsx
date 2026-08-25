@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Modal } from '@/components/Modal';
 import { PAYMENT_METHODS, PaymentMethod, lastUsedMethod, rememberMethod } from '@/lib/payment';
+import { todayKey } from '@/lib/dates';
 
 interface RestockDialogProps {
   product: Product;
@@ -54,7 +55,7 @@ export function RestockDialog({
   const [unitCostInput, setUnitCostInput] = useState(
     product.costPrice ? String(product.costPrice) : ''
   );
-  const [happenedAt, setHappenedAt] = useState(new Date().toISOString().split('T')[0]);
+  const [happenedAt, setHappenedAt] = useState(todayKey());
   const [allocationMode, setAllocationMode] = useState<'cash' | 'accrual'>('cash');
   const [notes, setNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);

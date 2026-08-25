@@ -284,7 +284,7 @@ export function CatalogImportPanel({ onImportProducts }: CatalogImportPanelProps
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `duka-import-failed-rows-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `dukakonnect-import-failed-rows-${todayKey()}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

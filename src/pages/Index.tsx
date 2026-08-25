@@ -520,35 +520,28 @@ const Index = () => {
 
         {/* Staff with the permission get Spending on its own -- Reports would
             show them cost prices and profit, which they are not meant to see. */}
-        {activeTab === 'money' && !isOwner && can('record_expenses') && (
+        {/* Staff record spending but do not get to see the shop's total
+            outgoings: that is a picture of the business, not a record of what
+            they just did. */}
+        {activeTab === 'spending' && (isOwner || can('record_expenses')) && (
           <ExpenseManager
             expenses={expenses}
             onAddExpense={addExpense}
             onDeleteExpense={deleteExpense}
             onQuickAddTOT={quickAddTOT}
-            monthlySales={0}
+            monthlySales={isOwner ? currentMonthSales : 0}
             businessCategory={shop?.business_category || 'retail'}
+            showSummary={isOwner}
           />
         )}
 
         {activeTab === 'money' && isOwner && (
           <Tabs value={moneyTab} onValueChange={setMoneyTab}>
-            <TabsList className="w-full grid grid-cols-4 gap-1 p-1">
+            <TabsList className="w-full grid grid-cols-3 gap-1 p-1">
               <TabsTrigger value="reports" className="text-xs px-1">Reports</TabsTrigger>
-              <TabsTrigger value="spending" className="text-xs px-1">Spending</TabsTrigger>
               <TabsTrigger value="mpesa" className="text-xs px-1">M-Pesa</TabsTrigger>
               <TabsTrigger value="export" className="text-xs px-1">Export</TabsTrigger>
             </TabsList>
-            <TabsContent value="spending" className="pt-3">
-              <ExpenseManager
-                expenses={expenses}
-                onAddExpense={addExpense}
-                onDeleteExpense={deleteExpense}
-                onQuickAddTOT={quickAddTOT}
-                monthlySales={currentMonthSales}
-                businessCategory={shop?.business_category || 'retail'}
-              />
-            </TabsContent>
             <TabsContent value="reports" className="pt-3">
               <SalesReports
                 sales={sales}
