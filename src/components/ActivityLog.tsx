@@ -13,6 +13,7 @@ interface ActivityLogProps {
   creditSales: CreditSale[];
   creditPayments: CreditPayment[];
   expenses: Expense[];
+  /** Must include cancelled ones: this screen is where corrections are read. */
   stockMovements: StockMovement[];
   supplierDebts: SupplierDebt[];
   supplierPayments: SupplierPayment[];
@@ -23,12 +24,19 @@ interface ActivityLogProps {
   supplierName: (id: string) => string;
 }
 
-type Lens = 'all' | 'in' | 'out' | 'stock' | 'checks';
+type EntryLens = 'in' | 'out' | 'stock' | 'checks';
+
+/*
+ * 'cancelled' is not a kind of entry, it is a question asked across all of them:
+ * what got undone, and by whom. Filed under its own lens because scrolling a
+ * busy day hunting for struck-through rows is the opposite of oversight.
+ */
+type Lens = 'all' | EntryLens | 'cancelled';
 
 interface Entry {
   key: string;
   at: Date;
-  lens: Exclude<Lens, 'all'>;
+  lens: EntryLens;
   title: string;
   detail?: string;
   amount?: number;
@@ -36,6 +44,8 @@ interface Entry {
   flow?: 'in' | 'out';
   actor?: string | null;
   muted?: boolean;
+  /** A correction rather than a thing that happened. */
+  cancelled?: boolean;
 }
 
 const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
@@ -46,6 +56,7 @@ const LENSES: { key: Lens; label: string }[] = [
   { key: 'out', label: 'Money out' },
   { key: 'stock', label: 'Stock' },
   { key: 'checks', label: 'Counts' },
+  { key: 'cancelled', label: 'Cancelled' },
 ];
 
 /**
@@ -96,15 +107,22 @@ export function ActivityLog({
         : `${lines[0].productName}${lines[0].quantity > 1 ? ` ×${lines[0].quantity}` : ''}`;
 
       if (voided) {
+        const soldBy = nameFor(lines[0].soldBy);
+        const cancelledBy = lines[0].voidedBy ? nameFor(lines[0].voidedBy) : null;
         out.push({
           key: `void-${receiptId}`,
           at: new Date(lines[0].voidedAt || at),
           lens: 'in',
-          title: 'Sale cancelled',
-          detail: what,
+          title: `Sale cancelled: ${what}`,
+          // Naming the seller separately matters when somebody undoes another
+          // person's sale, which is exactly the case worth being able to see.
+          detail: cancelledBy && cancelledBy !== soldBy
+            ? `Originally sold by ${soldBy}`
+            : `Sold ${format(at, 'd MMM HH:mm')}`,
           amount: total,
-          actor: nameFor(lines[0].voidedBy || lines[0].soldBy),
+          actor: cancelledBy ?? soldBy,
           muted: true,
+          cancelled: true,
         });
         continue;
       }
@@ -165,7 +183,31 @@ export function ActivityLog({
     // An expense is linked only when the stock was paid for on the spot, so its
     // absence is what tells us the stock came in on credit.
     for (const m of stockMovements) {
-      if (m.reason !== 'restock' || m.movementType !== 'in' || !recent(m.happenedAt)) continue;
+      if (m.reason !== 'restock' || m.movementType !== 'in') continue;
+
+      if (m.voidedAt) {
+        if (!recent(m.voidedAt)) continue;
+        const addedBy = nameFor(m.createdBy);
+        const cancelledBy = m.voidedBy ? nameFor(m.voidedBy) : null;
+        out.push({
+          key: `restock-void-${m.id}`,
+          at: new Date(m.voidedAt),
+          lens: 'stock',
+          title: `Restock cancelled: ${m.productName}`,
+          detail: [
+            `${m.quantity} taken back off`,
+            cancelledBy && cancelledBy !== addedBy ? `originally added by ${addedBy}` : null,
+            m.voidReason || null,
+          ].filter(Boolean).join(' · '),
+          amount: m.totalCost,
+          actor: cancelledBy ?? addedBy,
+          muted: true,
+          cancelled: true,
+        });
+        continue;
+      }
+
+      if (!recent(m.happenedAt)) continue;
       const onCredit = !m.expenseId;
       out.push({
         key: `restock-${m.id}`,
@@ -233,7 +275,10 @@ export function ActivityLog({
     nameFor, customerName, supplierName, days,
   ]);
 
-  const shown = lens === 'all' ? entries : entries.filter((e) => e.lens === lens);
+  const shown =
+    lens === 'all' ? entries
+    : lens === 'cancelled' ? entries.filter((e) => e.cancelled)
+    : entries.filter((e) => e.lens === lens);
 
   // Grouped by day so the list reads as a diary rather than a wall of rows.
   const byDay = useMemo(() => {
@@ -248,7 +293,7 @@ export function ActivityLog({
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-5 gap-1">
+      <div className="grid grid-cols-3 gap-1.5">
         {LENSES.map((l) => (
           <Button
             key={l.key}
@@ -330,8 +375,9 @@ export function ActivityLog({
       <div className="sheet">
         <p className="text-xs text-muted-foreground leading-relaxed">
           Built from your records themselves, so it cannot disagree with them. It shows
-          money and stock moving. It does not yet show a price being edited or a
-          permission being changed, because those are not recorded anywhere.
+          money and stock moving, and anything cancelled, with the name of whoever
+          did it. It does not yet show a price being edited or a permission being
+          changed, because those are not recorded anywhere.
         </p>
       </div>
     </div>

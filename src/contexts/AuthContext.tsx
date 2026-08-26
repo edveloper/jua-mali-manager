@@ -3,7 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 
 /** Permission keys stored in shop_members.permissions. Owners implicitly hold all. */
-export type ShopPermission = 'override_price' | 'record_expenses' | 'manage_deni';
+export type ShopPermission =
+  | 'override_price'
+  | 'record_expenses'
+  | 'manage_deni'
+  | 'restock_stock';
 
 interface AuthContextType {
   user: User | null;

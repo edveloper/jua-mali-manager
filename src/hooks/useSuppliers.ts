@@ -54,7 +54,7 @@ export const useSuppliers = () => {
         .order('incurred_on', { ascending: false }),
       supabase
         .from('supplier_payments')
-        .select('id, supplier_debt_id, amount, paid_at, payment_method')
+        .select('id, supplier_debt_id, amount, paid_at, payment_method, recorded_by')
         .eq('shop_id', shop.id)
         .order('paid_at', { ascending: false }),
     ]);

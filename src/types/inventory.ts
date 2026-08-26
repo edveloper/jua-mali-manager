@@ -182,4 +182,8 @@ export interface StockMovement {
   happenedAt: string;
   expenseId?: string | null;
   createdBy?: string | null;
+  voidedAt?: string | null;
+  voidedBy?: string | null;
+  voidReason?: string | null;
+  previousCostPrice?: number | null;
 }

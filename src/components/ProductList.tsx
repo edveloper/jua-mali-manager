@@ -27,7 +27,25 @@ export function ProductList({
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [openId, setOpenId] = useState<string | null>(null);
 
-  const displayProducts = searchQuery ? onSearch(searchQuery) : products;
+  const found = searchQuery ? onSearch(searchQuery) : products;
+
+  /*
+   * Sold-out items sink to the bottom rather than leaving the list.
+   *
+   * Removing them would be worse than it sounds: somebody looking for an item
+   * that has finished would find nothing at all and conclude the app had lost
+   * it. Keeping them where they are is also wrong, because they interrupt the
+   * one list that exists for selling. So they stay, at the end, under their own
+   * heading, where they are still findable and still one tap from a restock.
+   */
+  const displayProducts = [...found].sort((a, b) => {
+    const aOut = a.quantity === 0;
+    const bOut = b.quantity === 0;
+    if (aOut !== bOut) return aOut ? 1 : -1;
+    return 0;
+  });
+
+  const firstSoldOut = displayProducts.findIndex((p) => p.quantity === 0);
 
   useEffect(() => { setVisibleCount(PAGE_SIZE); }, [searchQuery]);
 
@@ -88,19 +106,25 @@ export function ProductList({
         </div>
       ) : (
         <div className="sheet p-0 overflow-hidden divide-y divide-border/70">
-          {visibleProducts.map((product) => {
+          {visibleProducts.map((product, index) => {
             const low = isLow(product);
             const open = openId === product.id;
 
+            const soldOut = product.quantity === 0;
+            const startsSoldOut = firstSoldOut >= 0 && index === firstSoldOut;
+
             return (
               <div key={product.id}>
+                {startsSoldOut && (
+                  <p className="sheet-heading px-4 pt-3 pb-1 bg-muted/30">Finished</p>
+                )}
                 {/* The whole row sells. Owner tools sit behind a deliberate tap so
                     the everyday action is never a mis-tap away from a delete. */}
                 <div className="flex items-stretch">
                   <button
                     type="button"
-                    onClick={() => onSell(product)}
-                    disabled={product.quantity === 0}
+                    onClick={() => (soldOut && onRestock ? onRestock(product) : onSell(product))}
+                    disabled={soldOut && !onRestock}
                     className="flex-1 min-w-0 text-left px-4 py-3 active:bg-muted transition-colors disabled:opacity-50"
                   >
                     <div className="flex items-baseline gap-3">
@@ -109,7 +133,9 @@ export function ProductList({
                     </div>
                     <div className="flex items-baseline gap-2 mt-0.5">
                       <span className={`text-xs num ${low ? 'text-warning font-medium' : 'text-muted-foreground'}`}>
-                        {product.quantity === 0 ? 'Out of stock' : `${product.quantity} left`}
+                        {soldOut
+                          ? (onRestock ? 'Finished. Tap to add stock' : 'Finished')
+                          : `${product.quantity} left`}
                       </span>
                       {low && product.quantity > 0 && <AlertTriangle className="h-3 w-3 text-warning" />}
                       {isOwner && product.costPrice > 0 && (

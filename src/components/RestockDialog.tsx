@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Modal } from '@/components/Modal';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PAYMENT_METHODS, PaymentMethod, lastUsedMethod, rememberMethod } from '@/lib/payment';
 import { todayKey } from '@/lib/dates';
 
@@ -63,6 +64,7 @@ export function RestockDialog({
   const [supplierId, setSupplierId] = useState('');
   const [newSupplier, setNewSupplier] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(lastUsedMethod);
+  const [confirming, setConfirming] = useState(false);
 
   const quantity = Math.max(0, Math.floor(num(quantityInput)));
   const unitCost = num(unitCostInput);
@@ -74,6 +76,7 @@ export function RestockDialog({
 
   const handleConfirm = async () => {
     if (quantity < 1 || unitCost < 0) return;
+    setConfirming(false);
 
     let resolvedSupplier = supplierId;
     if (!paidNow && !resolvedSupplier && newSupplier.trim()) {
@@ -100,6 +103,31 @@ export function RestockDialog({
     !costError &&
     (paidNow || Boolean(supplierId) || Boolean(newSupplier.trim()));
 
+  if (confirming) {
+    return (
+      <ConfirmDialog
+        title="Add this stock?"
+        message={
+          <>
+            Adding stock changes what this item costs you, which changes every
+            profit figure for it. Worth a second look before it goes in.
+          </>
+        }
+        details={[
+          { label: 'Item', value: product.name },
+          { label: 'Coming in', value: `${quantity}` },
+          { label: 'Cost for one', value: `KSh ${money(unitCost)}` },
+          { label: paidNow ? 'Paying now' : 'Going on credit', value: `KSh ${money(totalCost)}` },
+          { label: 'Stock after', value: `${product.quantity + quantity}` },
+        ]}
+        confirmLabel="Yes, add it"
+        cancelLabel="Let me check"
+        onConfirm={handleConfirm}
+        onCancel={() => setConfirming(false)}
+      />
+    );
+  }
+
   return (
     <Modal
       title="Add stock"
@@ -107,7 +135,7 @@ export function RestockDialog({
       footer={
         <>
           <Button variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
-          <Button className="flex-1" onClick={handleConfirm} disabled={isSaving || !canSave}>
+          <Button className="flex-1" onClick={() => setConfirming(true)} disabled={isSaving || !canSave}>
             <PackagePlus className="h-4 w-4 mr-2" />
             {isSaving ? 'Saving...' : 'Confirm'}
           </Button>

@@ -28,7 +28,7 @@ export const useInventory = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [allSales, setAllSales] = useState<Sale[]>([]);
   const [salePayments, setSalePayments] = useState<SalePayment[]>([]);
-  const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
+  const [allStockMovements, setAllStockMovements] = useState<StockMovement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { shop, isOwner } = useAuth();
   const { toast } = useToast();
@@ -38,7 +38,7 @@ export const useInventory = () => {
       setProducts([]);
       setAllSales([]);
       setSalePayments([]);
-      setStockMovements([]);
+      setAllStockMovements([]);
       setIsLoading(false);
       return;
     }
@@ -145,7 +145,7 @@ export const useInventory = () => {
 
       if (error) throw error;
 
-      setStockMovements((data || []).map((m: any) => ({
+      setAllStockMovements((data || []).map((m: any) => ({
         id: m.id,
         productId: m.product_id,
         productName: m.product_name || 'Unknown',
@@ -158,6 +158,12 @@ export const useInventory = () => {
         happenedAt: m.happened_at,
         expenseId: m.expense_id || null,
         createdBy: m.created_by || null,
+        voidedAt: m.voided_at || null,
+        voidedBy: m.voided_by || null,
+        voidReason: m.void_reason || null,
+        previousCostPrice: m.previous_cost_price === null || m.previous_cost_price === undefined
+          ? null
+          : Number(m.previous_cost_price),
       })));
     } catch (error: any) {
       console.error("Stock movements error:", error);
@@ -174,6 +180,10 @@ export const useInventory = () => {
   // Everything that adds up money uses this. allSales exists only so the day
   // list can show a cancelled sale struck through rather than vanishing.
   const sales = allSales.filter((s) => !s.voidedAt);
+
+  // Same rule for stock. allStockMovements keeps the cancelled ones so the
+  // activity log can show that a correction was made.
+  const stockMovements = allStockMovements.filter((m) => !m.voidedAt);
 
   const voidSale = async (saleId: string, reason?: string) => {
     if (!shop?.id) return false;
@@ -192,6 +202,34 @@ export const useInventory = () => {
     await fetchProducts();
     await fetchSales();
     await fetchSalePayments();
+    return true;
+  };
+
+  const voidRestock = async (movementId: string, reason?: string) => {
+    if (!shop?.id) return false;
+
+    const { data, error } = await supabase.rpc('void_restock_atomic', {
+      p_shop_id: shop.id,
+      p_movement_id: movementId,
+      p_reason: reason ?? null,
+    });
+
+    if (error) {
+      toast({ title: 'Could not cancel', description: error.message, variant: 'destructive' });
+      return false;
+    }
+
+    const row = Array.isArray(data) ? data[0] : data;
+    toast({
+      title: 'Restock cancelled',
+      description: row && row.cost_restored === false
+        ? 'Stock and spending are back. Check the cost price, it could not be restored for an old entry.'
+        : 'The stock, the cost price and the spending have been put back.',
+    });
+
+    await fetchProducts();
+    await fetchStockMovements();
+    await fetchSales();
     return true;
   };
 
@@ -389,7 +427,9 @@ export const useInventory = () => {
     allSales,
     salePayments,
     voidSale,
+    voidRestock,
     stockMovements,
+    allStockMovements,
     isLoading,
     addProduct,
     bulkImportProducts,

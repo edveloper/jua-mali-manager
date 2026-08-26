@@ -72,6 +72,29 @@ const Index = () => {
   const [productsView, setProductsView] = useState<'sell' | 'stock'>('sell');
   const [deniView, setDeniView] = useState<'in' | 'out'>('in');
   const [viewDate, setViewDate] = useState(new Date());
+
+  /*
+   * Roll the day over when the app comes back to the foreground.
+   *
+   * An installed PWA is not reloaded between uses: it is resumed, days later,
+   * with whatever state it had. viewDate was captured once at mount, so a shop
+   * that never closes the app would open it in the morning still reading
+   * yesterday's takings under yesterday's date.
+   *
+   * Whether to move has to be tracked as intent, not inferred by comparing the
+   * view to now: once midnight has passed, "yesterday" and "deliberately looking
+   * at yesterday" are the same date and cannot be told apart after the fact.
+   */
+  const [followToday, setFollowToday] = useState(true);
+
+  useEffect(() => {
+    const rollOver = () => {
+      if (document.visibilityState !== 'visible' || !followToday) return;
+      setViewDate((current) => (isSameDay(current, new Date()) ? current : new Date()));
+    };
+    document.addEventListener('visibilitychange', rollOver);
+    return () => document.removeEventListener('visibilitychange', rollOver);
+  }, [followToday]);
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
 
   const { toast } = useToast();
@@ -90,9 +113,9 @@ const Index = () => {
   const { user, loading: authLoading, isOwner, can, shop, shopMember, membershipResolved, signOut } = useAuth();
 
   const {
-    products, sales, allSales, stockMovements, isLoading: inventoryLoading,
+    products, sales, allSales, stockMovements, allStockMovements, isLoading: inventoryLoading,
     addProduct, bulkImportProducts, updateProduct, deleteProduct,
-    recordBasketSale, voidSale, restockProduct, getLowStockProducts, getStats, searchProducts,
+    recordBasketSale, voidSale, voidRestock, restockProduct, getLowStockProducts, getStats, searchProducts,
     salePayments
   } = useInventory();
 
@@ -327,19 +350,48 @@ const Index = () => {
       <main className="max-w-md mx-auto px-4 py-4 space-y-4">
         {activeTab === 'dashboard' && (
           <>
+            {/* "Today" belongs to the date, not to a button sitting beside it.
+                With both on screen the word contradicted the date next to it the
+                moment you stepped back a day, so the jump-back control now only
+                appears when there is somewhere to jump back to. */}
             {isOwner && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">
-                  {isToday ? format(new Date(), 'EEEE d MMMM') : format(viewDate, 'EEEE d MMMM')}
-                </span>
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewDate((p) => subDays(p, 1))}>
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="text-sm font-medium">
+                    {isToday ? 'Today' : format(viewDate, 'EEEE')}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    {' · '}{format(viewDate, 'd MMMM')}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    aria-label="Previous day"
+                    onClick={() => { setFollowToday(false); setViewDate((p) => subDays(p, 1)); }}
+                  >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="text-xs h-8 px-2" onClick={() => setViewDate(new Date())} disabled={isToday}>
-                    Today
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewDate((p) => addDays(p, 1))} disabled={isToday}>
+                  {!isToday && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs h-8 px-2"
+                      onClick={() => { setFollowToday(true); setViewDate(new Date()); }}
+                    >
+                      Back to today
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    aria-label="Next day"
+                    onClick={() => { setFollowToday(false); setViewDate((p) => addDays(p, 1)); }}
+                    disabled={isToday}
+                  >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -528,6 +580,8 @@ const Index = () => {
             expenses={expenses}
             onAddExpense={addExpense}
             onDeleteExpense={deleteExpense}
+            stockMovements={stockMovements}
+            onVoidRestock={voidRestock}
             onQuickAddTOT={quickAddTOT}
             monthlySales={isOwner ? currentMonthSales : 0}
             businessCategory={shop?.business_category || 'retail'}
@@ -610,7 +664,7 @@ const Index = () => {
             creditSales={creditSales}
             creditPayments={creditPayments}
             expenses={expenses}
-            stockMovements={stockMovements}
+            stockMovements={allStockMovements}
             supplierDebts={supplierDebts}
             supplierPayments={supplierPayments}
             stockTakes={takes}

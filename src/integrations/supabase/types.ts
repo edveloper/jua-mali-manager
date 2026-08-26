@@ -1200,6 +1200,17 @@ export type Database = {
         }[];
       };
 
+      void_restock_atomic: {
+        Args: { p_shop_id: string; p_movement_id: string; p_reason?: string | null };
+        Returns: {
+          voided_movement_id: string;
+          restored_stock: number;
+          restored_cost: number;
+          removed_amount: number;
+          cost_restored: boolean;
+        }[];
+      };
+
       record_basket_sale_atomic: {
         Args: {
           p_shop_id: string;

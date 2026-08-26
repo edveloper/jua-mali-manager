@@ -11,8 +11,8 @@ const GUIDES: { title: string; points: string[] }[] = [
     title: 'Selling',
     points: [
       'Tap an item on the Sell screen, set the quantity, done. Stock goes down on its own.',
-      'Say whether it was paid now or taken on deni, and how it was paid. That is what lets the app tell you what should be in your till at closing.',
-      'If you agreed a price with the customer, type it over the usual one. You only see that box if the owner has allowed it for you.',
+      'Say how it was paid, or whether it went on deni. That is the only reason the app can tell you what should be in the drawer at closing.',
+      'Haggled? Type the price you agreed over the usual one. That box only shows up if the owner has allowed it for you.',
     ],
   },
   {
@@ -27,14 +27,22 @@ const GUIDES: { title: string; points: string[] }[] = [
     title: 'Buying stock',
     points: [
       'Always use Restock on the item, not the Spending tab.',
-      'Restock does three things at once: raises your stock, updates what the item costs you on average, and records the money you spent.',
-      'Log stock as a plain expense instead and your shelves will say one thing while your books say another.',
+      'Restock does three things at once: puts the goods on the shelf, works out what the item now costs you on average, and records the money that left.',
+      'Put it through Spending instead and your shelves will say one thing while your books say another.',
+    ],
+  },
+  {
+    title: 'Stock added by mistake',
+    points: [
+      'Open Spending and find the delivery. The arrow beside it cancels the whole thing.',
+      'The goods come back off the shelf, the cost price goes back to what it was, and the spending disappears with it.',
+      'It will refuse if you have already sold the stock or paid the supplier. At that point a stock count is the honest fix.',
     ],
   },
   {
     title: 'Deni',
     points: [
-      'The Deni tab shows who owes you and how much, biggest first.',
+      'Deni shows who owes you and how much, biggest debt first.',
       'Record part payments as they come. Each one is saved with its date and how it was paid.',
       'A sale on deni counts as income the day it happens. The payment later is not income again, it is the money finally arriving.',
     ],
@@ -43,15 +51,15 @@ const GUIDES: { title: string; points: string[] }[] = [
     title: 'Closing the till',
     points: [
       'Home shows what should be in the drawer: cash sales, plus deni paid in cash, minus cash you paid out.',
-      'Money that came by M-Pesa or Airtel is left out on purpose. It went to your phone, not the drawer.',
-      'Count what is actually there and type it in. If it does not match, you find out the same day instead of at month end.',
+      'M-Pesa and Airtel are left out on purpose. That money went to your phone, not into the drawer.',
+      'Count what is really there and type it in. If it does not match, you know the same evening rather than at month end.',
     ],
   },
   {
     title: 'Your staff',
     points: [
       'Add staff under More. Give them a temporary password; they choose their own the first time they sign in.',
-      'They can sell and see what is in stock. They cannot see what you paid for anything, your spending, or your profit.',
+      'They can sell and see what is in stock. What you paid for goods, what you spend and what you make stay yours.',
       'Forgotten their password? Open Staff, tap New password, and give them a temporary one. They choose their own again when they sign in.',
       'You can let someone agree prices with customers, handle deni, or record spending. Each one is a separate switch, off until you turn it on.',
       'For prices, set the lowest and highest you will accept on the item first, then switch it on for that person.',
@@ -62,14 +70,14 @@ const GUIDES: { title: string; points: string[] }[] = [
     points: [
       'Home is one day at a time. Use the arrows to look back.',
       'Money shows longer stretches, what sold best, how customers paid, and where your money went.',
-      'Two profits appear, and the gap between them is your running costs: one is sales minus what the goods cost you, the other takes off rent, wages and the rest.',
+      'You get two profit figures. The first is sales minus what the goods cost you. The second also takes off rent, wages and the rest. The gap between them is what it costs to keep the doors open.',
     ],
   },
   {
     title: 'When something looks wrong',
     points: [
       'Stuck on the loading screen? Close the app fully and open it again.',
-      'Numbers lower than you expected? Check every item has a cost price. Without one the app cannot work out profit and will flatter you.',
+      'Profit looking odd? Check every item has a cost price. Without one there is nothing to work it out from, and the figure will flatter you.',
       'Still wrong? Use Contact us and say what you were doing when it happened.',
     ],
   },

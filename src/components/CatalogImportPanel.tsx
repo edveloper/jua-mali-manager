@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import { Upload, FileDown, AlertTriangle, CheckCircle2, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { todayKey } from '@/lib/dates';
 
 type ImportMode = 'products' | 'services' | 'mixed';
 

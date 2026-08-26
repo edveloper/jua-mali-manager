@@ -88,7 +88,7 @@ export function SaleDialog({
   const [splitMode, setSplitMode] = useState(false);
   const [method, setMethod] = useState<PaymentMethod | 'deni'>(lastUsedMethod);
   const [reference, setReference] = useState('');
-  const [parts, setParts] = useState<Part[]>([{ method: lastUsedMethod, amount: '', reference: '' }]);
+  const [parts, setParts] = useState<Part[]>(() => [{ method: lastUsedMethod(), amount: '', reference: '' }]);
   const [deniInput, setDeniInput] = useState('');
 
   // Customer, needed only when something is going on deni.
@@ -421,7 +421,7 @@ export function SaleDialog({
                   className="text-xs text-primary hover:underline flex items-center gap-1"
                   onClick={() => {
                     setSplitMode(true);
-                    setParts([{ method: method === 'deni' ? lastUsedMethod : method, amount: '', reference: '' }]);
+                    setParts([{ method: method === 'deni' ? lastUsedMethod() : method, amount: '', reference: '' }]);
                     setDeniInput('');
                   }}
                 >

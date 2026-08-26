@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
-import { Expense, ExpenseDraft } from '@/types/inventory';
+import { Plus, Trash2, Undo2 } from 'lucide-react';
+import { Expense, ExpenseDraft, StockMovement } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PAYMENT_METHODS, PaymentMethod, lastUsedMethod, methodLabel } from '@/lib/payment';
 import { format, startOfMonth, subDays, subMonths, startOfDay, endOfDay, endOfMonth } from 'date-fns';
 
@@ -11,6 +12,9 @@ interface ExpenseManagerProps {
   expenses: Expense[];
   onAddExpense: (expense: ExpenseDraft) => Promise<void>;
   onDeleteExpense: (id: string) => Promise<void>;
+  /** Restock spend is owned by a stock record, so cancelling goes through it. */
+  stockMovements?: StockMovement[];
+  onVoidRestock?: (movementId: string) => Promise<boolean>;
   onQuickAddTOT: () => void;
   monthlySales: number;
   businessCategory?: string;
@@ -86,6 +90,8 @@ export function ExpenseManager({
   expenses,
   onAddExpense,
   onDeleteExpense,
+  stockMovements = [],
+  onVoidRestock,
   onQuickAddTOT,
   monthlySales,
   businessCategory = 'retail',
@@ -104,6 +110,8 @@ export function ExpenseManager({
   const [recurrenceUnit, setRecurrenceUnit] = useState<Expense['recurrenceUnit']>('monthly');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(lastUsedMethod);
   const [isSaving, setIsSaving] = useState(false);
+  const [deleting, setDeleting] = useState<Expense | null>(null);
+  const [cancellingRestock, setCancellingRestock] = useState<StockMovement | null>(null);
 
   const categories = useMemo(() => categoriesFor(businessCategory), [businessCategory]);
 
@@ -185,6 +193,14 @@ export function ExpenseManager({
     setPickingCategory(false);
     setShowForm(false);
   };
+
+  /*
+   * Spending created by a restock cannot simply be deleted: the stock record
+   * that made it would still claim the goods arrived. Cancelling the delivery
+   * instead puts the shelf, the cost price and the money back together.
+   */
+  const restockFor = (expenseId: string) =>
+    stockMovements.find((m) => m.expenseId === expenseId && !m.voidedAt);
 
   const estimatedTax = monthlySales * 0.03;
 
@@ -402,19 +418,70 @@ export function ExpenseManager({
               <span className="amount text-sm shrink-0">{money(expense.amount)}</span>
               {/* Restock spend is owned by the stock record that created it, so it
                   cannot be deleted from here without the two disagreeing. */}
-              {expense.source !== 'restock' && (
+              {expense.source !== 'restock' ? (
                 <button
                   type="button"
-                  onClick={() => onDeleteExpense(expense.id)}
+                  onClick={() => setDeleting(expense)}
                   className="text-muted-foreground active:text-destructive shrink-0"
                   aria-label="Remove"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
+              ) : (
+                onVoidRestock && restockFor(expense.id) && (
+                  <button
+                    type="button"
+                    onClick={() => setCancellingRestock(restockFor(expense.id) ?? null)}
+                    className="text-muted-foreground active:text-destructive shrink-0"
+                    aria-label="Cancel this delivery"
+                  >
+                    <Undo2 className="h-4 w-4" />
+                  </button>
+                )
               )}
             </div>
           ))}
         </div>
+      )}
+
+      {cancellingRestock && (
+        <ConfirmDialog
+          title="Cancel this delivery?"
+          message="The stock comes back off the shelf, the cost price goes back to what it was, and the spending is removed."
+          details={[
+            { label: 'Item', value: cancellingRestock.productName },
+            { label: 'Coming off', value: `${cancellingRestock.quantity}` },
+            { label: 'Spending removed', value: `KSh ${money(cancellingRestock.totalCost)}` },
+          ]}
+          destructive
+          confirmLabel="Cancel it"
+          cancelLabel="Leave it"
+          onConfirm={async () => {
+            await onVoidRestock?.(cancellingRestock.id);
+            setCancellingRestock(null);
+          }}
+          onCancel={() => setCancellingRestock(null)}
+        />
+      )}
+
+      {deleting && (
+        <ConfirmDialog
+          title="Remove this spending?"
+          message="It goes off the record completely. Nothing here keeps a copy of it."
+          details={[
+            { label: 'What', value: deleting.description || deleting.category },
+            { label: 'Amount', value: `KSh ${money(deleting.amount)}` },
+            { label: 'Date', value: format(new Date(deleting.date), 'd MMM yyyy') },
+          ]}
+          destructive
+          confirmLabel="Remove it"
+          cancelLabel="Keep it"
+          onConfirm={async () => {
+            await onDeleteExpense(deleting.id);
+            setDeleting(null);
+          }}
+          onCancel={() => setDeleting(null)}
+        />
       )}
     </div>
   );
