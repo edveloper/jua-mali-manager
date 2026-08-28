@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { methodLabel } from '@/lib/payment';
 import {
   format, startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, subMonths,
-  isWithinInterval, differenceInCalendarDays,
+  isWithinInterval, differenceInCalendarDays, eachDayOfInterval, eachMonthOfInterval,
+  isSameDay, isSameMonth, min as earliest,
 } from 'date-fns';
 
 interface SalesReportsProps {
@@ -100,6 +101,7 @@ export function SalesReports({
   }, [rangeType, customStart, customEnd]);
 
   const report = useMemo(() => {
+    const now = new Date();
     const inRange = (d: string | Date) => isWithinInterval(new Date(d), { start, end });
 
     const periodSales = sales.filter((s) => inRange(s.createdAt));
@@ -166,12 +168,50 @@ export function SalesReports({
       }))
       .sort((a, b) => b.amount - a.amount);
 
-    const byDay = new Map<string, number>();
-    for (const s of periodSales) {
-      const key = format(new Date(s.createdAt), 'dd MMM');
-      byDay.set(key, (byDay.get(key) || 0) + Number(s.totalAmount || 0));
+    /*
+     * Sales by day.
+     *
+     * This was built by walking the sales and dropping each day into a Map as it
+     * appeared. Two things were wrong with that, and both misread the shop.
+     *
+     * A Map iterates in insertion order, and the sales come back from Postgres
+     * in no particular order, so the bars came out in whatever sequence the rows
+     * happened to arrive: 18, 19, 14, 17, 25. Not a trend, an accident.
+     *
+     * Worse, a day with no sales was simply absent. The chart then closed the
+     * gap and drew six trading days as six neighbouring bars, so a week with the
+     * shutters down looked identical to a week of steady trading. A quiet day is
+     * a fact about the business and has to be drawn as a fact: zero.
+     *
+     * So every day in the period is generated first and the takings dropped onto
+     * it. Long ranges from Pick dates would give hundreds of bars nobody can
+     * read, so past roughly two months it groups by month instead.
+     */
+    const upTo = earliest([end, now]);
+    const spanDays = Math.max(0, differenceInCalendarDays(upTo, start)) + 1;
+    const byMonth = spanDays > 62;
+
+    const buckets = byMonth
+      ? eachMonthOfInterval({ start, end: upTo }).map((d) => ({
+          at: d,
+          day: format(d, 'MMM yy'),
+          amount: 0,
+        }))
+      : eachDayOfInterval({ start, end: upTo }).map((d) => ({
+          at: d,
+          day: format(d, 'd MMM'),
+          amount: 0,
+        }));
+
+    for (const sale of periodSales) {
+      const at = new Date(sale.createdAt);
+      const bucket = byMonth
+        ? buckets.find((b) => isSameMonth(b.at, at))
+        : buckets.find((b) => isSameDay(b.at, at));
+      if (bucket) bucket.amount += Number(sale.totalAmount || 0);
     }
-    const trend = [...byDay.entries()].map(([day, amount]) => ({ day, amount }));
+
+    const trend = buckets.map(({ day, amount }) => ({ day, amount }));
 
     const tradingDays = new Set(
       periodSales.map((s) => format(new Date(s.createdAt), 'yyyy-MM-dd'))
@@ -180,7 +220,7 @@ export function SalesReports({
     return {
       totalSales, grossProfit, onDeni, deniPaidBack, runningCosts,
       takeHome: grossProfit - runningCosts,
-      topItems, categorySpend, methodSplit, trend, tradingDays,
+      topItems, categorySpend, methodSplit, trend, trendByMonth: byMonth, tradingDays,
       averageDay: tradingDays ? totalSales / tradingDays : 0,
       restockSpend: periodPurchases.reduce((sum, p) => sum + Number(p.totalCost || 0), 0),
       estimatedTax: totalSales * TURNOVER_TAX_RATE,
@@ -363,11 +403,21 @@ export function SalesReports({
         <>
           {report.trend.length > 1 && (
             <div className="sheet">
-              <p className="sheet-heading mb-3">Sales by day</p>
+              <p className="sheet-heading">{report.trendByMonth ? 'Sales by month' : 'Sales by day'}</p>
+              <p className="text-xs text-muted-foreground mb-3">
+                Every {report.trendByMonth ? 'month' : 'day'} in the period. A flat bar means
+                nothing was sold.
+              </p>
               <div className="h-40 -ml-4">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={report.trend}>
-                    <XAxis dataKey="day" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+                    {/* Roughly six labels, whatever the length, so a month of
+                        bars does not become a smear of overlapping dates. */}
+                    <XAxis
+                      dataKey="day"
+                      tick={{ fontSize: 10 }}
+                      interval={Math.max(0, Math.ceil(report.trend.length / 6) - 1)}
+                    />
                     <Tooltip
                       formatter={(v) => `KSh ${money(v as number)}`}
                       contentStyle={{ fontSize: 12, borderRadius: 8 }}

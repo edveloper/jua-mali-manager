@@ -78,7 +78,11 @@ export const useInventory = () => {
     try {
       const { data, error } = await supabase.from('sales')
         .select('*')
-        .eq('shop_id', shop.id);
+        .eq('shop_id', shop.id)
+        // Postgres returns rows in no guaranteed order. Nothing should rely on
+        // that, but leaving it unordered is how the sales chart ended up drawn
+        // in whatever sequence the rows happened to arrive.
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
