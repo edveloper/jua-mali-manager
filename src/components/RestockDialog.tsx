@@ -8,6 +8,7 @@ import { Modal } from '@/components/Modal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PAYMENT_METHODS, PaymentMethod, lastUsedMethod, rememberMethod } from '@/lib/payment';
 import { todayKey } from '@/lib/dates';
+import { money } from '@/lib/money';
 
 interface RestockDialogProps {
   product: Product;
@@ -29,7 +30,6 @@ interface RestockDialogProps {
   onAddSupplier: (name: string) => Promise<{ id: string } | null>;
 }
 
-const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 2 });
 
 const num = (s: string) => {
   const parsed = Number(s);

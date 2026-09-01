@@ -11,6 +11,18 @@ import { Label } from '@/components/ui/label';
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
 
+const CATEGORIES: [string, string][] = [
+  ['retail', 'Retail shop / Duka'],
+  ['barbershop_salon', 'Barbershop / Salon'],
+  ['computer_center', 'Computer centre / Cyber'],
+  ['transport', 'Transport / Matatu'],
+  ['food_hospitality', 'Food / Hospitality'],
+  ['repair_services', 'Repair services'],
+  ['health_beauty', 'Health / Beauty'],
+  ['education_training', 'Education / Training'],
+  ['other_services', 'Other service business'],
+];
+
 const TERMS = [
   { days: 0, label: 'On delivery' },
   { days: 7, label: '7 days' },
@@ -38,6 +50,8 @@ export function BusinessDetailsPanel() {
   useEffect(() => {
     if (!shop) return;
     setForm({
+      name: shop.name ?? '',
+      business_category: shop.business_category ?? 'retail',
       address: shop.address ?? '',
       phone: shop.phone ?? '',
       email: shop.email ?? '',
@@ -62,8 +76,19 @@ export function BusinessDetailsPanel() {
     // Empty boxes are stored as null rather than '', so the invoice can ask
     // "is this missing" without also having to ask "is it blank".
     const cleaned: ShopProfileUpdate = Object.fromEntries(
-      Object.entries(form).map(([k, v]) => [k, typeof v === 'string' && v.trim() === '' ? null : v])
+      Object.entries(form).map(([k, v]) => [
+        k,
+        // A shop with no name would appear as a blank heading on every document,
+        // so it is the one field that cannot be cleared.
+        k !== 'name' && typeof v === 'string' && v.trim() === '' ? null : v,
+      ])
     );
+
+    if (!String(cleaned.name ?? '').trim()) {
+      setIsSaving(false);
+      toast({ title: 'Your shop needs a name', variant: 'destructive' });
+      return;
+    }
     const { error } = await updateShopProfile(cleaned);
     setIsSaving(false);
 
@@ -135,6 +160,39 @@ export function BusinessDetailsPanel() {
 
   return (
     <div className="space-y-3">
+      <div className="sheet space-y-3">
+        <p className="sheet-heading">Your shop</p>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="biz-name">Shop name</Label>
+          <Input
+            id="biz-name"
+            value={form.name ?? ''}
+            onChange={(e) => set({ name: e.target.value })}
+          />
+          <p className="text-xs text-muted-foreground">
+            What your staff see when they sign in, and what heads your invoices.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="biz-category">What kind of business?</Label>
+          <select
+            id="biz-category"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={form.business_category ?? 'retail'}
+            onChange={(e) => set({ business_category: e.target.value })}
+          >
+            {CATEGORIES.map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+          <p className="text-xs text-muted-foreground">
+            Only used to suggest the right kinds of spending.
+          </p>
+        </div>
+      </div>
+
       <div className="sheet space-y-3">
         <div>
           <p className="sheet-heading">On your invoices</p>

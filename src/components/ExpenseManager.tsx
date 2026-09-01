@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PAYMENT_METHODS, PaymentMethod, lastUsedMethod, methodLabel } from '@/lib/payment';
+import { money } from '@/lib/money';
 import { format, startOfMonth, subDays, subMonths, startOfDay, endOfDay, endOfMonth } from 'date-fns';
 
 interface ExpenseManagerProps {
@@ -24,7 +25,6 @@ interface ExpenseManagerProps {
 
 type RangeType = 'today' | 'month' | 'lastMonth' | '30d' | 'all';
 
-const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
 
 const categoriesFor = (businessCategory: string): string[] => {
   const common = ['Rent', 'Wages', 'Transport', 'Utilities', 'Airtime', 'Tax', 'Licences', 'Other'];

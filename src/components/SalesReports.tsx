@@ -4,6 +4,7 @@ import { Share2 } from 'lucide-react';
 import { Sale, CreditSale, StockMovement, Expense, SalePayment } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { methodLabel } from '@/lib/payment';
+import { money } from '@/lib/money';
 import {
   format, startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, subMonths,
   isWithinInterval, differenceInCalendarDays, eachDayOfInterval, eachMonthOfInterval,
@@ -30,7 +31,6 @@ interface SalesReportsProps {
 
 type RangeType = 'today' | 'week' | 'month' | 'lastMonth' | 'custom';
 
-const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
 const isRestockExpense = (expense: Expense) => expense.source === 'restock';
 
 /*

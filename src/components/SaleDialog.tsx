@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Minus, Plus, ShoppingCart, Search, X, Split } from 'lucide-react';
+import { Check, Minus, Plus, ShoppingCart, Search, X, Split } from 'lucide-react';
 import { Product, Customer } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/Modal';
 import { BasketLine, BasketPayment } from '@/hooks/useInventory';
 import { PAYMENT_METHODS, PaymentMethod, lastUsedMethod, rememberMethod, takesReference } from '@/lib/payment';
+import { money } from '@/lib/money';
 
 interface SaleDialogProps {
   products: Product[];
@@ -15,11 +16,14 @@ interface SaleDialogProps {
   onSubmit: (
     lines: BasketLine[],
     payments: BasketPayment[],
-    credit?: { customerId?: string; newCustomer?: { name: string; phone: string }; amount: number }
+    credit?: { customerId?: string; newCustomer?: { name: string; phone: string }; amount: number },
+    options?: { invoice?: boolean }
   ) => Promise<boolean>;
   onClose: () => void;
   isOwner?: boolean;
   canOverridePrice?: boolean;
+  /** Owners only: raising an invoice publishes the shop's own tax details. */
+  canInvoice?: boolean;
 }
 
 interface Line {
@@ -41,7 +45,6 @@ interface Part {
   reference: string;
 }
 
-const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 2 });
 const num = (s: string) => {
   const parsed = Number(s);
   return s.trim() !== '' && Number.isFinite(parsed) ? parsed : 0;
@@ -76,7 +79,7 @@ const toLine = (p: Product): Line => ({
  */
 export function SaleDialog({
   products, customers, initialProduct, onSubmit, onClose,
-  isOwner = true, canOverridePrice = false,
+  isOwner = true, canOverridePrice = false, canInvoice = false,
 }: SaleDialogProps) {
   const [lines, setLines] = useState<Line[]>(initialProduct ? [toLine(initialProduct)] : []);
   const [query, setQuery] = useState('');
@@ -95,6 +98,7 @@ export function SaleDialog({
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [customerQuery, setCustomerQuery] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
+  const [wantsInvoice, setWantsInvoice] = useState(false);
 
   const basketTotal = useMemo(
     () => round2(lines.reduce((sum, l) => sum + num(l.priceInput) * qtyOf(l), 0)),
@@ -221,7 +225,8 @@ export function SaleDialog({
               : undefined,
             amount: deniAmount,
           }
-        : undefined
+        : undefined,
+      { invoice: wantsInvoice && deniAmount > 0 }
     );
     setIsSubmitting(false);
 
@@ -632,6 +637,31 @@ export function SaleDialog({
                 </>
               )}
             </div>
+          )}
+
+          {canInvoice && deniAmount > 0 && hasCustomer && (
+            <button
+              type="button"
+              onClick={() => setWantsInvoice((v) => !v)}
+              className={`w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-colors ${
+                wantsInvoice ? 'border-primary bg-primary/5' : 'border-border'
+              }`}
+            >
+              <span
+                className={`h-5 w-5 rounded border flex items-center justify-center shrink-0 ${
+                  wantsInvoice ? 'bg-primary border-primary' : 'border-input'
+                }`}
+                aria-hidden="true"
+              >
+                {wantsInvoice && <Check className="h-3.5 w-3.5 text-primary-foreground" />}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-medium">Send an invoice for this</span>
+                <span className="block text-xs text-muted-foreground">
+                  Raised the moment you finish, ready to send on WhatsApp.
+                </span>
+              </span>
+            </button>
           )}
 
           {isOwner && basketProfit !== 0 && (

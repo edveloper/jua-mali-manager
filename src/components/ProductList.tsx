@@ -3,6 +3,7 @@ import { Search, Plus, AlertTriangle, Pencil, PackagePlus, Trash2, MoreHorizonta
 import { Product } from '@/types/inventory';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { money } from '@/lib/money';
 
 interface ProductListProps {
   products: Product[];
@@ -18,7 +19,6 @@ interface ProductListProps {
 }
 
 const PAGE_SIZE = 15;
-const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
 
 export function ProductList({
   products, onSearch, onEdit, onDelete, onAdd, onSell, onStartSale, onRestock, isOwner = true,

@@ -10,6 +10,7 @@ import { SupplierDebt, Supplier } from '@/hooks/useSuppliers';
 import { MpesaEntry } from '@/hooks/useMpesa';
 import { BankStatement } from '@/components/BankStatement';
 import { methodLabel } from '@/lib/payment';
+import { money, moneyForCsv as fixed } from '@/lib/money';
 
 interface RecordsPanelProps {
   shopName: string;
@@ -36,8 +37,6 @@ interface RecordsPanelProps {
 type RangeKey = 'month' | 'lastMonth' | 'year' | 'custom';
 
 const csv = (v: string | number) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
-const fixed = (n: number) => n.toFixed(2);
 
 const download = (filename: string, contents: string) => {
   // Excel assumes Windows-1252 for CSV unless a byte-order mark says

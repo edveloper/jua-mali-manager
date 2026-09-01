@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Sale, SalePayment } from '@/types/inventory';
 import { MpesaEntry } from '@/hooks/useMpesa';
 import { parseMpesaText, ParsedMpesaEntry } from '@/lib/mpesa';
+import { money } from '@/lib/money';
 
 interface MpesaReconcileProps {
   sales: Sale[];
@@ -14,7 +15,6 @@ interface MpesaReconcileProps {
   onForget: (entryId: string) => Promise<void>;
 }
 
-const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
 
 /**
  * The matches are not the point. The two mismatched lists are: money that

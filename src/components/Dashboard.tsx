@@ -1,5 +1,6 @@
 import { Package, AlertTriangle, TrendingUp, Wallet, CreditCard } from 'lucide-react';
 import { DashboardStats } from '@/types/inventory';
+import { ksh } from '@/lib/money';
 
 interface DashboardProps {
   stats: DashboardStats;
@@ -7,7 +8,7 @@ interface DashboardProps {
 
 export function Dashboard({ stats }: DashboardProps) {
   const formatCurrency = (amount: number) => {
-    return `KSh ${amount.toLocaleString()}`;
+    return ksh(amount);
   };
 
   return (

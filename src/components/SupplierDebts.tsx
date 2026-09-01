@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Supplier, SupplierDebt, SupplierPayment } from '@/hooks/useSuppliers';
 import { PAYMENT_METHODS, PaymentMethod, lastUsedMethod, rememberMethod, takesReference, methodLabel } from '@/lib/payment';
+import { money } from '@/lib/money';
 
 interface SupplierDebtsProps {
   suppliers: Supplier[];
@@ -18,7 +19,6 @@ interface SupplierDebtsProps {
   onPay: (debtId: string, amount: number, method?: string, reference?: string) => Promise<boolean>;
 }
 
-const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
 const shortDate = (d: string) => new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' });
 
 /** The mirror of the credit book. Same shapes, pointing the other way. */

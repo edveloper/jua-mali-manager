@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { Copy, FileText, Printer, X } from 'lucide-react';
+import { Copy, FileText, Printer, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Invoice, STATUS_LABEL } from '@/types/invoice';
 import { Sale, CreditSale } from '@/types/inventory';
 import { todayKey } from '@/lib/dates';
+import { money } from '@/lib/money';
 
 interface InvoicesPanelProps {
   sales: Sale[];
@@ -22,7 +23,6 @@ interface InvoicesPanelProps {
   hasPaymentDetails: boolean;
 }
 
-const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
 
 const TERMS = [0, 7, 14, 30];
 
@@ -44,7 +44,7 @@ const STATUS_TONE: Record<string, string> = {
 export function InvoicesPanel({
   sales, creditSales, customerName, onGoToBusinessDetails, hasPaymentDetails,
 }: InvoicesPanelProps) {
-  const { invoices, raiseInvoice, voidInvoice, linkFor, invoiceForReceipt } = useInvoices();
+  const { invoices, raiseInvoice, voidInvoice, linkFor, shareInvoice, invoiceForReceipt } = useInvoices();
   const { toast } = useToast();
 
   const [raising, setRaising] = useState<CreditSale | null>(null);
@@ -86,19 +86,6 @@ export function InvoicesPanel({
     } catch {
       toast({ title: 'Copy it by hand', description: url });
     }
-  };
-
-  const shareLink = async (invoice: Invoice) => {
-    const url = linkFor(invoice);
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: invoice.number, text: `Invoice ${invoice.number}`, url });
-        return;
-      } catch {
-        // Cancelled, or blocked here. The copy button is still there.
-      }
-    }
-    copyLink(invoice);
   };
 
   return (
@@ -184,12 +171,12 @@ export function InvoicesPanel({
                 </span>
                 {!invoice.voidedAt && (
                   <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={`Copy the link for ${invoice.number}`}
-                    onClick={() => shareLink(invoice)}
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0"
+                    onClick={() => shareInvoice(invoice)}
                   >
-                    <Copy className="h-4 w-4" />
+                    <Send className="h-3.5 w-3.5 mr-1.5" /> Send
                   </Button>
                 )}
               </div>

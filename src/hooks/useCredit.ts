@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreditPayment, CreditSale, Customer } from '@/types/inventory';
 import { useToast } from '@/hooks/use-toast';
+import { ksh } from '@/lib/money';
 
 export const useCredit = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -107,7 +108,7 @@ export const useCredit = () => {
       return;
     }
 
-    toast({ title: `Recorded payment of KSh ${paymentAmount.toLocaleString()}` });
+    toast({ title: `Recorded payment of ${ksh(paymentAmount)}` });
     fetchData();
   };
 

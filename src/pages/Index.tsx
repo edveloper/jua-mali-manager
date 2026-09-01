@@ -22,12 +22,12 @@ import { SaleDialog } from '@/components/SaleDialog';
 import { ActivityLog } from '@/components/ActivityLog';
 import { BusinessDetailsPanel } from '@/components/BusinessDetailsPanel';
 import { InvoicesPanel } from '@/components/InvoicesPanel';
+import { useInvoices } from '@/hooks/useInvoices';
 import { RestockDialog } from '@/components/RestockDialog';
 import { LowStockAlerts } from '@/components/LowStockAlerts';
 import { CreditManager } from '@/components/CreditManager';
 import { SalesReports } from '@/components/SalesReports';
 import { ExpenseManager } from '@/components/ExpenseManager';
-import { SettingsPanel } from '@/components/SettingsPanel';
 import { EmployeeManager } from '@/components/EmployeeManager';
 import { MoreMenu } from '@/components/MoreMenu';
 import { HelpPanel } from '@/components/HelpPanel';
@@ -49,10 +49,9 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 /** Screens reached from More, which get a back arrow instead of a nav slot. */
-const SUB_SCREENS: TabType[] = ['settings', 'staff', 'activity', 'business', 'help', 'privacy', 'contact', 'about', 'alerts'];
+const SUB_SCREENS: TabType[] = ['staff', 'activity', 'business', 'help', 'privacy', 'contact', 'about', 'alerts'];
 
 const SCREEN_TITLES: Partial<Record<TabType, string>> = {
-  settings: 'Shop details',
   staff: 'Staff',
   activity: 'Activity',
   business: 'Business details',
@@ -135,6 +134,7 @@ const Index = () => {
     importEntries, forget: forgetMpesaEntry,
   } = useMpesa();
   const { takes, recordCount } = useStockTake();
+  const { raiseInvoice, shareRaised } = useInvoices();
   const {
     suppliers, debts: supplierDebts,
     totalOwed: totalOwedToSuppliers, addSupplier, addDebt, payDebt,
@@ -286,7 +286,8 @@ const Index = () => {
   const handleSell = async (
     lines: BasketLine[],
     payments: BasketPayment[],
-    credit?: { customerId?: string; newCustomer?: { name: string; phone: string }; amount: number }
+    credit?: { customerId?: string; newCustomer?: { name: string; phone: string }; amount: number },
+    options?: { invoice?: boolean }
   ) => {
     let resolvedCustomerId = credit?.customerId;
 
@@ -318,6 +319,24 @@ const Index = () => {
     if (!result) return false;
 
     if (credit) await refreshCredit();
+
+    /*
+     * The invoice is raised here rather than three screens later.
+     *
+     * Somebody putting goods on deni for a business already knows whether a
+     * document is wanted. Making them finish the sale, walk to Money, find the
+     * sale again and raise it there meant remembering to come back, which is
+     * the step people skip.
+     *
+     * It is deliberately not part of the sale's own transaction: if the invoice
+     * fails the sale still stands, because the goods have gone out either way
+     * and a document can always be raised again.
+     */
+    if (options?.invoice && result?.out_receipt_id) {
+      const raised = await raiseInvoice(result.out_receipt_id);
+      if (raised) await shareRaised(raised);
+    }
+
     setShowSale(false);
     setSellingProduct(null);
     return true;
@@ -511,6 +530,7 @@ const Index = () => {
             sales={sales}
             takes={takes}
             onRecordCount={recordCount}
+            onImportProducts={bulkImportProducts}
           />
         )}
 
@@ -690,7 +710,6 @@ const Index = () => {
           />
         )}
         {activeTab === 'business' && isOwner && <BusinessDetailsPanel />}
-        {activeTab === 'settings' && <SettingsPanel onImportProducts={bulkImportProducts} />}
         {activeTab === 'help' && <HelpPanel />}
         {activeTab === 'privacy' && <PrivacyPanel />}
         {activeTab === 'contact' && <ContactPanel />}
@@ -722,6 +741,7 @@ const Index = () => {
           onClose={() => { setShowSale(false); setSellingProduct(null); }}
           isOwner={isOwner}
           canOverridePrice={can('override_price')}
+          canInvoice={isOwner}
         />
       )}
       {restockingProduct && (

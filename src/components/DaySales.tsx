@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { Undo2 } from 'lucide-react';
 import { Sale } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
+import { money } from '@/lib/money';
 
 interface DaySalesProps {
   sales: Sale[];
@@ -13,7 +14,6 @@ interface DaySalesProps {
   showSeller?: boolean;
 }
 
-const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
 
 /**
  * The list the app never had. Without it there is no way to check whether a sale

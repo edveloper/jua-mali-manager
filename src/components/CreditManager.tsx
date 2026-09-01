@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Customer, CreditSale, CreditPayment } from '@/types/inventory';
 import { PAYMENT_METHODS, PaymentMethod, lastUsedMethod, rememberMethod, takesReference, methodLabel } from '@/lib/payment';
+import { money } from '@/lib/money';
 
 interface CreditManagerProps {
   customers: Customer[];
@@ -15,7 +16,6 @@ interface CreditManagerProps {
   getPaymentsForCredit?: (creditSaleId: string) => CreditPayment[];
 }
 
-const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
 const shortDate = (d: string) => new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' });
 
 export function CreditManager({

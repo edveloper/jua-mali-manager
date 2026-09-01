@@ -6,6 +6,7 @@ import { StockTakeSummary } from '@/hooks/useStockTake';
 import { TillCount } from '@/hooks/useTillCount';
 import { Button } from '@/components/ui/button';
 import { methodLabel } from '@/lib/payment';
+import { money } from '@/lib/money';
 
 interface ActivityLogProps {
   sales: Sale[];
@@ -48,7 +49,6 @@ interface Entry {
   cancelled?: boolean;
 }
 
-const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
 
 const LENSES: { key: Lens; label: string }[] = [
   { key: 'all', label: 'Everything' },

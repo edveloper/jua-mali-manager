@@ -1,4 +1,5 @@
 import { TabType } from '@/components/Navigation';
+import { money } from '@/lib/money';
 
 interface DayBookProps {
   dateLabel: string;
@@ -17,7 +18,6 @@ interface DayBookProps {
   onNavigate: (tab: TabType) => void;
 }
 
-const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
 
 /**
  * The day on one sheet, read top to bottom like a shopkeeper's book: what came

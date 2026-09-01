@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { money } from '@/lib/money';
 
 interface CashUpProps {
   dateLabel: string;
@@ -14,7 +15,6 @@ interface CashUpProps {
   onSaveCount: (countedCash: number, expectedCash: number) => Promise<boolean>;
 }
 
-const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
 
 /**
  * What should be in the drawer, and what actually is.

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Invoice, InvoiceStatus } from '@/types/invoice';
+import { ksh } from '@/lib/money';
 
 /**
  * Status is worked out here rather than stored, exactly as the database does it
@@ -154,12 +155,71 @@ export const useInvoices = () => {
   const linkFor = (invoice: Invoice) =>
     `${window.location.origin}/i/${invoice.token}`;
 
+  const messageFor = (number: string, amount: number, dueOn: string) =>
+    `${shop?.name ?? 'Invoice'}
+` +
+    `Invoice ${number} for ${ksh(amount)}, due ` +
+    `${new Date(`${dueOn}T12:00:00`).toLocaleDateString('en-KE', {
+      day: 'numeric', month: 'long', year: 'numeric',
+    })}.`;
+
+  const handOver = async (title: string, text: string, url: string) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text, url });
+        return true;
+      } catch {
+        // Cancelled, or blocked in this context. Fall through to the clipboard.
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(`${text}
+${url}`);
+      toast({ title: 'Copied', description: 'Paste it into WhatsApp or an email.' });
+    } catch {
+      toast({ title: 'Copy this link', description: url });
+    }
+    return false;
+  };
+
+  /** Straight from what raise_invoice_atomic returned, with no round trip. */
+  const shareRaised = (row: {
+    out_number: string; out_token: string; out_total: number; out_due_on: string;
+  }) =>
+    handOver(
+      row.out_number,
+      messageFor(row.out_number, Number(row.out_total || 0), row.out_due_on),
+      `${window.location.origin}/i/${row.out_token}`
+    );
+
+  /**
+   * Hands the invoice to whatever the phone uses to send things.
+   *
+   * The share sheet puts WhatsApp one tap away, which is how this actually
+   * travels. The message carries the amount and the date so the recipient can
+   * read it in the chat without opening anything; the link is for when they
+   * want the document itself. Falls back to the clipboard on a desktop browser
+   * with no share sheet.
+   */
+  const shareInvoice = (invoice: Invoice) =>
+    handOver(
+      invoice.number,
+      messageFor(
+        invoice.number,
+        Math.max(0, invoice.total - invoice.amountPaid),
+        invoice.dueOn
+      ),
+      linkFor(invoice)
+    );
+
   return {
     invoices,
     isLoading,
     raiseInvoice,
     voidInvoice,
     linkFor,
+    shareInvoice,
+    shareRaised,
     refresh: fetchInvoices,
     invoiceForReceipt: (receiptId: string) =>
       invoices.find((i) => i.receiptId === receiptId && !i.voidedAt) ?? null,

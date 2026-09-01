@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
 import { InvoiceDocument as Doc, STATUS_LABEL } from '@/types/invoice';
+import { money } from '@/lib/money';
 
-const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
 
 const asDate = (value?: string | null) => (value ? new Date(`${value}T12:00:00`) : null);
 

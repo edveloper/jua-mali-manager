@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Modal } from '@/components/Modal';
+import { ksh } from '@/lib/money';
 
 interface ProductFormProps {
   product?: Product | null;
@@ -163,7 +164,7 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
       {profit !== 0 && (
         <div className={`p-3 rounded-lg ${profit > 0 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
           <p className="text-sm font-medium">
-            Profit per item: KSh {profit.toLocaleString()}
+            Profit per item: {ksh(profit)}
           </p>
         </div>
       )}

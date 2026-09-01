@@ -3,6 +3,7 @@ import { format, startOfMonth, subMonths, isWithinInterval, endOfMonth } from 'd
 import { Sale, CreditSale, Product, SalePayment } from '@/types/inventory';
 import { SupplierDebt } from '@/hooks/useSuppliers';
 import { MpesaEntry } from '@/hooks/useMpesa';
+import { money } from '@/lib/money';
 
 interface BankStatementProps {
   shopName: string;
@@ -22,7 +23,6 @@ interface BankStatementProps {
   months?: number;
 }
 
-const money = (n: number) => n.toLocaleString('en-KE', { maximumFractionDigits: 0 });
 
 /**
  * A statement a shopkeeper can print and hand to a lender.

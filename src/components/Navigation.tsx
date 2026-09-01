@@ -8,7 +8,6 @@ export type TabType =
   | 'money'
   | 'more'
   | 'alerts'
-  | 'settings'
   | 'staff'
   | 'help'
   | 'privacy'
@@ -44,7 +43,7 @@ export function Navigation({ activeTab, onTabChange, isOwner = true, deniCount =
     { id: 'credit', label: 'Deni', icon: Users, badge: deniCount },
     { id: 'money', label: 'Money', icon: Wallet },
     { id: 'spending', label: 'Spending', icon: Receipt },
-    { id: 'more', label: 'More', icon: MoreHorizontal, covers: ['settings', 'staff', 'activity', 'business', 'help', 'privacy', 'contact', 'about'] },
+    { id: 'more', label: 'More', icon: MoreHorizontal, covers: ['staff', 'activity', 'business', 'help', 'privacy', 'contact', 'about'] },
   ];
 
   // Staff see only what the owner has opened up, so nothing on screen implies a
@@ -54,7 +53,7 @@ export function Navigation({ activeTab, onTabChange, isOwner = true, deniCount =
     { id: 'products', label: 'Sell', icon: Package },
     ...(canManageDeni ? [{ id: 'credit' as TabType, label: 'Deni', icon: Users, badge: deniCount }] : []),
     ...(canRecordExpenses ? [{ id: 'spending' as TabType, label: 'Spending', icon: Receipt }] : []),
-    { id: 'more', label: 'More', icon: MoreHorizontal, covers: ['settings', 'help', 'privacy', 'contact', 'about'] },
+    { id: 'more', label: 'More', icon: MoreHorizontal, covers: ['help', 'privacy', 'contact', 'about'] },
   ];
 
   const tabs = isOwner ? ownerTabs : employeeTabs;
