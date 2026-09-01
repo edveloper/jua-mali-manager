@@ -176,6 +176,30 @@ export type Database = {
         ];
       };
 
+      cheques: {
+        Row: {
+          id: string;
+          shop_id: string;
+          credit_sale_id: string;
+          customer_id: string | null;
+          cheque_number: string;
+          bank: string | null;
+          amount: number;
+          received_on: string;
+          expected_clear_on: string | null;
+          status: string;
+          cleared_on: string | null;
+          bounced_reason: string | null;
+          credit_payment_id: string | null;
+          recorded_by: string | null;
+          settled_by: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+
       invoices: {
         Row: {
           id: string;
@@ -1231,6 +1255,34 @@ export type Database = {
           voided_amount: number;
           voided_at: string;
         }[];
+      };
+
+      record_cheque_atomic: {
+        Args: {
+          p_shop_id: string;
+          p_credit_sale_id: string;
+          p_amount: number;
+          p_cheque_number: string;
+          p_bank?: string | null;
+          p_received_on?: string | null;
+          p_expected_clear_on?: string | null;
+        };
+        Returns: { out_cheque_id: string; out_amount: number; out_still_owed: number }[];
+      };
+
+      clear_cheque_atomic: {
+        Args: { p_shop_id: string; p_cheque_id: string; p_cleared_on?: string | null };
+        Returns: {
+          out_cheque_id: string;
+          out_payment_id: string;
+          out_new_balance: number;
+          out_new_status: string;
+        }[];
+      };
+
+      bounce_cheque_atomic: {
+        Args: { p_shop_id: string; p_cheque_id: string; p_reason?: string | null };
+        Returns: { out_cheque_id: string; out_amount: number }[];
       };
 
       raise_invoice_atomic: {

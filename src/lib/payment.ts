@@ -1,5 +1,13 @@
 export type PaymentMethod = 'cash' | 'mpesa' | 'airtel' | 'other';
 
+/**
+ * Cheque is a payment method the books know about, but never an option at the
+ * till. A cheque handed over is a promise, not money, so it is settled through
+ * the deni flow where it can be held until it clears. It appears here only so
+ * that a cleared cheque reads as "Cheque" wherever payments are listed.
+ */
+export type RecordedMethod = PaymentMethod | 'cheque';
+
 export const PAYMENT_METHODS: { value: PaymentMethod; label: string; short: string }[] = [
   { value: 'cash', label: 'Cash', short: 'Cash' },
   { value: 'mpesa', label: 'M-Pesa', short: 'M-Pesa' },
@@ -10,8 +18,10 @@ export const PAYMENT_METHODS: { value: PaymentMethod; label: string; short: stri
 /** Cash is the only method with nothing to quote afterwards. */
 export const takesReference = (method: PaymentMethod) => method !== 'cash';
 
-export const methodLabel = (method?: string | null) =>
-  PAYMENT_METHODS.find((m) => m.value === method)?.short ?? 'Not recorded';
+export const methodLabel = (method?: string | null) => {
+  if (method === 'cheque') return 'Cheque';
+  return PAYMENT_METHODS.find((m) => m.value === method)?.short ?? 'Not recorded';
+};
 
 // Deliberately still the old brand name. This key is already sitting in the
 // browser of everyone using the app, and renaming it would quietly forget which

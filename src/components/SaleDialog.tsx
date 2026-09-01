@@ -262,7 +262,9 @@ export function SaleDialog({
             {isSubmitting
               ? 'Saving...'
               : isGiveaway ? 'Record giveaway'
-              : deniAmount > 0 && deniAmount === basketTotal ? 'Record on deni' : 'Complete sale'}
+              : deniAmount > 0 && deniAmount === basketTotal
+                ? (wantsInvoice ? 'Record and invoice' : 'Record on deni')
+                : (wantsInvoice ? 'Complete and invoice' : 'Complete sale')}
           </Button>
         </>
       }
@@ -658,32 +660,36 @@ export function SaleDialog({
                   )}
                 </>
               )}
-            </div>
-          )}
 
-          {canInvoice && deniAmount > 0 && hasCustomer && (
-            <button
-              type="button"
-              onClick={() => setWantsInvoice((v) => !v)}
-              className={`w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-colors ${
-                wantsInvoice ? 'border-primary bg-primary/5' : 'border-border'
-              }`}
-            >
-              <span
-                className={`h-5 w-5 rounded border flex items-center justify-center shrink-0 ${
-                  wantsInvoice ? 'bg-primary border-primary' : 'border-input'
-                }`}
-                aria-hidden="true"
-              >
-                {wantsInvoice && <Check className="h-3.5 w-3.5 text-primary-foreground" />}
-              </span>
-              <span className="min-w-0">
-                <span className="block text-sm font-medium">Send an invoice for this</span>
-                <span className="block text-xs text-muted-foreground">
-                  Raised the moment you finish, ready to send on WhatsApp.
-                </span>
-              </span>
-            </button>
+              {/* Right under the name, because that is where somebody decides
+                  this is a customer who gets billed rather than one who owes.
+                  Further down the sheet it was one more scroll away, and a
+                  control you have to go looking for does not get used. */}
+              {canInvoice && hasCustomer && (
+                <button
+                  type="button"
+                  onClick={() => setWantsInvoice((v) => !v)}
+                  className={`w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-colors ${
+                    wantsInvoice ? 'border-primary bg-primary/5' : 'border-border'
+                  }`}
+                >
+                  <span
+                    className={`h-5 w-5 rounded border flex items-center justify-center shrink-0 ${
+                      wantsInvoice ? 'bg-primary border-primary' : 'border-input'
+                    }`}
+                    aria-hidden="true"
+                  >
+                    {wantsInvoice && <Check className="h-3.5 w-3.5 text-primary-foreground" />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium">Send an invoice for this</span>
+                    <span className="block text-xs text-muted-foreground">
+                      You choose WhatsApp or email once the sale is saved.
+                    </span>
+                  </span>
+                </button>
+              )}
+            </div>
           )}
 
           {isOwner && basketProfit !== 0 && (

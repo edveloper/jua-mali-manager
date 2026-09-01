@@ -334,11 +334,31 @@ const Index = () => {
      * fails the sale still stands, because the goods have gone out either way
      * and a document can always be raised again.
      */
-    if (options?.invoice && result?.out_receipt_id) {
-      const raised = await raiseInvoice(result.out_receipt_id);
-      if (raised) {
-        const customer = customers.find((c) => c.id === resolvedCustomerId);
-        setSendingInvoice(sendableFromRaised(raised, customer));
+    if (options?.invoice) {
+      if (!result?.out_receipt_id) {
+        // Asking for an invoice and getting nothing back, with no explanation,
+        // is the worst outcome here: the sale is saved and the shopkeeper is
+        // left wondering whether to go and raise one by hand.
+        toast({
+          title: 'Sale saved, but no invoice',
+          description: 'Raise it from Money, Invoices.',
+          variant: 'destructive',
+        });
+      } else {
+        const raised = await raiseInvoice(result.out_receipt_id);
+        if (raised) {
+          // The customer may have been created moments ago, so the list in
+          // context can still be a beat behind. Falling back to what was typed
+          // means the message is still addressed properly.
+          const known = customers.find((c) => c.id === resolvedCustomerId);
+          setSendingInvoice(
+            sendableFromRaised(raised, known ?? {
+              name: credit?.newCustomer?.name ?? null,
+              phone: credit?.newCustomer?.phone ?? null,
+              email: null,
+            })
+          );
+        }
       }
     }
 
