@@ -85,9 +85,47 @@ Deno.serve(async (req) => {
     return json(400, { error: "Only employees can be removed here" });
   }
 
-  // 4. Delete the login first, then the membership. Ordered this way so a partial
-  //    failure is retryable: the membership row survives to be found again, and
-  //    deleting an already-deleted user is treated as success.
+  // 4. Does this person work anywhere else?
+  //
+  //    One login can now belong to several shops, so deleting it on the way out
+  //    of one would lock them out of the others. Worse, it would do so silently:
+  //    the owner of the other shop would simply find that their employee can no
+  //    longer sign in, with nothing on the record explaining why.
+  const { data: otherMemberships, error: otherError } = await admin
+    .from("shop_members")
+    .select("id")
+    .eq("user_id", member.user_id)
+    .neq("id", member.id);
+
+  if (otherError) {
+    return json(500, { error: "Could not check their other shops. Nothing was changed." });
+  }
+
+  const worksElsewhere = (otherMemberships ?? []).length > 0;
+
+  if (worksElsewhere) {
+    // Take away this shop and nothing more. The login is not ours to delete.
+    const { error: unlinkOnlyError } = await admin
+      .from("shop_members")
+      .delete()
+      .eq("id", member.id);
+
+    if (unlinkOnlyError) {
+      return json(500, { error: "Could not remove them. Try again." });
+    }
+
+    return json(200, {
+      removed: true,
+      userId: member.user_id,
+      keptLogin: true,
+      message: "Removed from this shop. Their login still works for the other shops they are in.",
+    });
+  }
+
+  // 5. Their last shop, so the login goes too. Deleted first, then the
+  //    membership, so a partial failure is retryable: the membership row
+  //    survives to be found again, and deleting an already-deleted user is
+  //    treated as success.
   const { error: deleteUserError } = await admin.auth.admin.deleteUser(member.user_id);
   if (deleteUserError && !/not found|does not exist/i.test(deleteUserError.message ?? "")) {
     return json(500, { error: "Could not delete their login. Nothing was changed." });
@@ -102,5 +140,5 @@ Deno.serve(async (req) => {
     return json(500, { error: "Their login was deleted but removing them failed. Try again." });
   }
 
-  return json(200, { removed: true, userId: member.user_id });
+  return json(200, { removed: true, userId: member.user_id, keptLogin: false });
 });

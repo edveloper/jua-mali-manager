@@ -123,7 +123,7 @@ export function EmployeeManager() {
     setIsSubmitting(true);
 
     try {
-      const { error } = await createEmployee(toAuthEmail(identifier), password, fullName);
+      const { data, error } = await createEmployee(toAuthEmail(identifier), password, fullName);
 
       if (error) {
         toast({
@@ -132,10 +132,19 @@ export function EmployeeManager() {
           variant: 'destructive',
         });
       } else {
-        toast({
-          title: 'Employee Added',
-          description: `${fullName} can now sign in with ${identifier.trim()}.`,
-        });
+        // Somebody who already had a login keeps their own password, so telling
+        // them to use the one just typed would send them in circles.
+        toast(
+          (data as { existingAccount?: boolean } | null)?.existingAccount
+            ? {
+                title: `${fullName} added`,
+                description: 'They already have a login, so they sign in with the password they use elsewhere.',
+              }
+            : {
+                title: `${fullName} added`,
+                description: `They sign in with ${identifier.trim()} and the password you set.`,
+              }
+        );
         setIdentifier('');
         setPassword('');
         setFullName('');
@@ -254,8 +263,10 @@ export function EmployeeManager() {
     }
 
     toast({
-      title: 'Employee Removed',
-      description: `${employeeName} can no longer sign in.`,
+      title: `${employeeName} removed`,
+      description: data?.keptLogin
+        ? 'They still work in another of your shops, so their login is untouched.'
+        : 'Their login has been deleted.',
     });
     fetchEmployees();
   };
@@ -311,7 +322,8 @@ export function EmployeeManager() {
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              This is what they will use to sign in.
+              This is what they will use to sign in. If they already work in another of
+              your shops, use the same one and they keep the password they already have.
             </p>
           </div>
 

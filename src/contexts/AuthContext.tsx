@@ -72,17 +72,65 @@ interface AuthContextType {
     }
   ) => Promise<{ data: any; error: any }>;
   refreshShopData: () => Promise<void>;
+  /** Every shop this account belongs to, for the switcher. */
+  shops: { id: string; name: string; branchLabel: string | null; businessId: string | null; role: string }[];
+  switchShop: (shopId: string) => void;
   createEmployee: (email: string, password?: string, fullName?: string) => Promise<{ data: any; error: any }>;
   updateShopProfile: (updates: ShopProfileUpdate) => Promise<{ data: any; error: any }>;
 }
+
+/*
+ * Which shop they were last looking at.
+ *
+ * Per browser rather than per account on purpose: it is a convenience, not a
+ * setting, and the value is checked against real memberships on every load, so
+ * a stale id or a shop somebody has been removed from simply falls back to the
+ * first one they do belong to.
+ */
+const ACTIVE_SHOP_KEY = 'dukakonnect:active-shop';
+
+const readActiveShop = (): string | null => {
+  try {
+    return localStorage.getItem(ACTIVE_SHOP_KEY);
+  } catch {
+    return null;
+  }
+};
+
+const writeActiveShop = (shopId: string) => {
+  try {
+    localStorage.setItem(ACTIVE_SHOP_KEY, shopId);
+  } catch {
+    // Private mode. The app still works, it just forgets which shop.
+  }
+};
+
+const clearActiveShop = () => {
+  try {
+    localStorage.removeItem(ACTIVE_SHOP_KEY);
+  } catch {
+    // Nothing to do.
+  }
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [shop, setShop] = useState<any | null>(null);
-  const [shopMember, setShopMember] = useState<any | null>(null);
-  const [isOwner, setIsOwner] = useState(false);
+  /*
+   * Every shop this person belongs to, and which one they are looking at.
+   *
+   * This used to be a single shop fetched with .maybeSingle(), which PostgREST
+   * treats as an error the moment a second row exists. Anyone added as staff to
+   * a second shop would not have seen the wrong shop, they would have been
+   * unable to sign in at all.
+   *
+   * shop, shopMember and isOwner are derived from the active membership rather
+   * than held as their own state. Three copies of one fact is three chances for
+   * them to disagree during a switch.
+   */
+  const [memberships, setMemberships] = useState<any[]>([]);
+  const [activeShopId, setActiveShopId] = useState<string | null>(null);
   const [membershipResolved, setMembershipResolved] = useState(false);
   const [isRecovering, setIsRecovering] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -121,19 +169,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           )
         `)
         .eq('user_id', userId)
-        .maybeSingle();
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
 
-      if (data) {
-        setShop(data.shops);
-        setShopMember(data);
-        setIsOwner(data.role === 'owner');
-      } else {
-        setShop(null);
-        setShopMember(null);
-        setIsOwner(false);
-      }
+      // A membership whose shop failed to load is not a shop they can use.
+      const rows = (data || []).filter((row: any) => row.shops);
+      setMemberships(rows);
+
+      // The one they were last looking at, if they still belong to it. Falling
+      // back to the first keeps a signed-in person on something real rather
+      // than a blank dashboard.
+      const remembered = readActiveShop();
+      const chosen =
+        rows.find((row: any) => row.shops.id === remembered) ?? rows[0] ?? null;
+      setActiveShopId(chosen ? chosen.shops.id : null);
 
       // Set only on a clean lookup. If the query threw, we genuinely don't know
       // whether they have a shop, and must not act as if they don't.
@@ -143,6 +193,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setLoading(false);
     }
+  };
+
+  const activeMembership =
+    memberships.find((m: any) => m.shops?.id === activeShopId) ?? null;
+  const shop = activeMembership?.shops ?? null;
+  const shopMember = activeMembership;
+  const isOwner = activeMembership?.role === 'owner';
+
+  /** Every shop, with its branches grouped, for the switcher. */
+  const shops = memberships.map((m: any) => ({
+    id: m.shops.id,
+    name: m.shops.name,
+    branchLabel: m.shops.branch_label ?? null,
+    businessId: m.shops.business_id ?? null,
+    role: m.role as string,
+  }));
+
+  const switchShop = (shopId: string) => {
+    // Only somewhere they actually belong. A stale id in storage, or a shop
+    // they have since been removed from, must not blank the app.
+    if (!memberships.some((m: any) => m.shops?.id === shopId)) return;
+    setActiveShopId(shopId);
+    writeActiveShop(shopId);
   };
 
   const refreshShopData = async () => {
@@ -168,9 +241,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .catch((err) => {
         console.warn('Could not restore previous session:', err?.message || err);
         setCurrentUser(null);
-        setShop(null);
-        setShopMember(null);
-        setIsOwner(false);
+        setMemberships([]);
+        setActiveShopId(null);
         setLoading(false);
       });
 
@@ -185,9 +257,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (userObj) {
         fetchShopData(userObj.id);
       } else {
-        setShop(null);
-        setShopMember(null);
-        setIsOwner(false);
+        setMemberships([]);
+        setActiveShopId(null);
         setMembershipResolved(false);
         setLoading(false);
       }
@@ -269,7 +340,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // this browser's session over to the new employee and log the owner out.
     try {
       const { data, error } = await supabase.functions.invoke('create-employee', {
-        body: { email, password, fullName },
+        // The active shop, not a guess. An owner with two shops was
+        // previously refused outright.
+        body: { email, password, fullName, shopId: shop.id },
       });
 
       if (error) {
@@ -312,9 +385,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // onAuthStateChange does not fire when the call above failed, so the UI
     // cannot rely on it to reset.
     setCurrentUser(null);
-    setShop(null);
-    setShopMember(null);
-    setIsOwner(false);
+    setMemberships([]);
+    setActiveShopId(null);
+    clearActiveShop();
     setMembershipResolved(false);
     setLoading(false);
   };
@@ -374,6 +447,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         shop,
         shopMember,
         isOwner,
+        shops,
+        switchShop,
         can,
         mustChangePassword,
         completePasswordSetup,

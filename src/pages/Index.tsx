@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft } from 'lucide-react';
 import { format, subDays, addDays, isSameDay } from 'date-fns';
 import { useInventory, BasketLine, BasketPayment } from '@/hooks/useInventory';
 import { useCredit } from '@/hooks/useCredit';
@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
 import { InstallNudge } from '@/components/InstallNudge';
 import { InstallSheet } from '@/components/InstallSheet';
+import { ShopSwitcher } from '@/components/ShopSwitcher';
 import { DayBook } from '@/components/DayBook';
 import { DaySales } from '@/components/DaySales';
 import { ProductList } from '@/components/ProductList';
@@ -68,6 +69,7 @@ const Index = () => {
   // Controlled so Reports can send the owner to Export, where the files live.
   const [moneyTab, setMoneyTab] = useState('reports');
   const [showSale, setShowSale] = useState(false);
+  const [showShopSwitcher, setShowShopSwitcher] = useState(false);
   const [sendingInvoice, setSendingInvoice] = useState<SendableInvoice | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -114,7 +116,7 @@ const Index = () => {
     if (!handled) setShowInstallSheet(true);
   };
 
-  const { user, loading: authLoading, isOwner, can, shop, shopMember, membershipResolved, signOut } = useAuth();
+  const { user, loading: authLoading, isOwner, can, shop, shops, shopMember, membershipResolved, signOut } = useAuth();
 
   const {
     products, sales, allSales, stockMovements, allStockMovements, isLoading: inventoryLoading,
@@ -387,7 +389,23 @@ const Index = () => {
             </>
           ) : (
             <>
-              <h1 className="text-lg font-bold truncate flex-1 min-w-0">{shop?.name || 'DukaKonnect'}</h1>
+              {/* The shop name was already here, so it becomes the switcher
+                  rather than adding a control. A single shop shows no chevron
+                  and does not open anything, because there is nowhere to go. */}
+              {shops.length > 1 ? (
+                <button
+                  type="button"
+                  onClick={() => setShowShopSwitcher(true)}
+                  className="flex items-center gap-1.5 flex-1 min-w-0 text-left -ml-1 px-1 py-1 rounded active:bg-muted transition-colors"
+                >
+                  <span className="text-lg font-bold truncate">{shop?.name || 'DukaKonnect'}</span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                </button>
+              ) : (
+                <h1 className="text-lg font-bold truncate flex-1 min-w-0">
+                  {shop?.name || 'DukaKonnect'}
+                </h1>
+              )}
               <Logo wordmark={false} size="sm" />
             </>
           )}
@@ -706,6 +724,7 @@ const Index = () => {
             staffCount={staffCount}
             canInstall={canInstall}
             onInstall={startInstall}
+            onOpenShops={() => setShowShopSwitcher(true)}
           />
         )}
 
@@ -791,6 +810,7 @@ const Index = () => {
         onInstall={startInstall}
       />
       {showInstallSheet && <InstallSheet onClose={() => setShowInstallSheet(false)} />}
+      {showShopSwitcher && <ShopSwitcher onClose={() => setShowShopSwitcher(false)} />}
       {sendingInvoice && (
         <SendInvoiceDialog invoice={sendingInvoice} onClose={() => setSendingInvoice(null)} />
       )}

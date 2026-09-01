@@ -21,6 +21,18 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      businesses: {
+        Row: {
+          id: string;
+          name: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+
       shops: {
         Row: {
           id: string;
@@ -31,6 +43,22 @@ export type Database = {
           currency: string;
           created_at: string;
           updated_at: string;
+          business_id: string | null;
+          address: string | null;
+          phone: string | null;
+          email: string | null;
+          kra_pin: string | null;
+          logo_url: string | null;
+          branch_label: string | null;
+          vat_registered: boolean;
+          vat_number: string | null;
+          mpesa_paybill: string | null;
+          mpesa_account: string | null;
+          cheque_payee: string | null;
+          bank_name: string | null;
+          bank_branch: string | null;
+          bank_account: string | null;
+          default_terms_days: number;
         };
         Insert: {
           id?: string;
@@ -1198,6 +1226,8 @@ export type Database = {
           p_offering_mode?: string | null;
           p_single_offering?: boolean | null;
           p_currency?: string | null;
+          /** An existing shop this one is a branch of. Null means standalone. */
+          p_branch_of?: string | null;
         };
         Returns: Database['public']['Tables']['shops']['Row'];
       };

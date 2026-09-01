@@ -1,6 +1,6 @@
 import {
   Users, FileText, History, HelpCircle, MessageSquare, ShieldAlert,
-  LogOut, Download, ChevronRight, Info, LucideIcon,
+  LogOut, Download, ChevronRight, Info, Store, LucideIcon,
 } from 'lucide-react';
 import { TabType } from '@/components/Navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,6 +12,7 @@ interface MoreMenuProps {
   staffCount: number;
   canInstall: boolean;
   onInstall: () => void;
+  onOpenShops: () => void;
 }
 
 interface Row {
@@ -38,8 +39,8 @@ interface Group {
  * So it is grouped by what each thing is for, and the icons carry the accent.
  * Two groups rather than four: more headings than rows is its own clutter.
  */
-export function MoreMenu({ onNavigate, staffCount, canInstall, onInstall }: MoreMenuProps) {
-  const { user, shop, isOwner, signOut } = useAuth();
+export function MoreMenu({ onNavigate, staffCount, canInstall, onInstall, onOpenShops }: MoreMenuProps) {
+  const { user, shop, shops, isOwner, signOut } = useAuth();
 
   const name = user?.user_metadata?.full_name || 'You';
 
@@ -51,6 +52,14 @@ export function MoreMenu({ onNavigate, staffCount, canInstall, onInstall }: More
         hint: 'Name, logo, and how customers pay you',
         icon: FileText,
         onClick: () => onNavigate('business'),
+      },
+      {
+        label: 'Your shops',
+        hint: shops.length > 1
+          ? `${shops.length} shops. Switch or add another`
+          : 'Add a branch or a second business',
+        icon: Store,
+        onClick: onOpenShops,
       },
       {
         label: 'Staff',
