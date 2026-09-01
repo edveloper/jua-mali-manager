@@ -10,6 +10,12 @@ import { ksh } from '@/lib/money';
  * for the public link. Two places compute it, from the same two facts, so they
  * cannot drift; storing it would create a third copy that can.
  */
+/** Spelled out, because it is going into a message somebody reads. */
+const formatDue = (dueOn: string) =>
+  new Date(`${dueOn}T12:00:00`).toLocaleDateString('en-KE', {
+    day: 'numeric', month: 'long', year: 'numeric',
+  });
+
 const statusOf = (total: number, paid: number, dueOn: string, voidedAt?: string | null): InvoiceStatus => {
   if (voidedAt) return 'cancelled';
   if (paid >= total) return 'paid';
@@ -155,62 +161,37 @@ export const useInvoices = () => {
   const linkFor = (invoice: Invoice) =>
     `${window.location.origin}/i/${invoice.token}`;
 
-  const messageFor = (number: string, amount: number, dueOn: string) =>
-    `${shop?.name ?? 'Invoice'}
-` +
-    `Invoice ${number} for ${ksh(amount)}, due ` +
-    `${new Date(`${dueOn}T12:00:00`).toLocaleDateString('en-KE', {
-      day: 'numeric', month: 'long', year: 'numeric',
-    })}.`;
-
-  const handOver = async (title: string, text: string, url: string) => {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title, text, url });
-        return true;
-      } catch {
-        // Cancelled, or blocked in this context. Fall through to the clipboard.
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(`${text}
-${url}`);
-      toast({ title: 'Copied', description: 'Paste it into WhatsApp or an email.' });
-    } catch {
-      toast({ title: 'Copy this link', description: url });
-    }
-    return false;
-  };
-
-  /** Straight from what raise_invoice_atomic returned, with no round trip. */
-  const shareRaised = (row: {
-    out_number: string; out_token: string; out_total: number; out_due_on: string;
-  }) =>
-    handOver(
-      row.out_number,
-      messageFor(row.out_number, Number(row.out_total || 0), row.out_due_on),
-      `${window.location.origin}/i/${row.out_token}`
-    );
-
   /**
-   * Hands the invoice to whatever the phone uses to send things.
+   * Everything the send dialog needs, from a row the RPC just returned.
    *
-   * The share sheet puts WhatsApp one tap away, which is how this actually
-   * travels. The message carries the amount and the date so the recipient can
-   * read it in the chat without opening anything; the link is for when they
-   * want the document itself. Falls back to the clipboard on a desktop browser
-   * with no share sheet.
+   * Built here rather than after a refetch: the returned row already carries the
+   * number, the total, the due date and the token, and waiting for the list to
+   * come back only introduces a race.
    */
-  const shareInvoice = (invoice: Invoice) =>
-    handOver(
-      invoice.number,
-      messageFor(
-        invoice.number,
-        Math.max(0, invoice.total - invoice.amountPaid),
-        invoice.dueOn
-      ),
-      linkFor(invoice)
-    );
+  const sendableFromRaised = (
+    row: { out_number: string; out_token: string; out_total: number; out_due_on: string },
+    customer?: { name?: string | null; phone?: string | null; email?: string | null }
+  ) => ({
+    number: row.out_number,
+    amountDue: ksh(Number(row.out_total || 0)),
+    dueOn: formatDue(row.out_due_on),
+    url: `${window.location.origin}/i/${row.out_token}`,
+    shopName: shop?.name ?? 'Your shop',
+    customerName: customer?.name ?? null,
+    customerPhone: customer?.phone ?? null,
+    customerEmail: customer?.email ?? null,
+  });
+
+  const sendableFrom = (invoice: Invoice) => ({
+    number: invoice.number,
+    amountDue: ksh(Math.max(0, invoice.total - invoice.amountPaid)),
+    dueOn: formatDue(invoice.dueOn),
+    url: linkFor(invoice),
+    shopName: invoice.issuer?.name ?? shop?.name ?? 'Your shop',
+    customerName: invoice.billTo?.name ?? null,
+    customerPhone: invoice.billTo?.phone ?? null,
+    customerEmail: invoice.billTo?.email ?? null,
+  });
 
   return {
     invoices,
@@ -218,8 +199,8 @@ ${url}`);
     raiseInvoice,
     voidInvoice,
     linkFor,
-    shareInvoice,
-    shareRaised,
+    sendableFrom,
+    sendableFromRaised,
     refresh: fetchInvoices,
     invoiceForReceipt: (receiptId: string) =>
       invoices.find((i) => i.receiptId === receiptId && !i.voidedAt) ?? null,

@@ -145,12 +145,26 @@ export function SaleDialog({
         )
         .slice(0, 4)
     : [];
-  const exactMatch = customers.find(
-    (c) => c.name.trim().toLowerCase() === trimmedCustomer.toLowerCase()
-  );
-  const resolvedCustomer = selectedCustomer || (trimmedCustomer ? exactMatch : null) || null;
-  const isNewCustomer = Boolean(trimmedCustomer) && !resolvedCustomer;
-  const hasCustomer = Boolean(resolvedCustomer) || isNewCustomer;
+  const exactMatch = trimmedCustomer
+    ? customers.find((c) => c.name.trim().toLowerCase() === trimmedCustomer.toLowerCase())
+    : undefined;
+
+  /*
+   * Only an explicit tap collapses the box.
+   *
+   * An exact name match used to count as "chosen", which meant that the instant
+   * somebody finished typing "Ann" the field turned into a card and there was no
+   * way to carry on and type "Ann 2" or "Ann Voi". A shop with two customers
+   * sharing a first name could not record the second one at all.
+   *
+   * The match still does its original job at submit time, so typing an existing
+   * name exactly still goes to that customer rather than quietly creating a
+   * second one. It is just reported underneath rather than acted on mid-word.
+   */
+  const resolvedCustomer = selectedCustomer;
+  const isNewCustomer = Boolean(trimmedCustomer) && !selectedCustomer && !exactMatch;
+  const customerToUse = selectedCustomer ?? exactMatch ?? null;
+  const hasCustomer = Boolean(customerToUse) || isNewCustomer;
 
   const matches = query.trim()
     ? products
@@ -219,7 +233,7 @@ export function SaleDialog({
       payments,
       deniAmount > 0
         ? {
-            customerId: resolvedCustomer?.id,
+            customerId: customerToUse?.id,
             newCustomer: isNewCustomer
               ? { name: trimmedCustomer, phone: newCustomerPhone.trim() }
               : undefined,
@@ -626,6 +640,14 @@ export function SaleDialog({
                       ))}
                     </div>
                   )}
+                  {exactMatch && !selectedCustomer && (
+                    <p className="text-xs text-muted-foreground">
+                      Goes to your existing{' '}
+                      <span className="text-foreground font-medium">{exactMatch.name}</span>.
+                      Add something to the name if this is somebody else.
+                    </p>
+                  )}
+
                   {isNewCustomer && (
                     <Input
                       placeholder="Phone number (optional)"

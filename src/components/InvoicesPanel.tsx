@@ -10,6 +10,7 @@ import { InvoiceDocument } from '@/components/InvoiceDocument';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useToast } from '@/hooks/use-toast';
 import { Invoice, STATUS_LABEL } from '@/types/invoice';
+import { SendInvoiceDialog, SendableInvoice } from '@/components/SendInvoiceDialog';
 import { Sale, CreditSale } from '@/types/inventory';
 import { todayKey } from '@/lib/dates';
 import { money } from '@/lib/money';
@@ -44,7 +45,7 @@ const STATUS_TONE: Record<string, string> = {
 export function InvoicesPanel({
   sales, creditSales, customerName, onGoToBusinessDetails, hasPaymentDetails,
 }: InvoicesPanelProps) {
-  const { invoices, raiseInvoice, voidInvoice, linkFor, shareInvoice, invoiceForReceipt } = useInvoices();
+  const { invoices, raiseInvoice, voidInvoice, linkFor, sendableFrom, invoiceForReceipt } = useInvoices();
   const { toast } = useToast();
 
   const [raising, setRaising] = useState<CreditSale | null>(null);
@@ -53,6 +54,7 @@ export function InvoicesPanel({
   const [notes, setNotes] = useState('');
   const [viewing, setViewing] = useState<Invoice | null>(null);
   const [cancelling, setCancelling] = useState<Invoice | null>(null);
+  const [sending, setSending] = useState<SendableInvoice | null>(null);
 
   // Unpaid deni with no live invoice against it. Those are the only sales a
   // document can honestly be raised for.
@@ -174,7 +176,7 @@ export function InvoicesPanel({
                     size="sm"
                     variant="outline"
                     className="shrink-0"
-                    onClick={() => shareInvoice(invoice)}
+                    onClick={() => setSending(sendableFrom(invoice))}
                   >
                     <Send className="h-3.5 w-3.5 mr-1.5" /> Send
                   </Button>
@@ -280,8 +282,8 @@ export function InvoicesPanel({
             </div>
 
             <div className="p-4 border-t border-border shrink-0 flex gap-2 no-print">
-              <Button variant="outline" className="flex-1" onClick={() => copyLink(viewing)}>
-                <Copy className="h-4 w-4 mr-2" /> Copy link
+              <Button className="flex-1" onClick={() => { setSending(sendableFrom(viewing)); setViewing(null); }}>
+                <Send className="h-4 w-4 mr-2" /> Send
               </Button>
               <Button variant="outline" className="flex-1" onClick={() => window.print()}>
                 <Printer className="h-4 w-4 mr-2" /> Print
@@ -299,6 +301,10 @@ export function InvoicesPanel({
             </div>
           </div>
         </div>
+      )}
+
+      {sending && (
+        <SendInvoiceDialog invoice={sending} onClose={() => setSending(null)} />
       )}
 
       {cancelling && (

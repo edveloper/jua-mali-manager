@@ -23,6 +23,7 @@ import { ActivityLog } from '@/components/ActivityLog';
 import { BusinessDetailsPanel } from '@/components/BusinessDetailsPanel';
 import { InvoicesPanel } from '@/components/InvoicesPanel';
 import { useInvoices } from '@/hooks/useInvoices';
+import { SendInvoiceDialog, SendableInvoice } from '@/components/SendInvoiceDialog';
 import { RestockDialog } from '@/components/RestockDialog';
 import { LowStockAlerts } from '@/components/LowStockAlerts';
 import { CreditManager } from '@/components/CreditManager';
@@ -67,6 +68,7 @@ const Index = () => {
   // Controlled so Reports can send the owner to Export, where the files live.
   const [moneyTab, setMoneyTab] = useState('reports');
   const [showSale, setShowSale] = useState(false);
+  const [sendingInvoice, setSendingInvoice] = useState<SendableInvoice | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [sellingProduct, setSellingProduct] = useState<Product | null>(null);
@@ -134,7 +136,7 @@ const Index = () => {
     importEntries, forget: forgetMpesaEntry,
   } = useMpesa();
   const { takes, recordCount } = useStockTake();
-  const { raiseInvoice, shareRaised } = useInvoices();
+  const { raiseInvoice, sendableFromRaised } = useInvoices();
   const {
     suppliers, debts: supplierDebts,
     totalOwed: totalOwedToSuppliers, addSupplier, addDebt, payDebt,
@@ -334,7 +336,10 @@ const Index = () => {
      */
     if (options?.invoice && result?.out_receipt_id) {
       const raised = await raiseInvoice(result.out_receipt_id);
-      if (raised) await shareRaised(raised);
+      if (raised) {
+        const customer = customers.find((c) => c.id === resolvedCustomerId);
+        setSendingInvoice(sendableFromRaised(raised, customer));
+      }
     }
 
     setShowSale(false);
@@ -766,6 +771,9 @@ const Index = () => {
         onInstall={startInstall}
       />
       {showInstallSheet && <InstallSheet onClose={() => setShowInstallSheet(false)} />}
+      {sendingInvoice && (
+        <SendInvoiceDialog invoice={sendingInvoice} onClose={() => setSendingInvoice(null)} />
+      )}
     </div>
   );
 };
