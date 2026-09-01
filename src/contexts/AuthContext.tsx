@@ -2,6 +2,36 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 
+/**
+ * Everything an owner may change about their own shop.
+ *
+ * Written out rather than left as a loose object because these end up on a
+ * document a customer reads, and a typo in a key would fail silently: PostgREST
+ * would reject the unknown column and the field would appear to save.
+ */
+export interface ShopProfileUpdate {
+  name?: string;
+  business_category?: string;
+  offering_mode?: string;
+  single_offering?: boolean;
+  currency?: string;
+  address?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  kra_pin?: string | null;
+  logo_url?: string | null;
+  branch_label?: string | null;
+  vat_registered?: boolean;
+  vat_number?: string | null;
+  mpesa_paybill?: string | null;
+  mpesa_account?: string | null;
+  cheque_payee?: string | null;
+  bank_name?: string | null;
+  bank_branch?: string | null;
+  bank_account?: string | null;
+  default_terms_days?: number;
+}
+
 /** Permission keys stored in shop_members.permissions. Owners implicitly hold all. */
 export type ShopPermission =
   | 'override_price'
@@ -43,13 +73,7 @@ interface AuthContextType {
   ) => Promise<{ data: any; error: any }>;
   refreshShopData: () => Promise<void>;
   createEmployee: (email: string, password?: string, fullName?: string) => Promise<{ data: any; error: any }>;
-  updateShopProfile: (updates: {
-    name?: string;
-    business_category?: string;
-    offering_mode?: string;
-    single_offering?: boolean;
-    currency?: string;
-  }) => Promise<{ data: any; error: any }>;
+  updateShopProfile: (updates: ShopProfileUpdate) => Promise<{ data: any; error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -78,7 +102,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             offering_mode,
             single_offering,
             currency,
-            created_at
+            created_at,
+            address,
+            phone,
+            email,
+            kra_pin,
+            logo_url,
+            branch_label,
+            vat_registered,
+            vat_number,
+            mpesa_paybill,
+            mpesa_account,
+            cheque_payee,
+            bank_name,
+            bank_branch,
+            bank_account,
+            default_terms_days
           )
         `)
         .eq('user_id', userId)
@@ -313,13 +352,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error };
   };
 
-  const updateShopProfile = async (updates: {
-    name?: string;
-    business_category?: string;
-    offering_mode?: string;
-    single_offering?: boolean;
-    currency?: string;
-  }) => {
+  const updateShopProfile = async (updates: ShopProfileUpdate) => {
     if (!shop?.id || !isOwner) {
       return { data: null, error: { message: "Only shop owners can update shop settings" } };
     }

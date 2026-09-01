@@ -1,6 +1,6 @@
 import {
   Users, Store, Upload, HelpCircle, MessageSquare, ShieldAlert,
-  LogOut, Download, ChevronRight, Info, History, LucideIcon,
+  LogOut, Download, ChevronRight, Info, History, FileText, LucideIcon,
 } from 'lucide-react';
 import { TabType } from '@/components/Navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,6 +41,12 @@ export function MoreMenu({ onNavigate, staffCount, canInstall, onInstall }: More
       onClick: () => onNavigate('activity'),
     },
     { label: 'Shop details', hint: shop?.name, icon: Store, onClick: () => onNavigate('settings') },
+    {
+      label: 'Business details',
+      hint: 'What appears on your invoices',
+      icon: FileText,
+      onClick: () => onNavigate('business'),
+    },
     { label: 'Import stock from a file', icon: Upload, onClick: () => onNavigate('settings') },
   ];
 

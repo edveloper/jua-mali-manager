@@ -20,6 +20,7 @@ import { ProductList } from '@/components/ProductList';
 import { ProductForm } from '@/components/ProductForm';
 import { SaleDialog } from '@/components/SaleDialog';
 import { ActivityLog } from '@/components/ActivityLog';
+import { BusinessDetailsPanel } from '@/components/BusinessDetailsPanel';
 import { RestockDialog } from '@/components/RestockDialog';
 import { LowStockAlerts } from '@/components/LowStockAlerts';
 import { CreditManager } from '@/components/CreditManager';
@@ -47,12 +48,13 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 /** Screens reached from More, which get a back arrow instead of a nav slot. */
-const SUB_SCREENS: TabType[] = ['settings', 'staff', 'activity', 'help', 'privacy', 'contact', 'about', 'alerts'];
+const SUB_SCREENS: TabType[] = ['settings', 'staff', 'activity', 'business', 'help', 'privacy', 'contact', 'about', 'alerts'];
 
 const SCREEN_TITLES: Partial<Record<TabType, string>> = {
   settings: 'Shop details',
   staff: 'Staff',
   activity: 'Activity',
+  business: 'Business details',
   help: 'How this works',
   privacy: 'Your data',
   contact: 'Contact us',
@@ -674,6 +676,7 @@ const Index = () => {
             supplierName={supplierName}
           />
         )}
+        {activeTab === 'business' && isOwner && <BusinessDetailsPanel />}
         {activeTab === 'settings' && <SettingsPanel onImportProducts={bulkImportProducts} />}
         {activeTab === 'help' && <HelpPanel />}
         {activeTab === 'privacy' && <PrivacyPanel />}

@@ -16,6 +16,7 @@ export type TabType =
   | 'about'
   | 'stock'
   | 'spending'
+  | 'business'
   | 'activity';
 
 interface NavigationProps {
@@ -43,7 +44,7 @@ export function Navigation({ activeTab, onTabChange, isOwner = true, deniCount =
     { id: 'credit', label: 'Deni', icon: Users, badge: deniCount },
     { id: 'money', label: 'Money', icon: Wallet },
     { id: 'spending', label: 'Spending', icon: Receipt },
-    { id: 'more', label: 'More', icon: MoreHorizontal, covers: ['settings', 'staff', 'activity', 'help', 'privacy', 'contact', 'about'] },
+    { id: 'more', label: 'More', icon: MoreHorizontal, covers: ['settings', 'staff', 'activity', 'business', 'help', 'privacy', 'contact', 'about'] },
   ];
 
   // Staff see only what the owner has opened up, so nothing on screen implies a
