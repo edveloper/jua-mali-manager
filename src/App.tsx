@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import PublicInvoice from "./pages/PublicInvoice";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { PasswordSetupGate } from "@/components/PasswordSetupGate";
 import Index from "./pages/Index";
@@ -23,6 +24,8 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/auth" element={<Auth />} />
+      {/* No session required: a customer reads this from a WhatsApp link. */}
+      <Route path="/i/:token" element={<PublicInvoice />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>

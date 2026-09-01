@@ -21,6 +21,7 @@ import { ProductForm } from '@/components/ProductForm';
 import { SaleDialog } from '@/components/SaleDialog';
 import { ActivityLog } from '@/components/ActivityLog';
 import { BusinessDetailsPanel } from '@/components/BusinessDetailsPanel';
+import { InvoicesPanel } from '@/components/InvoicesPanel';
 import { RestockDialog } from '@/components/RestockDialog';
 import { LowStockAlerts } from '@/components/LowStockAlerts';
 import { CreditManager } from '@/components/CreditManager';
@@ -593,8 +594,9 @@ const Index = () => {
 
         {activeTab === 'money' && isOwner && (
           <Tabs value={moneyTab} onValueChange={setMoneyTab}>
-            <TabsList className="w-full grid grid-cols-3 gap-1 p-1">
+            <TabsList className="w-full grid grid-cols-4 gap-1 p-1">
               <TabsTrigger value="reports" className="text-xs px-1">Reports</TabsTrigger>
+              <TabsTrigger value="invoices" className="text-xs px-1">Invoices</TabsTrigger>
               <TabsTrigger value="mpesa" className="text-xs px-1">M-Pesa</TabsTrigger>
               <TabsTrigger value="export" className="text-xs px-1">Export</TabsTrigger>
             </TabsList>
@@ -609,6 +611,17 @@ const Index = () => {
                 stockPurchases={stockMovements.filter((m) => m.reason === 'restock' && m.movementType === 'in')}
                 businessCategory={shop?.business_category || 'retail'}
                 onGoToExport={() => setMoneyTab('export')}
+              />
+            </TabsContent>
+            <TabsContent value="invoices" className="pt-3">
+              <InvoicesPanel
+                sales={sales}
+                creditSales={creditSales}
+                customerName={(id) => customers.find((c) => c.id === id)?.name ?? 'Customer'}
+                onGoToBusinessDetails={() => goTo('business')}
+                hasPaymentDetails={Boolean(
+                  shop?.mpesa_paybill || shop?.cheque_payee || shop?.bank_account
+                )}
               />
             </TabsContent>
             <TabsContent value="mpesa" className="pt-3">

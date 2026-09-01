@@ -207,6 +207,11 @@
     display: block;
   }
 
+  /* Buttons and chrome wrapped around a document never belong on the paper. */
+  .no-print {
+    display: none !important;
+  }
+
   body * {
     visibility: hidden;
   }
@@ -237,3 +242,115 @@
     margin: 16mm;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   The invoice
+   Its own block because it is a document rather than a screen: it renders the
+   same in the app, at the public link, and on paper. The colours are literals
+   rather than theme tokens on purpose -- a printed sheet does not change with
+   the reader's dark mode, and a customer opening the link at night must not get
+   a black invoice.
+   --------------------------------------------------------------------------- */
+.invoice-doc {
+  position: relative;
+  background: #ffffff;
+  color: #221c19;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  padding: 40px 36px 32px;
+  overflow: hidden;
+  line-height: 1.55;
+}
+
+@media (max-width: 560px) {
+  .invoice-doc { padding: 26px 20px 24px; }
+}
+
+/* The only colour on the page. */
+.invoice-rule {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: #c85a2e;
+}
+
+.invoice-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding-top: 6px;
+}
+
+.invoice-issuer { display: flex; gap: 12px; align-items: flex-start; }
+.invoice-logo { width: 40px; height: 40px; object-fit: contain; border-radius: 8px; flex: none; }
+.invoice-issuer-name { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; margin: 0; }
+.invoice-quiet { color: #7a6a5f; font-size: 12px; line-height: 1.6; margin: 2px 0 0; }
+
+.invoice-meta { text-align: right; min-width: 165px; }
+.invoice-word {
+  font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase;
+  color: #7a6a5f; margin: 0;
+}
+.invoice-number { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; margin: 1px 0 0; }
+.invoice-meta dl {
+  margin: 10px 0 0;
+  display: grid; grid-template-columns: auto auto; gap: 1px 16px;
+  justify-content: end; font-size: 12px;
+}
+.invoice-meta dt { color: #7a6a5f; }
+.invoice-meta dd { margin: 0; font-weight: 500; }
+
+.invoice-billto { margin-top: 28px; }
+.invoice-label {
+  font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: #7a6a5f;
+}
+.invoice-who { font-weight: 700; font-size: 14px; margin: 5px 0 0; }
+
+.invoice-items-scroll { overflow-x: auto; margin-top: 22px; }
+.invoice-items { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 420px; }
+.invoice-items th {
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: #7a6a5f; font-weight: 500; text-align: right;
+  padding: 0 0 7px; border-bottom: 1px solid #e2dad1;
+}
+.invoice-items th:first-child, .invoice-items td:first-child { text-align: left; }
+.invoice-items td { padding: 10px 0; border-bottom: 1px solid #e2dad1; text-align: right; }
+.invoice-items td:first-child { font-weight: 500; padding-right: 14px; }
+.invoice-items th + th, .invoice-items td + td { padding-left: 14px; }
+.invoice-qty { color: #7a6a5f; }
+
+.invoice-totals { margin: 16px 0 0 auto; width: min(290px, 100%); font-size: 13px; }
+.invoice-row { display: flex; justify-content: space-between; gap: 18px; padding: 4px 0; }
+.invoice-row span:first-child { color: #7a6a5f; }
+
+/* One heavy rule above the figure that matters, as the daybook screens do it. */
+.invoice-due {
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 18px;
+  border-top: 2px solid #221c19; margin-top: 7px; padding-top: 11px;
+}
+.invoice-when { margin: 2px 0 0; }
+.invoice-amount { font-size: 27px; font-weight: 700; letter-spacing: -0.025em; margin: 0; line-height: 1; }
+.invoice-due.settled .invoice-amount { color: #4f9469; }
+
+.invoice-pay {
+  margin-top: 30px; padding-top: 16px; border-top: 1px solid #e2dad1;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px 24px;
+  font-size: 12px;
+}
+.invoice-pay p { margin: 3px 0 0; font-weight: 500; line-height: 1.55; }
+
+.invoice-foot { margin-top: 22px; font-size: 11px; color: #7a6a5f; line-height: 1.65; }
+
+/* Rotated and outlined rather than a coloured banner across the page. */
+.invoice-stamp {
+  position: absolute; top: 150px; right: 40px;
+  transform: rotate(-11deg);
+  border: 2.5px solid currentColor; border-radius: 5px;
+  padding: 4px 14px 5px;
+  font-size: 16px; font-weight: 500; letter-spacing: 0.16em;
+  opacity: 0.75; pointer-events: none;
+}
+.invoice-stamp.paid { color: #4f9469; }
+.invoice-stamp.overdue { color: #c85a2e; }
+.invoice-stamp.cancelled { color: #7a6a5f; }

@@ -176,6 +176,39 @@ export type Database = {
         ];
       };
 
+      invoices: {
+        Row: {
+          id: string;
+          shop_id: string;
+          receipt_id: string;
+          credit_sale_id: string | null;
+          customer_id: string | null;
+          number: string;
+          seq: number;
+          year: number;
+          token: string;
+          issued_on: string;
+          due_on: string;
+          terms_days: number;
+          delivered_on: string | null;
+          notes: string | null;
+          issuer: Json;
+          bill_to: Json;
+          lines: Json;
+          subtotal: number;
+          vat_amount: number;
+          total: number;
+          voided_at: string | null;
+          voided_by: string | null;
+          void_reason: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+
       sale_payments: {
         Row: {
           id: string;
@@ -1197,6 +1230,47 @@ export type Database = {
           voided_lines: number;
           voided_amount: number;
           voided_at: string;
+        }[];
+      };
+
+      raise_invoice_atomic: {
+        Args: {
+          p_shop_id: string;
+          p_receipt_id: string;
+          p_terms_days?: number | null;
+          p_delivered_on?: string | null;
+          p_notes?: string | null;
+        };
+        Returns: {
+          out_invoice_id: string;
+          out_number: string;
+          out_token: string;
+          out_total: number;
+          out_due_on: string;
+        }[];
+      };
+
+      void_invoice_atomic: {
+        Args: { p_shop_id: string; p_invoice_id: string; p_reason?: string | null };
+        Returns: { voided_invoice_id: string; voided_number: string }[];
+      };
+
+      get_public_invoice: {
+        Args: { p_token: string };
+        Returns: {
+          number: string;
+          issued_on: string;
+          due_on: string;
+          delivered_on: string | null;
+          notes: string | null;
+          issuer: Json;
+          bill_to: Json;
+          lines: Json;
+          subtotal: number;
+          vat_amount: number;
+          total: number;
+          amount_paid: number;
+          status: string;
         }[];
       };
 
