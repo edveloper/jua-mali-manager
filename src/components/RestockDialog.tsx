@@ -157,6 +157,7 @@ export function RestockDialog({
             type="number"
             inputMode="numeric"
             min={1}
+                        step="1"
             placeholder="e.g. 50"
             value={quantityInput}
             onChange={(e) => setQuantityInput(e.target.value)}
@@ -173,6 +174,7 @@ export function RestockDialog({
             type="number"
             inputMode="decimal"
             min={0}
+                        step="0.01"
             placeholder="0"
             value={unitCostInput}
             onChange={(e) => setUnitCostInput(e.target.value)}

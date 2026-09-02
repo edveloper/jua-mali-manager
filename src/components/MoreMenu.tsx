@@ -81,6 +81,16 @@ export function MoreMenu({ onNavigate, staffCount, canInstall, onInstall, onOpen
   const commonGroup: Group = {
     title: 'DukaKonnect',
     rows: [
+      // Staff never see the owner group, so without this a person working in two
+      // shops has only the header chevron to find.
+      ...(!isOwner && shops.length > 1
+        ? [{
+            label: 'Your shops',
+            hint: `Switch between the ${shops.length} you work in`,
+            icon: Store,
+            onClick: onOpenShops,
+          }]
+        : []),
       { label: 'How this works', icon: HelpCircle, onClick: () => onNavigate('help') },
       {
         label: 'Contact us',

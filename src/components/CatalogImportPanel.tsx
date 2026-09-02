@@ -377,9 +377,9 @@ export function CatalogImportPanel({ onImportProducts }: CatalogImportPanelProps
           <p className="text-xs font-medium">Defaults for Missing Fields</p>
           <div className="grid grid-cols-2 gap-2">
             <Input placeholder="Name prefix" value={defaultNamePrefix} onChange={(e) => setDefaultNamePrefix(e.target.value)} />
-            <Input type="number" placeholder="Default cost" value={defaultCost} onChange={(e) => setDefaultCost(e.target.value)} />
-            <Input type="number" placeholder="Default selling" value={defaultSelling} onChange={(e) => setDefaultSelling(e.target.value)} />
-            <Input type="number" placeholder="Default quantity" value={defaultQty} onChange={(e) => setDefaultQty(e.target.value)} />
+            <Input type="number" inputMode="decimal" step="0.01" placeholder="Default cost" value={defaultCost} onChange={(e) => setDefaultCost(e.target.value)} />
+            <Input type="number" inputMode="decimal" step="0.01" placeholder="Default selling" value={defaultSelling} onChange={(e) => setDefaultSelling(e.target.value)} />
+            <Input type="number" inputMode="numeric" step="1" placeholder="Default quantity" value={defaultQty} onChange={(e) => setDefaultQty(e.target.value)} />
           </div>
           <Button type="button" variant="outline" size="sm" onClick={applyDefaultsToMissing}>
             <Wand2 className="h-4 w-4 mr-2" />
@@ -395,9 +395,9 @@ export function CatalogImportPanel({ onImportProducts }: CatalogImportPanelProps
               <p className="font-medium">Row {row.rowNumber}: {row.parsed?.name || row.draft.name || 'Needs review'}</p>
               <div className="grid grid-cols-2 gap-2">
                 <Input placeholder="Name" value={row.draft.name} onChange={(e) => updateDraftField(row.rowNumber, 'name', e.target.value)} />
-                <Input type="number" placeholder="Cost" value={row.draft.costPrice} onChange={(e) => updateDraftField(row.rowNumber, 'costPrice', e.target.value)} />
-                <Input type="number" placeholder="Selling" value={row.draft.sellingPrice} onChange={(e) => updateDraftField(row.rowNumber, 'sellingPrice', e.target.value)} />
-                <Input type="number" placeholder="Qty/Capacity" value={row.draft.quantity} onChange={(e) => updateDraftField(row.rowNumber, 'quantity', e.target.value)} />
+                <Input type="number" inputMode="decimal" step="0.01" placeholder="Cost" value={row.draft.costPrice} onChange={(e) => updateDraftField(row.rowNumber, 'costPrice', e.target.value)} />
+                <Input type="number" inputMode="decimal" step="0.01" placeholder="Selling" value={row.draft.sellingPrice} onChange={(e) => updateDraftField(row.rowNumber, 'sellingPrice', e.target.value)} />
+                <Input type="number" inputMode="numeric" step="1" placeholder="Qty/Capacity" value={row.draft.quantity} onChange={(e) => updateDraftField(row.rowNumber, 'quantity', e.target.value)} />
               </div>
               {row.errors.map((e, idx) => (
                 <p key={`e-${idx}`} className="text-destructive flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> {e}</p>

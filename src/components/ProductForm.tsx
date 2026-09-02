@@ -105,6 +105,8 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
           <Input
             id="costPrice"
             type="number"
+            inputMode="decimal"
+            step="0.01"
             placeholder="0"
             value={formData.costPrice}
             onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
@@ -117,6 +119,8 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
           <Input
             id="sellingPrice"
             type="number"
+            inputMode="decimal"
+            step="0.01"
             placeholder="0"
             value={formData.sellingPrice}
             onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
@@ -137,6 +141,7 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
             <Input
               type="number"
               inputMode="decimal"
+              step="0.01"
               placeholder="Lowest"
               aria-label="Lowest price staff may agree"
               value={formData.minPrice}
@@ -146,6 +151,7 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
             <Input
               type="number"
               inputMode="decimal"
+              step="0.01"
               placeholder="Highest"
               aria-label="Highest price staff may agree"
               value={formData.maxPrice}
@@ -175,6 +181,8 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
           <Input
             id="quantity"
             type="number"
+            inputMode="numeric"
+            step="1"
             placeholder="0"
             value={formData.quantity}
             onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
@@ -187,6 +195,8 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
           <Input
             id="lowStockThreshold"
             type="number"
+            inputMode="numeric"
+            step="1"
             placeholder="5"
             value={formData.lowStockThreshold}
             onChange={(e) => setFormData({ ...formData, lowStockThreshold: e.target.value })}

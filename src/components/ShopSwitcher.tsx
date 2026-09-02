@@ -134,9 +134,18 @@ export function ShopSwitcher({ onClose }: ShopSwitcherProps) {
       title="Your shops"
       onClose={onClose}
       footer={
-        <Button className="flex-1" onClick={() => setAdding(true)}>
-          <Plus className="h-4 w-4 mr-2" /> Add a shop
-        </Button>
+        // Only somebody who already owns a shop. A member of staff switching
+        // between two employers has no business creating a third from here, and
+        // an "add a shop" button in their face invites exactly that.
+        ownedShops.length > 0 ? (
+          <Button className="flex-1" onClick={() => setAdding(true)}>
+            <Plus className="h-4 w-4 mr-2" /> Add a shop
+          </Button>
+        ) : (
+          <Button variant="outline" className="flex-1" onClick={onClose}>
+            Done
+          </Button>
+        )
       }
     >
       {grouped.map((group) => (

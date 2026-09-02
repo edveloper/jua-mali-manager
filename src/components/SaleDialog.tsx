@@ -314,6 +314,7 @@ export function SaleDialog({
                     id={`qty-${line.productId}`}
                     type="number"
                     inputMode="numeric"
+                    step="1"
                     min={1}
                     max={line.stock}
                     value={line.quantityInput}
@@ -346,6 +347,7 @@ export function SaleDialog({
                     id={`price-${line.productId}`}
                     type="number"
                     inputMode="decimal"
+                    step="0.01"
                     value={line.priceInput}
                     onChange={(e) => patchLine(index, { priceInput: e.target.value })}
                     onFocus={(e) => e.target.select()}
@@ -516,6 +518,7 @@ export function SaleDialog({
                     <Input
                       type="number"
                       inputMode="decimal"
+                      step="0.01"
                       placeholder="0"
                       aria-label="Amount paid this way"
                       value={part.amount}
@@ -568,6 +571,7 @@ export function SaleDialog({
                 <Input
                   type="number"
                   inputMode="decimal"
+                  step="0.01"
                   placeholder="0"
                   aria-label="Amount taken on deni"
                   value={deniInput}

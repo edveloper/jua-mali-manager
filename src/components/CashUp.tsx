@@ -144,6 +144,7 @@ export function CashUp({
           id="counted"
           type="number"
           inputMode="decimal"
+                    step="0.01"
           placeholder="0"
           value={counted}
           onChange={(e) => setCounted(e.target.value)}

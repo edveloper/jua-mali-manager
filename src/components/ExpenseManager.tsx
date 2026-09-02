@@ -324,6 +324,7 @@ export function ExpenseManager({
                 id="exp-amount"
                 type="number"
                 inputMode="decimal"
+                                step="0.01"
                 placeholder="0"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}

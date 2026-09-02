@@ -143,6 +143,7 @@ export function CreditManager({
             id="pay"
             type="number"
             inputMode="decimal"
+                        step="0.01"
             placeholder="0"
             value={paymentAmount}
             onChange={(e) => setPaymentAmount(e.target.value)}

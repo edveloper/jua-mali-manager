@@ -165,6 +165,7 @@ export function StockPanel({ products, sales, takes, onRecordCount, onImportProd
               <Input
                 type="number"
                 inputMode="numeric"
+                step="1"
                 placeholder="0"
                 aria-label={`Counted quantity for ${product.name}`}
                 value={counts[product.id] ?? ''}

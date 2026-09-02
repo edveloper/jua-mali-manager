@@ -84,6 +84,7 @@ export function SupplierDebts({
             id="pay-supplier"
             type="number"
             inputMode="decimal"
+            step="0.01"
             placeholder="0"
             value={payAmount}
             onChange={(e) => setPayAmount(e.target.value)}
@@ -187,7 +188,7 @@ export function SupplierDebts({
             <Label htmlFor="debt-desc">What did you take?</Label>
             <Input id="debt-desc" placeholder="e.g. 20 crates" value={description} onChange={(e) => setDescription(e.target.value)} />
             <Label htmlFor="debt-amount">How much do you owe?</Label>
-            <Input id="debt-amount" type="number" inputMode="decimal" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)} className="num" />
+            <Input id="debt-amount" type="number" inputMode="decimal" step="0.01" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)} className="num" />
             <div className="flex gap-2">
               <Button variant="ghost" className="flex-1" onClick={() => setShowAddDebt(false)}>Cancel</Button>
               <Button className="flex-1" onClick={handleAddDebt} disabled={!description.trim() || !amount}>Save</Button>

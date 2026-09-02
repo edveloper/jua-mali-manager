@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 
@@ -130,6 +130,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * them to disagree during a switch.
    */
   const [memberships, setMemberships] = useState<any[]>([]);
+
+  /*
+   * The same list, readable immediately.
+   *
+   * switchShop checks that the target is somewhere this person actually
+   * belongs. Reading that from state made creating a shop and moving to it
+   * impossible: the refresh sets state, but the handler that called it is still
+   * running with the array captured at its last render, so the shop created a
+   * moment ago is not in it yet and the switch is silently refused. Which is
+   * exactly what "welcome to your new shop, still showing the old one" was.
+   *
+   * The ref is written synchronously by the fetch, so it is already correct by
+   * the time an awaited refresh returns.
+   */
+  const membershipsRef = useRef<any[]>([]);
   const [activeShopId, setActiveShopId] = useState<string | null>(null);
   const [membershipResolved, setMembershipResolved] = useState(false);
   const [isRecovering, setIsRecovering] = useState(false);
@@ -175,6 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // A membership whose shop failed to load is not a shop they can use.
       const rows = (data || []).filter((row: any) => row.shops);
+      membershipsRef.current = rows;
       setMemberships(rows);
 
       // The one they were last looking at, if they still belong to it. Falling
@@ -213,7 +229,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const switchShop = (shopId: string) => {
     // Only somewhere they actually belong. A stale id in storage, or a shop
     // they have since been removed from, must not blank the app.
-    if (!memberships.some((m: any) => m.shops?.id === shopId)) return;
+    if (!membershipsRef.current.some((m: any) => m.shops?.id === shopId)) return;
     setActiveShopId(shopId);
     writeActiveShop(shopId);
   };
@@ -241,6 +257,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .catch((err) => {
         console.warn('Could not restore previous session:', err?.message || err);
         setCurrentUser(null);
+        membershipsRef.current = [];
         setMemberships([]);
         setActiveShopId(null);
         setLoading(false);
@@ -257,6 +274,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (userObj) {
         fetchShopData(userObj.id);
       } else {
+        membershipsRef.current = [];
         setMemberships([]);
         setActiveShopId(null);
         setMembershipResolved(false);
@@ -385,6 +403,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // onAuthStateChange does not fire when the call above failed, so the UI
     // cannot rely on it to reset.
     setCurrentUser(null);
+    membershipsRef.current = [];
     setMemberships([]);
     setActiveShopId(null);
     clearActiveShop();
