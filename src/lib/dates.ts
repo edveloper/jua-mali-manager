@@ -17,3 +17,25 @@ export const todayKey = (): string => format(new Date(), 'yyyy-MM-dd');
 
 /** The same, for any date. */
 export const dateKey = (value: Date): string => format(value, 'yyyy-MM-dd');
+
+/**
+ * A real instant for a date the user picked.
+ *
+ * A date field gives back "2026-09-03" and nothing more. Sending that to a
+ * timestamptz column as "2026-09-03T12:00:00", with no offset, makes Postgres
+ * read it as noon UTC, which is 15:00 in Nairobi. Every restock in the activity
+ * log therefore claimed to have happened at 15:00, whatever time it really was.
+ *
+ * So: if the chosen day is today, use the actual moment, which is both true and
+ * more useful. If it is backdated, use midday local, far enough from either
+ * boundary that no timezone can push it onto the wrong day.
+ */
+export const instantForDate = (dateKey: string): string => {
+  const now = new Date();
+  if (dateKey === todayKey()) return now.toISOString();
+
+  const [y, m, d] = dateKey.split('-').map(Number);
+  if (!y || !m || !d) return now.toISOString();
+
+  return new Date(y, m - 1, d, 12, 0, 0).toISOString();
+};

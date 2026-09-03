@@ -16,6 +16,7 @@ export interface InvoiceIssuer {
   logo_url?: string | null;
   vat_registered?: boolean | null;
   vat_number?: string | null;
+  mpesa_kind?: 'paybill' | 'till' | null;
   mpesa_paybill?: string | null;
   mpesa_account?: string | null;
   cheque_payee?: string | null;
@@ -55,6 +56,9 @@ export interface InvoiceDocument {
   subtotal: number;
   vatAmount: number;
   total: number;
+  /** Handed over at the counter when the goods went out. */
+  paidAtSale: number;
+  /** Everything settled so far: the counter payment plus anything since. */
   amountPaid: number;
   status: InvoiceStatus;
 }

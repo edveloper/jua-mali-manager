@@ -26,6 +26,8 @@ interface RestockDialogProps {
   onClose: () => void;
   /** Taking stock on credit is a debt the owner takes on, so staff cannot. */
   canTakeOnCredit?: boolean;
+  /** Cost drives every margin figure, so only the owner sets it. */
+  canSetCost?: boolean;
   suppliers: { id: string; name: string }[];
   onAddSupplier: (name: string) => Promise<{ id: string } | null>;
 }
@@ -37,7 +39,8 @@ const num = (s: string) => {
 };
 
 export function RestockDialog({
-  product, onRestock, onClose, suppliers, onAddSupplier, canTakeOnCredit = true,
+  product, onRestock, onClose, suppliers, onAddSupplier,
+  canTakeOnCredit = true, canSetCost = true,
 }: RestockDialogProps) {
   /*
    * Both figures are free text rather than numbers.
@@ -67,7 +70,7 @@ export function RestockDialog({
   const [confirming, setConfirming] = useState(false);
 
   const quantity = Math.max(0, Math.floor(num(quantityInput)));
-  const unitCost = num(unitCostInput);
+  const unitCost = canSetCost ? num(unitCostInput) : product.costPrice;
   const totalCost = quantity * unitCost;
 
   // Nothing typed yet is not an error, it is just the starting state.
@@ -157,7 +160,7 @@ export function RestockDialog({
             type="number"
             inputMode="numeric"
             min={1}
-                        step="1"
+            step="1"
             placeholder="e.g. 50"
             value={quantityInput}
             onChange={(e) => setQuantityInput(e.target.value)}
@@ -169,19 +172,35 @@ export function RestockDialog({
 
         <div className="space-y-1.5">
           <Label htmlFor="restock-cost">Cost for one</Label>
-          <Input
-            id="restock-cost"
-            type="number"
-            inputMode="decimal"
-            min={0}
-                        step="0.01"
-            placeholder="0"
-            value={unitCostInput}
-            onChange={(e) => setUnitCostInput(e.target.value)}
-            onFocus={(e) => e.target.select()}
-            className="num"
-          />
-          {costError && <p className="text-xs text-destructive">{costError}</p>}
+          {canSetCost ? (
+            <>
+              <Input
+                id="restock-cost"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="0.01"
+                placeholder="0"
+                value={unitCostInput}
+                onChange={(e) => setUnitCostInput(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                className="num"
+              />
+              {costError && <p className="text-xs text-destructive">{costError}</p>}
+            </>
+          ) : (
+            <>
+              {/* Shown, not editable. Cost drives the weighted average and so
+                  every margin figure for this item, which is not the counter's
+                  to change. The database refuses it either way. */}
+              <div className="flex h-10 items-center rounded-md border border-input bg-muted px-3 num text-sm">
+                {money(product.costPrice)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Set by the owner. If the price has changed, tell them.
+              </p>
+            </>
+          )}
         </div>
       </div>
 

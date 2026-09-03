@@ -23,6 +23,7 @@ export interface ShopProfileUpdate {
   branch_label?: string | null;
   vat_registered?: boolean;
   vat_number?: string | null;
+  mpesa_kind?: 'paybill' | 'till';
   mpesa_paybill?: string | null;
   mpesa_account?: string | null;
   cheque_payee?: string | null;
@@ -174,6 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             branch_label,
             vat_registered,
             vat_number,
+            mpesa_kind,
             mpesa_paybill,
             mpesa_account,
             cheque_payee,

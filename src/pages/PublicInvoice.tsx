@@ -53,6 +53,8 @@ export default function PublicInvoice() {
         subtotal: Number(row.subtotal || 0),
         vatAmount: Number(row.vat_amount || 0),
         total: Number(row.total || 0),
+        // The function already folds the counter payment into amount_paid.
+        paidAtSale: 0,
         amountPaid: Number(row.amount_paid || 0),
         status: row.status as InvoiceStatus,
       });

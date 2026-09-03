@@ -792,6 +792,7 @@ const Index = () => {
         <RestockDialog
           product={restockingProduct}
           canTakeOnCredit={isOwner}
+          canSetCost={isOwner}
           suppliers={suppliers}
           onAddSupplier={addSupplier}
           onRestock={async (productId, quantity, unitCost, happenedAt, allocationMode, notes, paidNow, supplierId, paymentMethod) => {

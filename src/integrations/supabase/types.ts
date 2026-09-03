@@ -52,6 +52,7 @@ export type Database = {
           branch_label: string | null;
           vat_registered: boolean;
           vat_number: string | null;
+          mpesa_kind: string;
           mpesa_paybill: string | null;
           mpesa_account: string | null;
           cheque_payee: string | null;
@@ -250,6 +251,7 @@ export type Database = {
           subtotal: number;
           vat_amount: number;
           total: number;
+          paid_at_sale: number;
           voided_at: string | null;
           voided_by: string | null;
           void_reason: string | null;

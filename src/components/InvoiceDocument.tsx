@@ -112,10 +112,16 @@ export function InvoiceDocument({ doc }: InvoiceDocumentProps) {
             <span className="num">{money(doc.vatAmount)}</span>
           </div>
         )}
-        {doc.amountPaid > 0 && (
+        {doc.paidAtSale > 0 && (
           <div className="invoice-row">
-            <span>Paid to date</span>
-            <span className="num">({money(doc.amountPaid)})</span>
+            <span>Paid at the time</span>
+            <span className="num">({money(doc.paidAtSale)})</span>
+          </div>
+        )}
+        {doc.amountPaid - doc.paidAtSale > 0 && (
+          <div className="invoice-row">
+            <span>Paid since</span>
+            <span className="num">({money(doc.amountPaid - doc.paidAtSale)})</span>
           </div>
         )}
 
@@ -135,10 +141,19 @@ export function InvoiceDocument({ doc }: InvoiceDocumentProps) {
           {issuer.mpesa_paybill && (
             <div>
               <span className="invoice-label">M-Pesa</span>
-              <p>
-                Paybill {issuer.mpesa_paybill}
-                {issuer.mpesa_account && <><br /><span className="invoice-quiet">Account {issuer.mpesa_account}</span></>}
-              </p>
+              {issuer.mpesa_kind === 'till' ? (
+                <p>
+                  Buy Goods<br />
+                  <span className="invoice-quiet">Till {issuer.mpesa_paybill}</span>
+                </p>
+              ) : (
+                <p>
+                  Paybill {issuer.mpesa_paybill}
+                  {issuer.mpesa_account && (
+                    <><br /><span className="invoice-quiet">Account {issuer.mpesa_account}</span></>
+                  )}
+                </p>
+              )}
             </div>
           )}
           {issuer.cheque_payee && (

@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import { Upload, FileDown, AlertTriangle, CheckCircle2, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 import { todayKey } from '@/lib/dates';
 
 type ImportMode = 'products' | 'services' | 'mixed';
@@ -158,6 +159,7 @@ const parseRawRowToDraft = (
 };
 
 export function CatalogImportPanel({ onImportProducts }: CatalogImportPanelProps) {
+  const { toast } = useToast();
   const [fileName, setFileName] = useState('');
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [availableHeaders, setAvailableHeaders] = useState<string[]>([]);
@@ -254,7 +256,38 @@ export function CatalogImportPanel({ onImportProducts }: CatalogImportPanelProps
     if (validRows.length === 0) return;
     setIsImporting(true);
     try {
-      const productRows = validRows.filter((r) => r.parsed.target === 'products').map((r) => r.parsed);
+      const productRows = validRows
+        .filter((r) => r.parsed.target === 'products')
+        .map((r) => r.parsed);
+
+      if (productRows.length === 0) {
+        toast({
+          title: 'Nothing to import',
+          description: 'None of the ready rows are products.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // This call was missing. The rows were read, validated, counted and mapped
+      // into a payload, and then the payload was simply dropped and the list
+      // cleared, so every import reported success and saved nothing.
+      const { inserted, error } = await onImportProducts(productRows);
+
+      if (error) {
+        toast({
+          title: 'Import failed',
+          description: error.message ?? 'Nothing was saved. Your rows are still here.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({ title: `Imported ${inserted} ${inserted === 1 ? 'product' : 'products'}` });
+
+      // Cleared only once the save has actually succeeded, so a failure leaves
+      // the work on screen to retry rather than sending somebody back to the
+      // spreadsheet.
       setRows((prev) => {
         const remaining = prev.filter((row) => row.errors.length > 0);
         if (remaining.length === 0) setFileName('');

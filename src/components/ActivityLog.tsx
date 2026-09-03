@@ -45,6 +45,13 @@ interface Entry {
   flow?: 'in' | 'out';
   actor?: string | null;
   muted?: boolean;
+  /*
+   * Some records carry only a date. An expense has a DATE column and nothing
+   * finer, so `new Date('2026-09-03')` is UTC midnight, which reads as 03:00 in
+   * Nairobi. Printing that is inventing a precision the record does not have, so
+   * these show no clock at all.
+   */
+  dayOnly?: boolean;
   /** A correction rather than a thing that happened. */
   cancelled?: boolean;
 }
@@ -169,13 +176,14 @@ export function ActivityLog({
       if (e.source === 'restock' || !recent(e.date)) continue;
       out.push({
         key: `expense-${e.id}`,
-        at: new Date(e.date),
+        at: new Date(`${e.date}T12:00:00`),
         lens: 'out',
         title: e.description || e.category || 'Spending',
         detail: `${e.category}${e.paymentMethod ? ` · ${methodLabel(e.paymentMethod)}` : ''}`,
         amount: e.amount,
         flow: 'out',
         actor: nameFor(e.recordedBy),
+        dayOnly: true,
       });
     }
 
@@ -258,13 +266,14 @@ export function ActivityLog({
       const off = Math.abs(c.difference) >= 1;
       out.push({
         key: `till-${c.countedFor}`,
-        at: new Date(c.countedFor),
+        at: new Date(`${c.countedFor}T12:00:00`),
         lens: 'checks',
         title: 'Till counted',
         detail: off
           ? `${money(Math.abs(c.difference))} ${c.difference < 0 ? 'short' : 'over'}`
           : 'Balanced',
         muted: !off,
+        dayOnly: true,
       });
     }
 
@@ -324,7 +333,7 @@ export function ActivityLog({
                 <div key={entry.key} className={`py-2 ${entry.muted ? 'opacity-60' : ''}`}>
                   <div className="flex items-baseline gap-3">
                     <span className="text-xs text-muted-foreground num shrink-0 w-11">
-                      {format(entry.at, 'HH:mm')}
+                      {entry.dayOnly ? '' : format(entry.at, 'HH:mm')}
                     </span>
                     <span className={`flex-1 min-w-0 truncate text-sm ${entry.muted ? 'line-through' : ''}`}>
                       {entry.title}

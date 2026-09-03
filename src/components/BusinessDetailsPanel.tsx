@@ -59,6 +59,7 @@ export function BusinessDetailsPanel() {
       branch_label: shop.branch_label ?? '',
       vat_registered: Boolean(shop.vat_registered),
       vat_number: shop.vat_number ?? '',
+      mpesa_kind: (shop.mpesa_kind as 'paybill' | 'till') ?? 'paybill',
       mpesa_paybill: shop.mpesa_paybill ?? '',
       mpesa_account: shop.mpesa_account ?? '',
       cheque_payee: shop.cheque_payee ?? '',
@@ -351,28 +352,77 @@ export function BusinessDetailsPanel() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        {/* Paybill and Buy Goods are different products. A Paybill has a
+            business number and the customer types an account; a Till has a
+            number and nothing else. Asking for both at once produced invoices
+            telling somebody to enter an account into a till with no such field. */}
+        <div className="space-y-1.5">
+          <Label>How do they send M-Pesa?</Label>
+          <div className="flex gap-2">
+            <Button
+              variant={form.mpesa_kind !== 'till' ? 'default' : 'outline'}
+              className="flex-1"
+              onClick={() => set({ mpesa_kind: 'paybill' })}
+            >
+              Paybill
+            </Button>
+            <Button
+              variant={form.mpesa_kind === 'till' ? 'default' : 'outline'}
+              className="flex-1"
+              onClick={() => set({ mpesa_kind: 'till', mpesa_account: '' })}
+            >
+              Buy Goods
+            </Button>
+          </div>
+        </div>
+
+        {form.mpesa_kind === 'till' ? (
           <div className="space-y-1.5">
-            <Label htmlFor="biz-paybill">M-Pesa Paybill or Till</Label>
+            <Label htmlFor="biz-till">Till number</Label>
             <Input
-              id="biz-paybill"
+              id="biz-till"
               inputMode="numeric"
               className="num"
-              placeholder="400200"
+              placeholder="e.g. 5088344"
               value={form.mpesa_paybill ?? ''}
               onChange={(e) => set({ mpesa_paybill: e.target.value })}
             />
+            <p className="text-xs text-muted-foreground">
+              Buy Goods takes the till number and nothing else. There is no account to
+              enter.
+            </p>
           </div>
+        ) : (
           <div className="space-y-1.5">
-            <Label htmlFor="biz-paybill-acc">Account name</Label>
-            <Input
-              id="biz-paybill-acc"
-              placeholder="e.g. EDDIES"
-              value={form.mpesa_account ?? ''}
-              onChange={(e) => set({ mpesa_account: e.target.value })}
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="biz-paybill">Business number</Label>
+                <Input
+                  id="biz-paybill"
+                  inputMode="numeric"
+                  className="num"
+                  placeholder="e.g. 400200"
+                  value={form.mpesa_paybill ?? ''}
+                  onChange={(e) => set({ mpesa_paybill: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="biz-paybill-acc">Account number</Label>
+                <Input
+                  id="biz-paybill-acc"
+                  className="num"
+                  placeholder="e.g. 0712345678"
+                  value={form.mpesa_account ?? ''}
+                  onChange={(e) => set({ mpesa_account: e.target.value })}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Both appear on the invoice. The account is what the customer types after
+              choosing your Paybill.
+            </p>
           </div>
-        </div>
+        )}
 
         <div className="space-y-1.5">
           <Label htmlFor="biz-cheque">Cheques payable to</Label>

@@ -268,20 +268,13 @@ export function InvoicesPanel({
 
       {/* Preview. The same component the customer sees, so nothing is a surprise. */}
       {viewing && (
-        <div className="fixed inset-0 z-50 bg-foreground/20 backdrop-blur-sm flex items-end sm:items-center justify-center">
-          <div className="bg-card w-full max-w-lg rounded-t-2xl sm:rounded-lg animate-slide-up flex flex-col max-h-[90dvh]">
-            <div className="p-4 border-b border-border flex items-center justify-between shrink-0 no-print">
-              <p className="font-semibold">{viewing.number}</p>
-              <Button variant="ghost" size="icon-sm" onClick={() => setViewing(null)}>
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-
-            <div className="overflow-y-auto overscroll-contain flex-1">
-              <InvoiceDocument doc={viewing} />
-            </div>
-
-            <div className="p-4 border-t border-border shrink-0 flex gap-2 no-print">
+        <Modal
+          title={viewing.number}
+          size="lg"
+          onClose={() => setViewing(null)}
+          bodyClassName="overflow-y-auto overscroll-contain flex-1"
+          footer={
+            <>
               <Button className="flex-1" onClick={() => { setSending(sendableFrom(viewing)); setViewing(null); }}>
                 <Send className="h-4 w-4 mr-2" /> Send
               </Button>
@@ -298,9 +291,11 @@ export function InvoicesPanel({
                   <X className="h-4 w-4 text-destructive" />
                 </Button>
               )}
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        >
+          <InvoiceDocument doc={viewing} />
+        </Modal>
       )}
 
       {sending && (

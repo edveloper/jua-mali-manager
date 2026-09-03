@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Product, Sale, SalePayment, DashboardStats, StockMovement } from '@/types/inventory';
 import { useToast } from '@/hooks/use-toast';
+import { instantForDate } from '@/lib/dates';
 
 export interface BasketLine {
   productId: string;
@@ -261,7 +262,14 @@ export const useInventory = () => {
   };
 
   const bulkImportProducts = async (rows: Array<Omit<Product, 'id' | 'createdAt' | 'updatedAt'> & { unit?: string }>) => {
-    if (!shop?.id || !isOwner || rows.length === 0) return { inserted: 0, error: null as any };
+    if (!shop?.id || !isOwner) {
+      // Returning quietly here is how a refusal reaches somebody as nothing at
+      // all, which is exactly how the missing import call stayed hidden.
+      const error = { message: 'Only the shop owner can import a catalogue' };
+      toast({ title: 'Import failed', description: error.message, variant: 'destructive' });
+      return { inserted: 0, error };
+    }
+    if (rows.length === 0) return { inserted: 0, error: null as any };
     try {
       const payload = rows.map((row) => ({
         shop_id: shop.id,
@@ -389,7 +397,7 @@ export const useInventory = () => {
         p_product_id: productId,
         p_quantity: quantity,
         p_unit_cost: unitCost,
-        p_happened_at: `${happenedAt}T12:00:00`,
+        p_happened_at: instantForDate(happenedAt),
         p_notes: notes || null,
         p_allocation_mode: allocationMode,
         p_paid_now: paidNow,
