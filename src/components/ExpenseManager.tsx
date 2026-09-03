@@ -21,6 +21,12 @@ interface ExpenseManagerProps {
   businessCategory?: string;
   /** Owners see what the shop spent in total. Staff only see what they added. */
   showSummary?: boolean;
+  /*
+   * Bumped by the button in the middle of the nav to open the form from
+   * anywhere. A counter rather than a boolean, so asking again while already on
+   * this screen still opens it.
+   */
+  openFormSignal?: number;
 }
 
 type RangeType = 'today' | 'month' | 'lastMonth' | '30d' | 'all';
@@ -96,9 +102,17 @@ export function ExpenseManager({
   monthlySales,
   businessCategory = 'retail',
   showSummary = true,
+  openFormSignal = 0,
 }: ExpenseManagerProps) {
   const [showForm, setShowForm] = useState(false);
   const [range, setRange] = useState<RangeType>('month');
+
+  // Zero is the initial value, not a request, so the form does not spring open
+  // every time somebody merely visits this screen.
+  useEffect(() => {
+    if (openFormSignal > 0) setShowForm(true);
+  }, [openFormSignal]);
+
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('Other');

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Search, ShoppingCart, Receipt, HandCoins } from 'lucide-react';
 import { format, subDays, addDays, isSameDay } from 'date-fns';
 import { useInventory, BasketLine, BasketPayment } from '@/hooks/useInventory';
 import { useCredit } from '@/hooks/useCredit';
@@ -42,7 +42,8 @@ import { StockPanel } from '@/components/StockPanel';
 import { SupplierDebts } from '@/components/SupplierDebts';
 import { RecordsPanel } from '@/components/RecordsPanel';
 import { MpesaReconcile } from '@/components/MpesaReconcile';
-import { Logo } from '@/components/Logo';
+import { QuickActions } from '@/components/QuickActions';
+import { GlobalSearch } from '@/components/GlobalSearch';
 import { Navigation, type TabType } from '@/components/Navigation';
 import { Product } from '@/types/inventory';
 import { PAYMENT_METHODS, methodLabel } from '@/lib/payment';
@@ -51,9 +52,20 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 /** Screens reached from More, which get a back arrow instead of a nav slot. */
-const SUB_SCREENS: TabType[] = ['staff', 'activity', 'business', 'help', 'privacy', 'contact', 'about', 'alerts'];
+const SUB_SCREENS: TabType[] = ['more', 'staff', 'activity', 'business', 'help', 'privacy', 'contact', 'about', 'alerts'];
+
+/**
+ * Where the back arrow goes.
+ *
+ * More is no longer a tab, so it cannot be the fallback for everything: from
+ * More itself, and from the low stock list reached off Home, back means the
+ * dashboard. Everything else was opened from More and returns there.
+ */
+const backTarget = (tab: TabType): TabType =>
+  tab === 'more' || tab === 'alerts' ? 'dashboard' : 'more';
 
 const SCREEN_TITLES: Partial<Record<TabType, string>> = {
+  more: 'Account',
   staff: 'Staff',
   activity: 'Activity',
   business: 'Business details',
@@ -69,6 +81,11 @@ const Index = () => {
   // Controlled so Reports can send the owner to Export, where the files live.
   const [moneyTab, setMoneyTab] = useState('reports');
   const [showSale, setShowSale] = useState(false);
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  // Bumped rather than set, so asking for the expense form again while already
+  // looking at the spending screen still opens it.
+  const [openExpenseForm, setOpenExpenseForm] = useState(0);
   const [showShopSwitcher, setShowShopSwitcher] = useState(false);
   const [sendingInvoice, setSendingInvoice] = useState<SendableInvoice | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
@@ -270,6 +287,13 @@ const Index = () => {
     }
     // Tapping Sell always means selling, even if Stock was the last thing open.
     if (tab === 'products') setProductsView('sell');
+    // An owner has no Spending tab: it is a section of Money. Staff have no
+    // Money tab, so for them it stays a place of its own.
+    if (tab === 'spending' && isOwner) {
+      setMoneyTab('spending');
+      setActiveTab('money');
+      return;
+    }
     setActiveTab(tab);
   };
 
@@ -379,7 +403,7 @@ const Index = () => {
             <>
               <button
                 type="button"
-                onClick={() => setActiveTab(activeTab === 'alerts' ? 'dashboard' : 'more')}
+                onClick={() => setActiveTab(backTarget(activeTab))}
                 className="-ml-2 p-2 text-muted-foreground"
                 aria-label="Back"
               >
@@ -406,7 +430,27 @@ const Index = () => {
                   {shop?.name || 'DukaKonnect'}
                 </h1>
               )}
-              <Logo wordmark={false} size="sm" />
+              {/* The brand mark used to sit here doing nothing. A control in
+                  the header costs no taps to find and one to open, which is the
+                  best real estate in the app, so it earns its place instead. */}
+              <button
+                type="button"
+                onClick={() => setShowSearch(true)}
+                aria-label="Search"
+                className="p-2 -mr-1 text-muted-foreground active:text-foreground transition-colors"
+              >
+                <Search className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => goTo('more')}
+                aria-label="Your account"
+                className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 active:bg-primary/20 transition-colors"
+              >
+                <span className="text-sm font-bold text-primary">
+                  {String(user?.user_metadata?.full_name || 'You').trim().charAt(0).toUpperCase()}
+                </span>
+              </button>
             </>
           )}
         </div>
@@ -462,6 +506,49 @@ const Index = () => {
                 </div>
               </div>
             )}
+
+            {/*
+              * The three things people do all day, at the top of the screen they
+              * land on.
+              *
+              * The button in the middle of the nav reaches these from anywhere,
+              * but it costs two taps. Here they cost one, and Home is where the
+              * day starts, so this is the row that has to be above the fold. The
+              * numbers sit directly underneath because you read them before you
+              * act, not instead of acting.
+              */}
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: 'Sale', icon: ShoppingCart, show: true, onClick: () => setShowSale(true) },
+                {
+                  label: 'Spending',
+                  icon: Receipt,
+                  show: isOwner || can('record_expenses'),
+                  onClick: () => { goTo('spending'); setOpenExpenseForm((n) => n + 1); },
+                },
+                {
+                  label: 'Repayment',
+                  icon: HandCoins,
+                  show: isOwner || can('manage_deni'),
+                  onClick: () => { goTo('credit'); setDeniView('in'); },
+                },
+              ]
+                .filter((action) => action.show)
+                .map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <button
+                      key={action.label}
+                      type="button"
+                      onClick={action.onClick}
+                      className="sheet flex flex-col items-center justify-center gap-1.5 py-3 pressable"
+                    >
+                      <Icon className="h-5 w-5 text-primary" />
+                      <span className="text-xs font-medium">{action.label}</span>
+                    </button>
+                  );
+                })}
+            </div>
 
             {isOwner && (missingCostCount + missingPriceCount) > 0 && (
               <button
@@ -641,8 +728,9 @@ const Index = () => {
         {/* Staff record spending but do not get to see the shop's total
             outgoings: that is a picture of the business, not a record of what
             they just did. */}
-        {activeTab === 'spending' && (isOwner || can('record_expenses')) && (
+        {activeTab === 'spending' && !isOwner && can('record_expenses') && (
           <ExpenseManager
+            openFormSignal={openExpenseForm}
             expenses={expenses}
             onAddExpense={addExpense}
             onDeleteExpense={deleteExpense}
@@ -657,12 +745,27 @@ const Index = () => {
 
         {activeTab === 'money' && isOwner && (
           <Tabs value={moneyTab} onValueChange={setMoneyTab}>
-            <TabsList className="w-full grid grid-cols-4 gap-1 p-1">
+            <TabsList className="w-full grid grid-cols-5 gap-1 p-1">
               <TabsTrigger value="reports" className="text-xs px-1">Reports</TabsTrigger>
+              <TabsTrigger value="spending" className="text-xs px-1">Spending</TabsTrigger>
               <TabsTrigger value="invoices" className="text-xs px-1">Invoices</TabsTrigger>
               <TabsTrigger value="mpesa" className="text-xs px-1">M-Pesa</TabsTrigger>
               <TabsTrigger value="export" className="text-xs px-1">Export</TabsTrigger>
             </TabsList>
+            <TabsContent value="spending" className="pt-3">
+              <ExpenseManager
+                openFormSignal={openExpenseForm}
+                expenses={expenses}
+                onAddExpense={addExpense}
+                onDeleteExpense={deleteExpense}
+                stockMovements={stockMovements}
+                onVoidRestock={voidRestock}
+                onQuickAddTOT={quickAddTOT}
+                monthlySales={currentMonthSales}
+                businessCategory={shop?.business_category || 'retail'}
+                showSummary
+              />
+            </TabsContent>
             <TabsContent value="reports" className="pt-3">
               <SalesReports
                 sales={sales}
@@ -767,6 +870,7 @@ const Index = () => {
         deniCount={isOwner || can('manage_deni') ? unpaidDeniCount : 0}
         canManageDeni={can('manage_deni')}
         canRecordExpenses={can('record_expenses')}
+        onPrimaryAction={() => setShowQuickActions(true)}
       />
 
       {showProductForm && isOwner && (
@@ -812,6 +916,31 @@ const Index = () => {
       />
       {showInstallSheet && <InstallSheet onClose={() => setShowInstallSheet(false)} />}
       {showShopSwitcher && <ShopSwitcher onClose={() => setShowShopSwitcher(false)} />}
+      {showQuickActions && (
+        <QuickActions
+          onClose={() => setShowQuickActions(false)}
+          onRecordSale={() => setShowSale(true)}
+          onRecordSpending={
+            isOwner || can('record_expenses')
+              ? () => { goTo('spending'); setOpenExpenseForm((n) => n + 1); }
+              : undefined
+          }
+          onRecordRepayment={
+            isOwner || can('manage_deni')
+              ? () => { goTo('credit'); setDeniView('in'); }
+              : undefined
+          }
+        />
+      )}
+      {showSearch && (
+        <GlobalSearch
+          products={products}
+          customers={customers}
+          onClose={() => setShowSearch(false)}
+          onPickProduct={(product) => { setSellingProduct(product); setShowSale(true); }}
+          onPickCustomer={() => { goTo('credit'); setDeniView('in'); }}
+        />
+      )}
       {sendingInvoice && (
         <SendInvoiceDialog invoice={sendingInvoice} onClose={() => setSendingInvoice(null)} />
       )}
