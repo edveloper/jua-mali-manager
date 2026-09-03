@@ -105,7 +105,9 @@ export function ExpenseManager({
   openFormSignal = 0,
 }: ExpenseManagerProps) {
   const [showForm, setShowForm] = useState(false);
-  const [range, setRange] = useState<RangeType>('month');
+  // What did I spend today. Looking back over the month is the deliberate
+  // act, not the default one.
+  const [range, setRange] = useState<RangeType>('today');
 
   // Zero is the initial value, not a request, so the form does not spring open
   // every time somebody merely visits this screen.

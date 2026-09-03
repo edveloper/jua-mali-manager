@@ -66,7 +66,9 @@ export function RecordsPanel({
   sales, salePayments, expenses, creditSales, creditPayments, supplierDebts,
   suppliers, products, customerName, sellerName,
 }: RecordsPanelProps) {
-  const [rangeKey, setRangeKey] = useState<RangeKey>('lastMonth');
+  // Exports are usually for the month in progress, not the one already
+  // closed and filed.
+  const [rangeKey, setRangeKey] = useState<RangeKey>('month');
   const [customStart, setCustomStart] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
   const [customEnd, setCustomEnd] = useState(format(new Date(), 'yyyy-MM-dd'));
 
@@ -314,8 +316,8 @@ export function RecordsPanel({
   };
 
   const RANGES: { key: RangeKey; label: string }[] = [
-    { key: 'lastMonth', label: 'Last month' },
     { key: 'month', label: 'This month' },
+    { key: 'lastMonth', label: 'Last month' },
     { key: 'year', label: 'This year' },
     { key: 'custom', label: 'Pick dates' },
   ];

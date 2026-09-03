@@ -74,7 +74,9 @@ export function SalesReports({
   stockPurchases = [],
   onGoToExport,
 }: SalesReportsProps) {
-  const [rangeType, setRangeType] = useState<RangeType>('month');
+  // The question somebody opens Reports to answer is almost always about
+  // today. A month is a review, and reviews get chosen.
+  const [rangeType, setRangeType] = useState<RangeType>('today');
   const [customStart, setCustomStart] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
   const [customEnd, setCustomEnd] = useState(format(new Date(), 'yyyy-MM-dd'));
 
