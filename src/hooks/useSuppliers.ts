@@ -19,6 +19,12 @@ export interface SupplierDebt {
   status: string;
   incurredOn: string;
   dueDate: string | null;
+  /*
+   * Set when the debt came from stock arriving on credit rather than being
+   * typed in by hand. It is the only route back to the delivery, which is what
+   * cancelling actually undoes.
+   */
+  stockMovementId: string | null;
 }
 
 export interface SupplierPayment {
@@ -49,7 +55,7 @@ export const useSuppliers = () => {
       supabase.from('suppliers').select('id, name, phone').eq('shop_id', shop.id).order('name'),
       supabase
         .from('supplier_debts')
-        .select('id, supplier_id, description, amount, amount_paid, status, incurred_on, due_date')
+        .select('id, supplier_id, description, amount, amount_paid, status, incurred_on, due_date, stock_movement_id')
         .eq('shop_id', shop.id)
         .order('incurred_on', { ascending: false }),
       supabase
@@ -77,6 +83,7 @@ export const useSuppliers = () => {
             status: d.status,
             incurredOn: d.incurred_on,
             dueDate: d.due_date,
+            stockMovementId: d.stock_movement_id,
           };
         })
       );

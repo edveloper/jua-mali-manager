@@ -708,6 +708,8 @@ const Index = () => {
             onAddSupplier={addSupplier}
             onAddDebt={addDebt}
             onPay={payDebt}
+            stockMovements={stockMovements}
+            onVoidRestock={voidRestock}
           />
         )}
 

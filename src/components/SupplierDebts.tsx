@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { ArrowLeft, Plus, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Plus, ChevronRight, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Supplier, SupplierDebt, SupplierPayment } from '@/hooks/useSuppliers';
+import { StockMovement } from '@/types/inventory';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PAYMENT_METHODS, PaymentMethod, lastUsedMethod, rememberMethod, takesReference, methodLabel } from '@/lib/payment';
 import { money } from '@/lib/money';
 
@@ -17,6 +19,13 @@ interface SupplierDebtsProps {
   onAddSupplier: (name: string, phone?: string) => Promise<any>;
   onAddDebt: (supplierId: string, description: string, amount: number, dueDate?: string) => Promise<boolean>;
   onPay: (debtId: string, amount: number, method?: string, reference?: string) => Promise<boolean>;
+  /*
+   * Stock taken on credit writes a debt and deliberately no expense, so it
+   * never appears on the spending screen where deliveries are normally
+   * cancelled. Without these it could be recorded wrongly and never undone.
+   */
+  stockMovements?: StockMovement[];
+  onVoidRestock?: (movementId: string) => Promise<boolean>;
 }
 
 const shortDate = (d: string) => new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' });
@@ -24,10 +33,11 @@ const shortDate = (d: string) => new Date(d).toLocaleDateString('en-KE', { day: 
 /** The mirror of the credit book. Same shapes, pointing the other way. */
 export function SupplierDebts({
   suppliers, totalOwed, debtsFor, owedTo, paymentsFor, supplierName,
-  onAddSupplier, onAddDebt, onPay,
+  onAddSupplier, onAddDebt, onPay, stockMovements = [], onVoidRestock,
 }: SupplierDebtsProps) {
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [selectedDebt, setSelectedDebt] = useState<SupplierDebt | null>(null);
+  const [cancellingDelivery, setCancellingDelivery] = useState<StockMovement | null>(null);
   const [showAddSupplier, setShowAddSupplier] = useState(false);
   const [showAddDebt, setShowAddDebt] = useState(false);
   const [name, setName] = useState('');
@@ -130,6 +140,69 @@ export function SupplierDebts({
             </Button>
           </div>
         </div>
+
+        {(() => {
+          const delivery = selectedDebt.stockMovementId
+            ? stockMovements.find((m) => m.id === selectedDebt.stockMovementId)
+            : undefined;
+          if (!delivery || !onVoidRestock) return null;
+
+          // The same refusal the database makes, said before the tap rather
+          // than after it. Once money has changed hands the delivery is part of
+          // a settled account and unpicking it would leave a payment with
+          // nothing to point at.
+          if (selectedDebt.amountPaid > 0) {
+            return (
+              <div className="sheet">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Part of this has been paid, so the delivery can no longer be cancelled.
+                  Settle the rest, or put the stock right with a count.
+                </p>
+              </div>
+            );
+          }
+
+          return (
+            <button
+              type="button"
+              onClick={() => setCancellingDelivery(delivery)}
+              className="sheet w-full flex items-center gap-3 text-left pressable"
+            >
+              <div className="h-9 w-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                <Undo2 className="h-4 w-4 text-destructive" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm">Cancel this delivery</p>
+                <p className="text-xs text-muted-foreground">
+                  Takes the stock back off and clears what you owe
+                </p>
+              </div>
+            </button>
+          );
+        })()}
+
+        {cancellingDelivery && (
+          <ConfirmDialog
+            title="Cancel this delivery?"
+            message="The stock comes back off the shelf, the cost price goes back to what it was, and what you owe this supplier is cleared."
+            details={[
+              { label: 'Item', value: cancellingDelivery.productName },
+              { label: 'Coming off', value: `${cancellingDelivery.quantity}` },
+              { label: 'You will no longer owe', value: `KSh ${money(selectedDebt.balance)}` },
+            ]}
+            destructive
+            confirmLabel="Cancel it"
+            cancelLabel="Leave it"
+            onConfirm={async () => {
+              const ok = await onVoidRestock?.(cancellingDelivery.id);
+              setCancellingDelivery(null);
+              // The debt row it was showing is gone, so standing on its screen
+              // would mean reading a record that no longer exists.
+              if (ok) setSelectedDebt(null);
+            }}
+            onCancel={() => setCancellingDelivery(null)}
+          />
+        )}
 
         {history.length > 0 && (
           <div className="sheet">
