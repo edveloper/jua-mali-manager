@@ -316,10 +316,10 @@ export function RecordsPanel({
   };
 
   const RANGES: { key: RangeKey; label: string }[] = [
-    { key: 'month', label: 'This month' },
-    { key: 'lastMonth', label: 'Last month' },
-    { key: 'year', label: 'This year' },
-    { key: 'custom', label: 'Pick dates' },
+    { key: 'month', label: 'This Month' },
+    { key: 'lastMonth', label: 'Last Month' },
+    { key: 'year', label: 'This Year' },
+    { key: 'custom', label: 'Pick Dates' },
   ];
 
   return (
@@ -368,7 +368,7 @@ export function RecordsPanel({
           <span className="amount">− {money(figures.cogs)}</span>
         </div>
         <div className="ledger-line ledger-rule">
-          <span className="font-medium">Gross profit</span>
+          <span className="font-medium">Gross Profit</span>
           <span className="amount">{money(figures.grossProfit)}</span>
         </div>
         <div className="ledger-line">
@@ -376,7 +376,7 @@ export function RecordsPanel({
           <span className="amount">− {money(figures.runningTotal)}</span>
         </div>
         <div className="ledger-line ledger-total">
-          <span className="font-semibold">Net profit</span>
+          <span className="font-semibold">Net Profit</span>
           <span className={`text-xl amount ${figures.netProfit < 0 ? 'text-destructive' : 'text-success'}`}>
             {money(figures.netProfit)}
           </span>

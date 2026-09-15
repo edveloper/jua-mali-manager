@@ -176,7 +176,7 @@ export function MpesaReconcile({ sales, salePayments, entries, isImporting, onIm
                   type="button"
                   onClick={() => onForget(entry.id)}
                   className="text-xs text-muted-foreground active:text-destructive shrink-0"
-                  title="Not shop money"
+                  title="Not Shop Money"
                 >
                   Not a sale
                 </button>

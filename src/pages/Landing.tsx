@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import {
-  Users, Wallet, PackageSearch, HandCoins, Check, Share, Plus,
-  MessageCircle, ArrowRight, LucideIcon,
+  Wallet, PackageSearch, HandCoins, Check, Share, Plus,
+  Store, MessageCircle, ArrowRight,
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
@@ -10,272 +10,333 @@ import { Button } from '@/components/ui/button';
  * Where somebody lands who has not signed up yet.
  *
  * Written for a cheap Android on mobile data, which rules out the usual shape of
- * this page: no hero video, no stock photography, no font that has to be fetched
- * before anything can be read. Everything here is text and the icons that ship
- * with the app already.
+ * this page: no hero video, no stock photography, no web font fetched before a
+ * word can be read. Everything here is text, colour and the icons the app
+ * already ships, and the whole page is a few kilobytes.
  *
- * It is also written for somebody who was sent a link by another shopkeeper,
- * because that is how this spreads. So it opens with the questions a duka owner
- * actually has at the end of a day rather than with a list of features, and the
- * price is stated plainly instead of being hidden behind a form.
+ * The hero shows a daybook rather than a screenshot of one. It is the same
+ * markup the app uses, so it cannot go stale, it costs nothing to load, and it
+ * shows the one number a shopkeeper actually opens this for before they have
+ * read a single line of copy.
+ *
+ * Voice is warm and imperative, benefit first. Swahili is kept to the words a
+ * shopkeeper uses in English anyway -- deni, bure -- rather than scattered as
+ * headings. Half-translated headings read as decoration; when the whole thing
+ * can be switched to Kiswahili properly, that is worth doing as one piece.
  */
 
-interface Worry {
-  question: string;
-  answer: string;
-  icon: LucideIcon;
-}
+/*
+ * Real screens rather than a description of them.
+ *
+ * Cropped of the status bar, the browser chrome and the system nav, because
+ * leaving those in is the difference between a product shot and a photograph of
+ * somebody's phone. Nothing here carries a customer name, a number or an email:
+ * the screens that did are the ones that were left out.
+ */
+const SHOTS = [
+  { src: '/screens/daybook.webp', caption: 'Your day, added up for you' },
+  { src: '/screens/catalogue.webp', caption: 'Type a little, pick the rest' },
+  { src: '/screens/stock.webp', caption: 'What the shelf is really worth' },
+  { src: '/screens/report.webp', caption: 'A month an accountant can read' },
+  { src: '/screens/privacy.webp', caption: 'Your records stay yours' },
+];
 
-const WORRIES: Worry[] = [
+const WORRIES = [
   {
     question: 'Who owes me, and how much?',
-    answer:
-      'Every deni in one place, with the name, the amount and how long it has been sitting. Record part payments as they come in.',
-    icon: Users,
+    answer: 'Every deni in one place, with the name, the amount and how long it has been sitting there.',
+    icon: HandCoins,
   },
   {
-    question: 'What did I actually take home?',
-    answer:
-      'Not what came through the till. What is left after what the goods cost you and what you spent. Worked out for you, every day.',
+    question: 'What did I really take home?',
+    answer: 'Not what passed through the till. What is left once the goods and the running costs are paid for.',
     icon: Wallet,
   },
   {
-    question: 'Is anything walking off the shelf?',
-    answer:
-      'Count the shelf against what the app expects. It tells you what is missing and what it was worth, not just how many units.',
+    question: 'Is stock walking off?',
+    answer: 'Count the shelf against what the app expects. It tells you what is missing and what it was worth.',
     icon: PackageSearch,
   },
   {
     question: 'What do I owe my supplier?',
-    answer:
-      'Stock taken on credit is recorded as a debt, not as spending. The money only counts on the day you actually pay it.',
-    icon: HandCoins,
+    answer: 'Stock on credit is a debt, not spending. The money only counts on the day you actually pay it.',
+    icon: Store,
   },
 ];
 
 const STEPS = [
-  {
-    title: 'Put in what you sell',
-    body: 'Start typing and pick from a list of things shops here already sell, in English or Kiswahili. You do not have to type every item from nothing.',
-  },
-  {
-    title: 'Record as you go',
-    body: 'A sale takes two taps. Cash, M-Pesa, part now and part on deni, whatever really happened at the counter.',
-  },
-  {
-    title: 'Look at the day',
-    body: 'Takings, spending and what is left. Then the week, the month, and a file for your accountant when you need one.',
-  },
+  { title: 'Put in what you sell', body: 'Type a few letters and pick from a list of what shops here already sell, in English or Kiswahili.' },
+  { title: 'Record as you go', body: 'Cash, M-Pesa, part now and part on deni. Whatever really happened at the counter.' },
+  { title: 'Look at your day', body: 'Takings, spending, and what is actually left. Then the week and the month.' },
 ];
 
 const FAQ = [
-  {
-    q: 'Does it cost anything?',
-    a: 'No. It is free while we are getting started, and recording your sales will always be free.',
-  },
-  {
-    q: 'Do I need to download it?',
-    a: 'No. It opens in your browser, and you can add it to your home screen so it opens like any other app.',
-  },
-  {
-    q: 'Can my staff use it?',
-    a: 'Yes, and you choose what each person is allowed to do. Staff never see what goods cost you or what the shop made.',
-  },
-  {
-    q: 'What if I have more than one shop?',
-    a: 'Add as many as you run and switch between them. They can be branches of one business or separate businesses.',
-  },
-  {
-    q: 'Who can see my records?',
-    a: 'You and the staff you add. Nobody else. We never sell your records and we never pass on anything about your customers.',
-  },
+  { q: 'Does it cost anything?', a: 'No. It is free while we are getting started, and recording your sales will always be free.' },
+  { q: 'Do I need to download it?', a: 'No. It opens in your browser, and you can put it on your home screen so it opens like any app.' },
+  { q: 'Can my staff use it?', a: 'Yes, and you decide what each person may do. Staff never see what goods cost you or what the shop made.' },
+  { q: 'More than one shop?', a: 'Add as many as you run and switch between them, whether branches or separate businesses.' },
+  { q: 'Who can see my records?', a: 'You and the staff you add. Nobody else. We never sell your records and never pass on anything about your customers.' },
 ];
 
 const PLANS = [
-  {
-    name: 'Bure',
-    price: 'Free',
-    now: true,
-    lines: ['One shop, just you', 'Sales, stock, deni and spending', 'The last 30 days'],
-  },
-  {
-    name: 'Duka',
-    price: 'KSh 300 a month',
-    now: false,
-    lines: ['Up to 3 staff', 'All your history', 'Invoices and spreadsheets'],
-  },
-  {
-    name: 'Biashara',
-    price: 'KSh 800 a month',
-    now: false,
-    lines: ['Several shops and branches', 'As many staff as you need', 'M-Pesa matching and cheques'],
-  },
+  { name: 'Bure', price: 'Free', now: true, lines: ['One shop, just you', 'Sales, stock, deni, spending', 'The last 30 days'] },
+  { name: 'Duka', price: 'KSh 300', per: 'a month', now: false, lines: ['Up to 3 staff', 'All your history', 'Invoices and spreadsheets'] },
+  { name: 'Biashara', price: 'KSh 800', per: 'a month', now: false, lines: ['Several shops and branches', 'Staff without limit', 'M-Pesa matching, cheques'] },
 ];
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border">
-        <div className="max-w-md mx-auto px-4 h-14 flex items-center justify-between gap-3">
+    /*
+     * One column, the same width as the app.
+     *
+     * The colour bands used to run the full width of the window while the words
+     * sat in a narrow strip down the middle, which on anything wider than a
+     * phone read as a mistake rather than a choice. Constraining the whole page
+     * instead keeps the bands edge to edge on a phone, where nearly everyone
+     * will see this, and makes it a phone-shaped column on a desktop, which is
+     * exactly what the app itself does.
+     */
+    <div className="min-h-screen bg-background max-w-md mx-auto">
+      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur border-b border-border">
+        <div className="px-4 h-14 flex items-center justify-between gap-3">
           <Logo size="sm" />
-          <Link to="/auth" className="text-sm font-medium text-primary px-2 py-1">
-            Sign in
+          <Link to="/auth" className="text-sm font-semibold text-primary px-3 py-1.5 rounded-full active:bg-primary/10">
+            Sign In
           </Link>
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 py-6 space-y-10">
-        <section className="space-y-4">
-          <h1 className="text-3xl font-bold leading-tight">
-            Know what your shop really made today.
+      {/* ------------------------------------------------------------- hero */}
+      <section className="bg-primary text-primary-foreground rounded-b-[2.5rem] pb-10">
+        <div className="px-5 pt-10 space-y-5">
+          <span className="inline-block text-xs font-bold tracking-wide uppercase bg-primary-foreground/15 rounded-full px-3 py-1">
+            Bure kuanza
+          </span>
+          <h1 className="text-[2.6rem] leading-[1.05] font-extrabold tracking-tight">
+            Your duka,
+            <br />
+            in your pocket.
           </h1>
-          <p className="text-muted-foreground leading-relaxed">
-            DukaKonnect keeps the book for small shops in Kenya. Sales, stock, deni
-            and spending, on the phone already in your pocket.
+          <p className="text-primary-foreground/85 text-lg leading-relaxed">
+            Sales, stock, deni and spending. Know exactly what you made today,
+            siku kwa siku.
           </p>
+
+          {/* The app's own daybook, not a picture of one. Same figures a real
+              day produces, so it can never drift from what the app looks like. */}
+          <div className="bg-card text-foreground rounded-2xl p-4 shadow-xl">
+            <p className="sheet-heading">Today</p>
+            <div className="ledger-line ledger-rule">
+              <span className="text-muted-foreground">Sales</span>
+              <span className="num">8,800</span>
+            </div>
+            <div className="ledger-line">
+              <span className="text-muted-foreground">Cost of those goods</span>
+              <span className="num">- 6,384</span>
+            </div>
+            <div className="ledger-line ledger-total">
+              <span className="font-semibold">Take-home</span>
+              <span className="text-2xl amount text-success">2,416</span>
+            </div>
+          </div>
+
           <Link to="/auth" className="block">
-            <Button className="w-full h-12 text-base">
-              Start free <ArrowRight className="h-4 w-4 ml-2" />
+            <Button className="w-full py-6 text-base font-bold bg-card text-primary hover:bg-card/90">
+              Anza bure <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </Link>
-          <p className="text-xs text-muted-foreground text-center">
-            No card, no download. Takes a minute.
+          <p className="text-xs text-primary-foreground/70 text-center">
+            No card. No download. One minute.
           </p>
+        </div>
+      </section>
+
+      <main className="px-5 py-12 space-y-14">
+        {/* ------------------------------------------------- what you get */}
+        <section className="space-y-4">
+          <h2 className="text-2xl font-extrabold tracking-tight">Have a Look</h2>
+          <p className="text-muted-foreground">This is the whole thing, on a real phone.</p>
+          {/* Scrolls sideways rather than stacking, so five screens cost one
+              screenful instead of five. */}
+          <div className="-mx-5 px-5 flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2">
+            {SHOTS.map((shot) => (
+              <figure key={shot.src} className="snap-start shrink-0 w-[220px]">
+                <img
+                  src={shot.src}
+                  alt={shot.caption}
+                  width={560}
+                  loading="lazy"
+                  className="w-full rounded-2xl border border-border shadow-sm bg-card"
+                />
+                <figcaption className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                  {shot.caption}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
         </section>
 
-        <section className="space-y-3">
-          <h2 className="text-xl font-bold">The questions at the end of the day</h2>
-          {WORRIES.map((worry) => {
-            const Icon = worry.icon;
-            return (
-              <div key={worry.question} className="sheet">
-                <div className="flex items-start gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <Icon className="h-4 w-4 text-primary" />
+        {/* ------------------------------------------------ the real worry */}
+        <section className="space-y-4">
+          <h2 className="text-2xl font-extrabold tracking-tight">The Questions at Closing Time</h2>
+          <div className="space-y-3">
+            {WORRIES.map((worry) => {
+              const Icon = worry.icon;
+              return (
+                <div key={worry.question} className="rounded-2xl border border-border bg-card p-4 flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Icon className="h-5 w-5 text-primary" />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold">{worry.question}</p>
-                    <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-                      {worry.answer}
-                    </p>
+                    <p className="font-bold">{worry.question}</p>
+                    <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{worry.answer}</p>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </section>
 
-        <section className="space-y-3">
-          <h2 className="text-xl font-bold">Getting going</h2>
-          <div className="sheet p-0 overflow-hidden divide-y divide-border/70">
+        {/* ------------------------------------------------------- getting on */}
+        <section className="space-y-4">
+          <h2 className="text-2xl font-extrabold tracking-tight">Three Steps and You Are Running</h2>
+          <div className="space-y-3">
             {STEPS.map((step, i) => (
-              <div key={step.title} className="flex items-start gap-3 px-4 py-3.5">
-                <span className="h-7 w-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center shrink-0 num">
+              <div key={step.title} className="flex items-start gap-4">
+                <span className="h-11 w-11 rounded-2xl bg-primary text-primary-foreground text-lg font-extrabold flex items-center justify-center shrink-0 num">
                   {i + 1}
                 </span>
-                <div className="min-w-0">
-                  <p className="font-medium">{step.title}</p>
-                  <p className="text-sm text-muted-foreground mt-0.5 leading-relaxed">{step.body}</p>
+                <div className="min-w-0 pt-1">
+                  <p className="font-bold">{step.title}</p>
+                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{step.body}</p>
                 </div>
               </div>
             ))}
           </div>
         </section>
+      </main>
 
-        <section className="space-y-3">
-          <h2 className="text-xl font-bold">What it costs</h2>
+      {/* ----------------------------------------------------------- pricing */}
+      <section className="bg-muted/60 py-12">
+        <div className="px-5 space-y-4">
+          <h2 className="text-2xl font-extrabold tracking-tight">What It Costs</h2>
           {/*
             * Said plainly, including the part that is not ready. Advertising a
-            * price we cannot yet take money for would mean walking it back
-            * later, and a shopkeeper who feels caught out by pricing does not
-            * come back.
+            * price we cannot yet collect would mean walking it back later, and a
+            * shopkeeper who feels caught out by pricing does not come back.
             */}
           <p className="text-sm text-muted-foreground leading-relaxed">
             Everything is free while we are getting started. When the paid plans
             arrive, the shops already with us keep their price. Recording a sale
             will always be free, and nobody is ever locked out of their own records.
           </p>
-          {PLANS.map((plan) => (
-            <div key={plan.name} className={`sheet ${plan.now ? 'border-primary/40 bg-primary/5' : ''}`}>
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="font-semibold">{plan.name}</span>
-                <span className={`amount ${plan.now ? 'text-primary' : 'text-muted-foreground'}`}>
-                  {plan.price}
-                </span>
-              </div>
-              <div className="mt-2 space-y-1">
-                {plan.lines.map((line) => (
-                  <div key={line} className="flex items-start gap-2">
-                    <Check className="h-3.5 w-3.5 text-success shrink-0 mt-1" />
-                    <span className="text-sm text-muted-foreground">{line}</span>
-                  </div>
-                ))}
-              </div>
-              {!plan.now && (
-                <p className="text-xs text-muted-foreground mt-2">Not yet. Free for now.</p>
-              )}
-            </div>
-          ))}
-        </section>
 
-        <section className="space-y-3">
-          <h2 className="text-xl font-bold">Put it on your home screen</h2>
-          <div className="sheet space-y-3">
-            <div>
-              <p className="font-medium text-sm">Android</p>
-              <p className="text-sm text-muted-foreground mt-0.5 leading-relaxed">
-                Open the menu in Chrome and choose Add to Home screen. It then opens
-                like any other app.
+          <div className="space-y-3">
+            {PLANS.map((plan) => (
+              <div
+                key={plan.name}
+                className={`rounded-2xl p-5 ${
+                  plan.now
+                    ? 'bg-primary text-primary-foreground shadow-lg'
+                    : 'bg-card border border-border'
+                }`}
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-lg font-extrabold">{plan.name}</span>
+                  <span className="text-right">
+                    <span className={`text-2xl amount ${plan.now ? '' : 'text-foreground'}`}>{plan.price}</span>
+                    {plan.per && (
+                      <span className={`text-xs ml-1 ${plan.now ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                        {plan.per}
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <div className="mt-3 space-y-1.5">
+                  {plan.lines.map((line) => (
+                    <div key={line} className="flex items-start gap-2">
+                      <Check className={`h-4 w-4 shrink-0 mt-0.5 ${plan.now ? 'text-primary-foreground' : 'text-success'}`} />
+                      <span className={`text-sm ${plan.now ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}>
+                        {line}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p className={`text-xs mt-3 font-medium ${plan.now ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                  {plan.now ? 'Available now' : 'Not yet. Free for now.'}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <main className="px-5 py-12 space-y-14">
+        {/* --------------------------------------------------------- install */}
+        <section className="space-y-4">
+          <h2 className="text-2xl font-extrabold tracking-tight">Put It on Your Home Screen</h2>
+          <div className="rounded-2xl border border-border bg-card divide-y divide-border/70">
+            <div className="p-4">
+              <p className="font-bold text-sm">Android</p>
+              <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                Open the menu in Chrome, then tap Add to Home screen.
               </p>
             </div>
-            <div>
-              <p className="font-medium text-sm flex items-center gap-1.5">
-                iPhone
-              </p>
-              <p className="text-sm text-muted-foreground mt-0.5 leading-relaxed">
-                Tap <Share className="h-3.5 w-3.5 inline align-text-bottom" /> Share at
-                the bottom of Safari, scroll down, then tap{' '}
-                <Plus className="h-3.5 w-3.5 inline align-text-bottom" /> Add to Home
-                Screen.
+            <div className="p-4">
+              <p className="font-bold text-sm">iPhone</p>
+              <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                Tap <Share className="h-3.5 w-3.5 inline align-text-bottom" /> Share at the bottom
+                of Safari, scroll down, then{' '}
+                <Plus className="h-3.5 w-3.5 inline align-text-bottom" /> Add to Home Screen.
               </p>
             </div>
           </div>
         </section>
 
-        <section className="space-y-3">
-          <h2 className="text-xl font-bold">Questions</h2>
-          <div className="sheet p-0 overflow-hidden divide-y divide-border/70">
+        {/* ------------------------------------------------------------- faq */}
+        <section className="space-y-4">
+          <h2 className="text-2xl font-extrabold tracking-tight">Questions</h2>
+          <div className="rounded-2xl border border-border bg-card divide-y divide-border/70">
             {FAQ.map((item) => (
-              <div key={item.q} className="px-4 py-3">
-                <p className="font-medium text-sm">{item.q}</p>
+              <div key={item.q} className="p-4">
+                <p className="font-bold text-sm">{item.q}</p>
                 <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{item.a}</p>
               </div>
             ))}
           </div>
         </section>
+      </main>
 
-        <section className="space-y-3">
-          <Link to="/auth" className="block">
-            <Button className="w-full h-12 text-base">
-              Start free <ArrowRight className="h-4 w-4 ml-2" />
+      {/* --------------------------------------------------------- last word */}
+      <section className="bg-primary text-primary-foreground rounded-t-[2.5rem] py-12">
+        <div className="px-5 space-y-4 text-center">
+          <h2 className="text-3xl font-extrabold tracking-tight leading-tight">
+            Start today. It is free.
+          </h2>
+          <p className="text-primary-foreground/85">
+            Record your first sale before the kettle boils.
+          </p>
+          <Link to="/auth" className="block pt-1">
+            <Button className="w-full py-6 text-base font-bold bg-card text-primary hover:bg-card/90">
+              Anza bure <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </Link>
           <a
             href="https://wa.me/254702931920"
             target="_blank"
             rel="noreferrer"
-            className="sheet w-full flex items-center justify-center gap-2 pressable text-sm font-medium"
+            className="flex items-center justify-center gap-2 text-sm font-semibold text-primary-foreground/90 pt-2"
           >
-            <MessageCircle className="h-4 w-4 text-primary" />
+            <MessageCircle className="h-4 w-4" />
             Ask us on WhatsApp
           </a>
-        </section>
+        </div>
+      </section>
 
-        <footer className="flex flex-col items-center gap-2 pt-2 pb-8 opacity-70">
-          <Logo size="sm" wordmark={false} />
-          <p className="text-xs text-muted-foreground">biashara yako, siku kwa siku</p>
-        </footer>
-      </main>
+      <footer className="flex flex-col items-center gap-2 py-8 opacity-70">
+        <Logo size="sm" wordmark={false} />
+        <p className="text-xs text-muted-foreground">biashara yako, siku kwa siku</p>
+      </footer>
     </div>
   );
 }

@@ -72,7 +72,7 @@ export function ShopSwitcher({ onClose }: ShopSwitcherProps) {
   if (adding) {
     return (
       <Modal
-        title="Add a shop"
+        title="Add a Shop"
         onClose={() => setAdding(false)}
         footer={
           <>
@@ -131,7 +131,7 @@ export function ShopSwitcher({ onClose }: ShopSwitcherProps) {
 
   return (
     <Modal
-      title="Your shops"
+      title="Your Shops"
       onClose={onClose}
       footer={
         // Only somebody who already owns a shop. A member of staff switching

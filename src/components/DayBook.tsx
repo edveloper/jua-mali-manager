@@ -72,7 +72,7 @@ export function DayBook({
         )}
 
         <div className="ledger-line ledger-rule">
-          <span className="text-muted-foreground">Money in</span>
+          <span className="text-muted-foreground">Money In</span>
           <span className="amount">{money(moneyIn)}</span>
         </div>
         {/* Only worth breaking out when more than one kind of money came in --

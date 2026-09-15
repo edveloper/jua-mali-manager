@@ -50,9 +50,9 @@ export function InstallSheet({ onClose }: InstallSheetProps) {
 
   return (
     <Modal
-      title="Add to your home screen"
+      title="Add to Your Home Screen"
       onClose={onClose}
-      footer={<Button className="flex-1" onClick={onClose}>Got it</Button>}
+      footer={<Button className="flex-1" onClick={onClose}>Got It</Button>}
     >
       <p className="text-sm text-muted-foreground leading-relaxed">
         It opens like any other app, fills the whole screen, and keeps working when

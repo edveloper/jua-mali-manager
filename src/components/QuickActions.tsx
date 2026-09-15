@@ -26,14 +26,14 @@ interface Action {
 export function QuickActions({ onClose, onRecordSale, onRecordSpending, onRecordRepayment }: QuickActionsProps) {
   const actions: Action[] = [
     {
-      label: 'Record a sale',
+      label: 'Record a Sale',
       hint: 'One item or a whole basket',
       icon: ShoppingCart,
       onClick: onRecordSale,
     },
     ...(onRecordSpending
       ? [{
-          label: 'Record spending',
+          label: 'Record Spending',
           hint: 'Rent, transport, stock, anything paid out',
           icon: Receipt,
           onClick: onRecordSpending,
@@ -41,7 +41,7 @@ export function QuickActions({ onClose, onRecordSale, onRecordSpending, onRecord
       : []),
     ...(onRecordRepayment
       ? [{
-          label: 'Record a repayment',
+          label: 'Record a Repayment',
           hint: 'Somebody paying down their deni',
           icon: HandCoins,
           onClick: onRecordRepayment,
@@ -50,7 +50,7 @@ export function QuickActions({ onClose, onRecordSale, onRecordSpending, onRecord
   ];
 
   return (
-    <Modal title="Record something" onClose={onClose}>
+    <Modal title="Record Something" onClose={onClose}>
       <div className="sheet p-0 overflow-hidden divide-y divide-border/70">
         {actions.map((action) => {
           const Icon = action.icon;

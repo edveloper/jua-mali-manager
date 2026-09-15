@@ -121,7 +121,7 @@ export function StockPanel({ products, sales, takes, onRecordCount, onImportProd
             <span className="num">{result.items_over}</span>
           </div>
           <div className="ledger-line ledger-total">
-            <span className="font-semibold">Missing stock is worth</span>
+            <span className="font-semibold">Missing Stock Is Worth</span>
             <span className={`text-2xl amount ${result.shrinkage_value > 0 ? 'text-destructive' : 'text-success'}`}>
               {money(result.shrinkage_value)}
             </span>
@@ -143,7 +143,7 @@ export function StockPanel({ products, sales, takes, onRecordCount, onImportProd
     return (
       <div className="space-y-3">
         <div className="sheet">
-          <p className="font-semibold">Count the shelf</p>
+          <p className="font-semibold">Count the Shelf</p>
           <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
             Type what you actually have. You do not have to do everything. Count what
             you can and save. The most valuable items are first.
@@ -206,7 +206,7 @@ export function StockPanel({ products, sales, takes, onRecordCount, onImportProd
           <span className="amount">{money(totals.atRetail)}</span>
         </div>
         <div className="ledger-line ledger-total">
-          <span className="font-semibold">Profit waiting in it</span>
+          <span className="font-semibold">Profit Waiting in It</span>
           <span className="text-xl amount text-success">{money(totals.atRetail - totals.atCost)}</span>
         </div>
       </div>

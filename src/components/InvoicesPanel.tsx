@@ -190,7 +190,7 @@ export function InvoicesPanel({
       {/* Raise */}
       {raising && (
         <Modal
-          title="Raise an invoice"
+          title="Raise an Invoice"
           onClose={() => setRaising(null)}
           footer={
             <>
@@ -312,8 +312,8 @@ export function InvoicesPanel({
             { label: 'Amount', value: `KSh ${money(cancelling.total)}` },
           ]}
           destructive
-          confirmLabel="Cancel it"
-          cancelLabel="Keep it"
+          confirmLabel="Cancel It"
+          cancelLabel="Keep It"
           onConfirm={async () => {
             await voidInvoice(cancelling.id);
             setCancelling(null);

@@ -14,10 +14,10 @@ const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
 
 
 const TERMS = [
-  { days: 0, label: 'On delivery' },
-  { days: 7, label: '7 days' },
-  { days: 14, label: '14 days' },
-  { days: 30, label: '30 days' },
+  { days: 0, label: 'On Delivery' },
+  { days: 7, label: '7 Days' },
+  { days: 14, label: '14 Days' },
+  { days: 30, label: '30 Days' },
 ];
 
 /**

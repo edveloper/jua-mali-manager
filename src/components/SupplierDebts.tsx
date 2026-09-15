@@ -83,7 +83,7 @@ export function SupplierDebts({
             <span className="amount text-success">{money(selectedDebt.amountPaid)}</span>
           </div>
           <div className="ledger-line ledger-total">
-            <span className="font-semibold">Still owed</span>
+            <span className="font-semibold">Still Owed</span>
             <span className="text-xl amount text-destructive">{money(selectedDebt.balance)}</span>
           </div>
         </div>
@@ -187,12 +187,12 @@ export function SupplierDebts({
             message="The stock comes back off the shelf, the cost price goes back to what it was, and what you owe this supplier is cleared."
             details={[
               { label: 'Item', value: cancellingDelivery.productName },
-              { label: 'Coming off', value: `${cancellingDelivery.quantity}` },
-              { label: 'You will no longer owe', value: `KSh ${money(selectedDebt.balance)}` },
+              { label: 'Coming Off', value: `${cancellingDelivery.quantity}` },
+              { label: 'You Will No Longer Owe', value: `KSh ${money(selectedDebt.balance)}` },
             ]}
             destructive
-            confirmLabel="Cancel it"
-            cancelLabel="Leave it"
+            confirmLabel="Cancel It"
+            cancelLabel="Leave It"
             onConfirm={async () => {
               const ok = await onVoidRestock?.(cancellingDelivery.id);
               setCancellingDelivery(null);

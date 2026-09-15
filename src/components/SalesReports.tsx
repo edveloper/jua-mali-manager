@@ -86,7 +86,7 @@ export function SalesReports({
       return { start: startOfDay(now), end: endOfDay(now), label: 'Today' };
     }
     if (rangeType === 'week') {
-      return { start: startOfDay(subDays(now, 6)), end: endOfDay(now), label: 'Last 7 days' };
+      return { start: startOfDay(subDays(now, 6)), end: endOfDay(now), label: 'Last 7 Days' };
     }
     if (rangeType === 'month') {
       return { start: startOfMonth(now), end: endOfDay(now), label: format(now, 'MMMM') };
@@ -98,7 +98,7 @@ export function SalesReports({
     return {
       start: startOfDay(new Date(customStart)),
       end: endOfDay(new Date(customEnd)),
-      label: 'Chosen dates',
+      label: 'Chosen Dates',
     };
   }, [rangeType, customStart, customEnd]);
 
@@ -310,10 +310,10 @@ export function SalesReports({
 
   const RANGES: { value: RangeType; label: string }[] = [
     { value: 'today', label: 'Today' },
-    { value: 'week', label: '7 days' },
-    { value: 'month', label: 'This month' },
-    { value: 'lastMonth', label: 'Last month' },
-    { value: 'custom', label: 'Pick dates' },
+    { value: 'week', label: '7 Days' },
+    { value: 'month', label: 'This Month' },
+    { value: 'lastMonth', label: 'Last Month' },
+    { value: 'custom', label: 'Pick Dates' },
   ];
 
   return (
@@ -375,7 +375,7 @@ export function SalesReports({
         )}
 
         <div className="ledger-line ledger-rule">
-          <span className="text-muted-foreground">Gross profit</span>
+          <span className="text-muted-foreground">Gross Profit</span>
           <span className="amount">{money(report.grossProfit)}</span>
         </div>
         <div className="ledger-line">

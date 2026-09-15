@@ -69,12 +69,12 @@ const SCREEN_TITLES: Partial<Record<TabType, string>> = {
   more: 'Account',
   staff: 'Staff',
   activity: 'Activity',
-  business: 'Business details',
-  help: 'How this works',
-  privacy: 'Your data',
-  contact: 'Contact us',
+  business: 'Business Details',
+  help: 'How This Works',
+  privacy: 'Your Data',
+  contact: 'Contact Us',
   about: 'About DukaKonnect',
-  alerts: 'Running low',
+  alerts: 'Running Low',
 };
 
 const Index = () => {
@@ -213,7 +213,7 @@ const Index = () => {
           <div className="sheet max-w-sm text-center space-y-3">
             <p className="font-semibold">Taking longer than usual</p>
             <p className="text-sm text-muted-foreground">Check your connection, then try again.</p>
-            <Button className="w-full" onClick={() => window.location.reload()}>Try again</Button>
+            <Button className="w-full" onClick={() => window.location.reload()}>Try Again</Button>
           </div>
         )}
       </div>

@@ -160,17 +160,17 @@ export function RestockDialog({
         details={[
           { label: 'Item', value: product.name },
           {
-            label: 'Coming in',
+            label: 'Coming In',
             value: byPack
               ? `${packCount} x ${packLabel} of ${unitsPerPack} = ${quantity}`
               : `${quantity}`,
           },
-          { label: 'Cost for one', value: `KSh ${money(unitCost)}` },
+          { label: 'Cost for One', value: `KSh ${money(unitCost)}` },
           { label: paidNow ? 'Paying now' : 'Going on credit', value: `KSh ${money(totalCost)}` },
-          { label: 'Stock after', value: `${product.quantity + quantity}` },
+          { label: 'Stock After', value: `${product.quantity + quantity}` },
         ]}
-        confirmLabel="Yes, add it"
-        cancelLabel="Let me check"
+        confirmLabel="Yes, Add It"
+        cancelLabel="Let Me Check"
         onConfirm={handleConfirm}
         onCancel={() => setConfirming(false)}
       />
@@ -179,7 +179,7 @@ export function RestockDialog({
 
   return (
     <Modal
-      title="Add stock"
+      title="Add Stock"
       onClose={onClose}
       footer={
         <>

@@ -132,7 +132,7 @@ export function CreditManager({
             <span className="amount text-success">{money(selectedCredit.amount - selectedCredit.balance)}</span>
           </div>
           <div className="ledger-line ledger-total">
-            <span className="font-semibold">Still owed</span>
+            <span className="font-semibold">Still Owed</span>
             <span className="text-xl amount text-warning">{money(selectedCredit.balance)}</span>
           </div>
         </div>

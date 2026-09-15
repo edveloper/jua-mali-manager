@@ -59,8 +59,8 @@ interface Entry {
 
 const LENSES: { key: Lens; label: string }[] = [
   { key: 'all', label: 'Everything' },
-  { key: 'in', label: 'Money in' },
-  { key: 'out', label: 'Money out' },
+  { key: 'in', label: 'Money In' },
+  { key: 'out', label: 'Money Out' },
   { key: 'stock', label: 'Stock' },
   { key: 'checks', label: 'Counts' },
   { key: 'cancelled', label: 'Cancelled' },

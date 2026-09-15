@@ -21,46 +21,46 @@ export interface BusinessType {
 
 export const BUSINESS_TYPES: BusinessType[] = [
   { value: 'duka', label: 'Shop / Duka', group: 'Shops' },
-  { value: 'mini_supermarket', label: 'Mini supermarket', group: 'Shops' },
-  { value: 'grocery_kiosk', label: 'Vegetables / Mboga kiosk', group: 'Shops' },
-  { value: 'fruit_kiosk', label: 'Fruit kiosk', group: 'Shops' },
-  { value: 'grains_store', label: 'Grains store', group: 'Shops' },
-  { value: 'household_goods', label: 'Household goods', group: 'Shops' },
+  { value: 'mini_supermarket', label: 'Mini Supermarket', group: 'Shops' },
+  { value: 'grocery_kiosk', label: 'Vegetables / Mboga Kiosk', group: 'Shops' },
+  { value: 'fruit_kiosk', label: 'Fruit Kiosk', group: 'Shops' },
+  { value: 'grains_store', label: 'Grains Store', group: 'Shops' },
+  { value: 'household_goods', label: 'Household Goods', group: 'Shops' },
   { value: 'boutique', label: 'Clothes / Boutique / Mitumba', group: 'Shops' },
-  { value: 'shoe_shop', label: 'Shoe shop', group: 'Shops' },
+  { value: 'shoe_shop', label: 'Shoe Shop', group: 'Shops' },
   { value: 'bookshop', label: 'Bookshop / Stationery', group: 'Shops' },
-  { value: 'electronics', label: 'Electronics / Phone shop', group: 'Shops' },
-  { value: 'plant_shop', label: 'Plants / Garden shop', group: 'Shops' },
-  { value: 'street_vendor', label: 'Street vendor / Hawker', group: 'Shops' },
+  { value: 'electronics', label: 'Electronics / Phone Shop', group: 'Shops' },
+  { value: 'plant_shop', label: 'Plants / Garden Shop', group: 'Shops' },
+  { value: 'street_vendor', label: 'Street Vendor / Hawker', group: 'Shops' },
 
   { value: 'restaurant', label: 'Restaurant / Hotel', group: 'Food and drink' },
   { value: 'bakery', label: 'Bakery', group: 'Food and drink' },
   { value: 'butchery', label: 'Butchery', group: 'Food and drink' },
-  { value: 'nyama_choma', label: 'Nyama choma / Smokies', group: 'Food and drink' },
-  { value: 'bar_liquor', label: 'Bar / Liquor store', group: 'Food and drink' },
-  { value: 'water_refill', label: 'Water refill / Distribution', group: 'Food and drink' },
+  { value: 'nyama_choma', label: 'Nyama Choma / Smokies', group: 'Food and drink' },
+  { value: 'bar_liquor', label: 'Bar / Liquor Store', group: 'Food and drink' },
+  { value: 'water_refill', label: 'Water Refill / Distribution', group: 'Food and drink' },
   { value: 'poultry_dairy', label: 'Poultry / Dairy', group: 'Food and drink' },
 
   { value: 'salon', label: 'Salon', group: 'Beauty' },
   { value: 'kinyozi', label: 'Kinyozi / Barbershop', group: 'Beauty' },
-  { value: 'nail_shop', label: 'Nail shop', group: 'Beauty' },
-  { value: 'beauty_shop', label: 'Beauty / Cosmetics shop', group: 'Beauty' },
+  { value: 'nail_shop', label: 'Nail Shop', group: 'Beauty' },
+  { value: 'beauty_shop', label: 'Beauty / Cosmetics Shop', group: 'Beauty' },
 
   { value: 'hardware', label: 'Hardware', group: 'Trade and building' },
   { value: 'furniture_hardware', label: 'Furniture / Fittings', group: 'Trade and building' },
   { value: 'agrovet', label: 'Agrovet', group: 'Trade and building' },
-  { value: 'gas_distribution', label: 'Cooking gas', group: 'Trade and building' },
+  { value: 'gas_distribution', label: 'Cooking Gas', group: 'Trade and building' },
 
-  { value: 'cyber', label: 'Cyber / Computer centre', group: 'Services' },
-  { value: 'mpesa_agent', label: 'M-Pesa / Mobile money agent', group: 'Services' },
-  { value: 'phone_repair', label: 'Phone repair', group: 'Services' },
+  { value: 'cyber', label: 'Cyber / Computer Centre', group: 'Services' },
+  { value: 'mpesa_agent', label: 'M-Pesa / Mobile Money Agent', group: 'Services' },
+  { value: 'phone_repair', label: 'Phone Repair', group: 'Services' },
   { value: 'tailoring', label: 'Tailoring', group: 'Services' },
-  { value: 'laundry', label: 'Laundry / Dry cleaning', group: 'Services' },
-  { value: 'car_wash', label: 'Car wash', group: 'Services' },
-  { value: 'posho_mill', label: 'Posho mill', group: 'Services' },
+  { value: 'laundry', label: 'Laundry / Dry Cleaning', group: 'Services' },
+  { value: 'car_wash', label: 'Car Wash', group: 'Services' },
+  { value: 'posho_mill', label: 'Posho Mill', group: 'Services' },
   { value: 'pharmacy', label: 'Pharmacy / Chemist', group: 'Services' },
 
-  { value: 'other', label: 'Something else', group: 'Other' },
+  { value: 'other', label: 'Something Else', group: 'Other' },
 ];
 
 /**
@@ -92,7 +92,7 @@ export const resolveBusinessType = (value?: string | null): string => {
 
 export const businessTypeLabel = (value?: string | null): string => {
   const resolved = resolveBusinessType(value);
-  return BUSINESS_TYPES.find((t) => t.value === resolved)?.label ?? 'Something else';
+  return BUSINESS_TYPES.find((t) => t.value === resolved)?.label ?? 'Something Else';
 };
 
 /** Grouped for a <select>, so thirty-six options stay navigable. */

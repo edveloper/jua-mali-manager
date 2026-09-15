@@ -133,10 +133,10 @@ export function DataSharingCard() {
           details={[
             { label: 'Shop', value: shop?.name ?? '' },
             { label: 'Shared', value: 'Items, prices, quantities' },
-            { label: 'Not shared', value: 'Customers, deni, takings' },
+            { label: 'Not Shared', value: 'Customers, deni, takings' },
           ]}
-          confirmLabel="Yes, count me in"
-          cancelLabel="Not now"
+          confirmLabel="Yes, Count Me In"
+          cancelLabel="Not Now"
           onConfirm={() => set(true)}
           onCancel={() => setAsking(false)}
         />

@@ -22,7 +22,7 @@ export function GettingStarted({ hasProducts, hasSales, onNavigate }: GettingSta
       done: hasProducts,
       title: 'Add what you sell',
       body: 'Just two or three to begin with. Put in what each one costs you and what you sell it for.',
-      action: hasProducts ? null : { label: 'Add a product', tab: 'products' as TabType },
+      action: hasProducts ? null : { label: 'Add a Product', tab: 'products' as TabType },
     },
     {
       done: false,

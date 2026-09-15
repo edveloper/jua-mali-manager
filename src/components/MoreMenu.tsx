@@ -48,13 +48,13 @@ export function MoreMenu({ onNavigate, staffCount, canInstall, onInstall, onOpen
     title: 'Running the shop',
     rows: [
       {
-        label: 'Business details',
+        label: 'Business Details',
         hint: 'Name, logo, and how customers pay you',
         icon: FileText,
         onClick: () => onNavigate('business'),
       },
       {
-        label: 'Your shops',
+        label: 'Your Shops',
         hint: shops.length > 1
           ? `${shops.length} shops. Switch or add another`
           : 'Add a branch or a second business',
@@ -85,21 +85,21 @@ export function MoreMenu({ onNavigate, staffCount, canInstall, onInstall, onOpen
       // shops has only the header chevron to find.
       ...(!isOwner && shops.length > 1
         ? [{
-            label: 'Your shops',
+            label: 'Your Shops',
             hint: `Switch between the ${shops.length} you work in`,
             icon: Store,
             onClick: onOpenShops,
           }]
         : []),
-      { label: 'How this works', icon: HelpCircle, onClick: () => onNavigate('help') },
+      { label: 'How This Works', icon: HelpCircle, onClick: () => onNavigate('help') },
       {
-        label: 'Contact us',
+        label: 'Contact Us',
         hint: 'Something broken, or an idea',
         icon: MessageSquare,
         onClick: () => onNavigate('contact'),
       },
       {
-        label: 'Your data',
+        label: 'Your Data',
         hint: 'What we keep, and who can see it',
         icon: ShieldAlert,
         onClick: () => onNavigate('privacy'),

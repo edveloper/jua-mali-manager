@@ -236,9 +236,9 @@ export function ExpenseManager({
 
   const RANGES: { value: RangeType; label: string }[] = [
     { value: 'today', label: 'Today' },
-    { value: 'month', label: 'This month' },
-    { value: 'lastMonth', label: 'Last month' },
-    { value: '30d', label: '30 days' },
+    { value: 'month', label: 'This Month' },
+    { value: 'lastMonth', label: 'Last Month' },
+    { value: '30d', label: '30 Days' },
     { value: 'all', label: 'All' },
   ];
 
@@ -481,12 +481,12 @@ export function ExpenseManager({
           message="The stock comes back off the shelf, the cost price goes back to what it was, and the spending is removed."
           details={[
             { label: 'Item', value: cancellingRestock.productName },
-            { label: 'Coming off', value: `${cancellingRestock.quantity}` },
-            { label: 'Spending removed', value: `KSh ${money(cancellingRestock.totalCost)}` },
+            { label: 'Coming Off', value: `${cancellingRestock.quantity}` },
+            { label: 'Spending Removed', value: `KSh ${money(cancellingRestock.totalCost)}` },
           ]}
           destructive
-          confirmLabel="Cancel it"
-          cancelLabel="Leave it"
+          confirmLabel="Cancel It"
+          cancelLabel="Leave It"
           onConfirm={async () => {
             await onVoidRestock?.(cancellingRestock.id);
             setCancellingRestock(null);
@@ -505,8 +505,8 @@ export function ExpenseManager({
             { label: 'Date', value: format(new Date(deleting.date), 'd MMM yyyy') },
           ]}
           destructive
-          confirmLabel="Remove it"
-          cancelLabel="Keep it"
+          confirmLabel="Remove It"
+          cancelLabel="Keep It"
           onConfirm={async () => {
             await onDeleteExpense(deleting.id);
             setDeleting(null);
