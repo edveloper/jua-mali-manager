@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Product, Sale, SalePayment, DashboardStats, StockMovement } from '@/types/inventory';
 import { useToast } from '@/hooks/use-toast';
 import { instantForDate } from '@/lib/dates';
+import type { RestockInput } from '@/types/inventory';
 
 export interface BasketLine {
   productId: string;
@@ -64,6 +65,10 @@ export const useInventory = () => {
         quantity: p.stock_level,
         lowStockThreshold: p.min_stock_level,
         unit: p.unit || 'pcs',
+        canonicalId: p.canonical_id ?? null,
+        canonicalSource: p.canonical_source ?? null,
+        unitsPerPack: p.units_per_pack ?? null,
+        packLabel: p.pack_label ?? null,
         createdAt: p.created_at,
         updatedAt: p.updated_at
       })));
@@ -251,7 +256,11 @@ export const useInventory = () => {
         max_price: productData.maxPrice ?? null,
         stock_level: productData.quantity,
         min_stock_level: productData.lowStockThreshold,
-        unit: productData.unit || 'pcs'
+        unit: productData.unit || 'pcs',
+        canonical_id: productData.canonicalId ?? null,
+        canonical_source: productData.canonicalSource ?? null,
+        units_per_pack: productData.unitsPerPack ?? null,
+        pack_label: productData.packLabel ?? null
       }]);
       if (error) throw error;
       toast({ title: "Product added successfully" });
@@ -305,7 +314,11 @@ export const useInventory = () => {
           max_price: updates.maxPrice ?? null,
           stock_level: updates.quantity,
           min_stock_level: updates.lowStockThreshold,
-          unit: updates.unit
+          unit: updates.unit,
+          canonical_id: updates.canonicalId ?? null,
+          canonical_source: updates.canonicalSource ?? null,
+          units_per_pack: updates.unitsPerPack ?? null,
+          pack_label: updates.packLabel ?? null
         })
         .eq('id', id);
       if (error) throw error;
@@ -376,17 +389,11 @@ export const useInventory = () => {
     }
   };
 
-  const restockProduct = async (
-    productId: string,
-    quantity: number,
-    unitCost: number,
-    happenedAt: string,
-    allocationMode: 'cash' | 'accrual',
-    notes?: string,
-    paidNow: boolean = true,
-    supplierId?: string,
-    paymentMethod?: string
-  ) => {
+  const restockProduct = async (input: RestockInput) => {
+    const {
+      productId, happenedAt, allocationMode, notes, paidNow = true,
+      supplierId, paymentMethod, quantity, unitCost, packCount, unitsPerPack, packCost,
+    } = input;
     // No client-side owner check: the RPC decides, using the same permission the
     // owner toggles. Two gates that can disagree is one gate too many.
     if (!shop?.id) return null;
@@ -395,8 +402,15 @@ export const useInventory = () => {
       const { data, error } = await supabase.rpc('record_product_restock_atomic', {
         p_shop_id: shop.id,
         p_product_id: productId,
-        p_quantity: quantity,
-        p_unit_cost: unitCost,
+        // Two ways of saying the same delivery. Whichever was used, the
+        // totals go in and the database derives the cost per unit, because
+        // 2,500 for a carton of 24 is not a number that survives a round trip
+        // through a rounded unit price.
+        p_quantity: packCount ? null : quantity,
+        p_unit_cost: packCount ? null : unitCost,
+        p_pack_count: packCount ?? null,
+        p_units_per_pack: packCount ? unitsPerPack : null,
+        p_pack_cost: packCount ? packCost : null,
         p_happened_at: instantForDate(happenedAt),
         p_notes: notes || null,
         p_allocation_mode: allocationMode,

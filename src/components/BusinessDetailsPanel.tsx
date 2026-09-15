@@ -6,22 +6,12 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { groupedBusinessTypes, resolveBusinessType } from '@/lib/businessTypes';
 
 /** Two megabytes is generous for a shop mark and mean enough to catch a photo. */
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
 
-const CATEGORIES: [string, string][] = [
-  ['retail', 'Retail shop / Duka'],
-  ['barbershop_salon', 'Barbershop / Salon'],
-  ['computer_center', 'Computer centre / Cyber'],
-  ['transport', 'Transport / Matatu'],
-  ['food_hospitality', 'Food / Hospitality'],
-  ['repair_services', 'Repair services'],
-  ['health_beauty', 'Health / Beauty'],
-  ['education_training', 'Education / Training'],
-  ['other_services', 'Other service business'],
-];
 
 const TERMS = [
   { days: 0, label: 'On delivery' },
@@ -51,7 +41,7 @@ export function BusinessDetailsPanel() {
     if (!shop) return;
     setForm({
       name: shop.name ?? '',
-      business_category: shop.business_category ?? 'retail',
+      business_category: resolveBusinessType(shop.business_category),
       address: shop.address ?? '',
       phone: shop.phone ?? '',
       email: shop.email ?? '',
@@ -181,15 +171,20 @@ export function BusinessDetailsPanel() {
           <select
             id="biz-category"
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            value={form.business_category ?? 'retail'}
+            value={resolveBusinessType(form.business_category)}
             onChange={(e) => set({ business_category: e.target.value })}
           >
-            {CATEGORIES.map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
+            {groupedBusinessTypes().map((group) => (
+              <optgroup key={group.group} label={group.group}>
+                {group.types.map((type) => (
+                  <option key={type.value} value={type.value}>{type.label}</option>
+                ))}
+              </optgroup>
             ))}
           </select>
           <p className="text-xs text-muted-foreground">
-            Only used to suggest the right kinds of spending.
+            Decides which items we suggest when you add stock, and the kinds of
+            spending we offer.
           </p>
         </div>
       </div>

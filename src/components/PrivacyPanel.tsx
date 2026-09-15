@@ -1,3 +1,5 @@
+import { DataSharingCard } from '@/components/DataSharingCard';
+
 const SECTIONS: { title: string; paragraphs: string[] }[] = [
   {
     title: 'What we keep',
@@ -9,7 +11,8 @@ const SECTIONS: { title: string; paragraphs: string[] }[] = [
   {
     title: 'Who can see it',
     paragraphs: [
-      'You and the staff you add. Nobody else. Another shop on DukaKonnect cannot see a thing of yours, and we do not sell or share any of it.',
+      'You and the staff you add. Nobody else. Another shop on DukaKonnect cannot see a thing of yours.',
+      'We never sell your records, and we never pass on anything that points to you or your customers. If you choose to take part in the price picture below, what leaves is which items sold and at what price, counted together with other shops. That is the only thing that ever goes anywhere, and it is off until you turn it on.',
       'Staff see less than you do. They can sell and check stock, but not what you paid for goods, your spending, or your profit.',
     ],
   },
@@ -38,6 +41,11 @@ const SECTIONS: { title: string; paragraphs: string[] }[] = [
 export function PrivacyPanel() {
   return (
     <div className="space-y-3">
+      {/* Above the explanations, because a decision to make outranks a policy
+          to read, and burying it under five cards is how you get a yes that
+          nobody actually saw. */}
+      <DataSharingCard />
+
       {SECTIONS.map((section) => (
         <div key={section.title} className="sheet">
           <p className="font-semibold">{section.title}</p>

@@ -31,6 +31,12 @@ export interface ShopProfileUpdate {
   bank_branch?: string | null;
   bank_account?: string | null;
   default_terms_days?: number;
+  /*
+   * Off unless the owner said yes. Kept here so it saves the same way every
+   * other shop setting does; the database writes the decision log itself, so
+   * the record cannot disagree with the setting.
+   */
+  data_sharing_consent?: boolean;
 }
 
 /** Permission keys stored in shop_members.permissions. Owners implicitly hold all. */
@@ -182,7 +188,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             bank_name,
             bank_branch,
             bank_account,
-            default_terms_days
+            default_terms_days,
+            data_sharing_consent,
+            data_sharing_decided_at
           )
         `)
         .eq('user_id', userId)
@@ -191,7 +199,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) throw error;
 
       // A membership whose shop failed to load is not a shop they can use.
-      const rows = (data || []).filter((row: any) => row.shops);
+      //
+      // Cast because the generated Supabase types are produced from the live
+      // schema and lag any migration not yet applied; without it a newly added
+      // shop column turns the whole embedded select into an error type. The
+      // shop is handled as `any` throughout anyway.
+      const rows = ((data || []) as any[]).filter((row: any) => row.shops);
       membershipsRef.current = rows;
       setMemberships(rows);
 
@@ -335,7 +348,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       //    owner of somebody else's shop.
       const { error: shopError } = await supabase.rpc('create_shop_with_owner', {
         p_name: shopName || `${fullName}'s Shop`,
-        p_business_category: profile?.businessCategory || 'retail',
+        p_business_category: profile?.businessCategory || 'duka',
         p_offering_mode: profile?.offeringMode || 'products',
         p_single_offering: Boolean(profile?.singleOffering),
         p_currency: 'KES',

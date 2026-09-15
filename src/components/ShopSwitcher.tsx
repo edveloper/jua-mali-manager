@@ -47,7 +47,7 @@ export function ShopSwitcher({ onClose }: ShopSwitcherProps) {
 
     const { data, error } = await supabase.rpc('create_shop_with_owner', {
       p_name: name.trim(),
-      p_business_category: 'retail',
+      p_business_category: 'duka',
       p_branch_of: branchOf || null,
     });
 

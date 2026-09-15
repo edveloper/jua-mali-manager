@@ -11,8 +11,45 @@ export interface Product {
   quantity: number;
   lowStockThreshold: number;
   category?: string;
+  /*
+   * The shared catalogue entry this is a copy of, when we know it. Null is
+   * ordinary and permanent for anything a shop sells that nobody else does.
+   */
+  canonicalId?: string | null;
+  /** 'chosen' means a person tapped it. 'matched' means we guessed. */
+  canonicalSource?: 'chosen' | 'matched' | null;
+  /*
+   * How many sellable units come in one pack, when the shop buys by the pack
+   * and sells by the unit. Null means it is bought the same way it is sold.
+   */
+  unitsPerPack?: number | null;
+  /** What that pack is called here: crate, carton, bale, dozen. */
+  packLabel?: string | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+/**
+ * One delivery, said either way.
+ *
+ * `quantity`/`unitCost` and `packCount`/`unitsPerPack`/`packCost` are two
+ * descriptions of the same event, never a mixture. An object rather than nine
+ * positional arguments, which is what it had grown to and where the next
+ * argument would have gone in silently wrong.
+ */
+export interface RestockInput {
+  productId: string;
+  happenedAt: string;
+  allocationMode: 'cash' | 'accrual';
+  notes?: string;
+  paidNow: boolean;
+  supplierId?: string;
+  paymentMethod?: string;
+  quantity?: number;
+  unitCost?: number;
+  packCount?: number;
+  unitsPerPack?: number;
+  packCost?: number;
 }
 
 export interface Service {

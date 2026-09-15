@@ -34,9 +34,23 @@ type RangeType = 'today' | 'month' | 'lastMonth' | '30d' | 'all';
 
 const categoriesFor = (businessCategory: string): string[] => {
   const common = ['Rent', 'Wages', 'Transport', 'Utilities', 'Airtime', 'Tax', 'Licences', 'Other'];
-  if (businessCategory === 'transport') return ['Fuel', 'Vehicle repair', 'Parking', 'Insurance', ...common];
-  if (businessCategory === 'computer_center') return ['Internet', 'Paper and ink', 'Power backup', 'Repairs', ...common];
-  if (businessCategory === 'barbershop_salon') return ['Supplies', 'Commission', 'Cleaning', 'Equipment', ...common];
+  if (businessCategory === 'cyber') return ['Internet', 'Paper and ink', 'Power backup', 'Repairs', ...common];
+  if (['salon', 'kinyozi', 'nail_shop'].includes(businessCategory)) {
+    return ['Supplies', 'Commission', 'Cleaning', 'Equipment', ...common];
+  }
+  if (['restaurant', 'bakery', 'nyama_choma', 'butchery'].includes(businessCategory)) {
+    return ['Ingredients', 'Gas and fuel', 'Cleaning', 'Equipment', ...common];
+  }
+  if (['hardware', 'furniture_hardware', 'agrovet'].includes(businessCategory)) {
+    return ['Delivery', 'Storage', 'Equipment', ...common];
+  }
+  if (['car_wash', 'laundry'].includes(businessCategory)) {
+    return ['Water', 'Detergents', 'Equipment', ...common];
+  }
+  if (businessCategory === 'water_refill') return ['Water', 'Treatment', 'Delivery', 'Bottles', ...common];
+  if (['salon', 'tailoring', 'phone_repair'].includes(businessCategory)) {
+    return ['Supplies', 'Equipment', 'Repairs', ...common];
+  }
   // 'Stock' is deliberately absent: buying stock goes through Sell > Restock so
   // that stock levels and unit costs move together with the money.
   return ['Packaging', 'Marketing', ...common];
@@ -100,7 +114,7 @@ export function ExpenseManager({
   onVoidRestock,
   onQuickAddTOT,
   monthlySales,
-  businessCategory = 'retail',
+  businessCategory = 'duka',
   showSummary = true,
   openFormSignal = 0,
 }: ExpenseManagerProps) {

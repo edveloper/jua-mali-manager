@@ -4,6 +4,7 @@ import { AtSign, Lock, User, Building2, Eye, EyeOff, Phone } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { groupedBusinessTypes } from '@/lib/businessTypes';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/Logo';
@@ -11,17 +12,6 @@ import { toAuthEmail, canReceiveEmail, identifierKind, prettyPhone } from '@/lib
 
 type AuthMode = 'signin' | 'signup';
 
-const CATEGORIES = [
-  { value: 'retail', label: 'Retail shop / Duka' },
-  { value: 'barbershop_salon', label: 'Barbershop / Salon' },
-  { value: 'computer_center', label: 'Computer centre / Cyber' },
-  { value: 'transport', label: 'Transport / Matatu' },
-  { value: 'food_hospitality', label: 'Food / Hospitality' },
-  { value: 'repair_services', label: 'Repair services' },
-  { value: 'health_beauty', label: 'Health / Beauty' },
-  { value: 'education_training', label: 'Education / Training' },
-  { value: 'other_services', label: 'Other service business' },
-];
 
 /**
  * One form, one identity box.
@@ -41,7 +31,7 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [shopName, setShopName] = useState('');
-  const [businessCategory, setBusinessCategory] = useState('retail');
+  const [businessCategory, setBusinessCategory] = useState('duka');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -231,8 +221,12 @@ export default function Auth() {
                       value={businessCategory}
                       onChange={(e) => setBusinessCategory(e.target.value)}
                     >
-                      {CATEGORIES.map((c) => (
-                        <option key={c.value} value={c.value}>{c.label}</option>
+            {groupedBusinessTypes().map((group) => (
+                        <optgroup key={group.group} label={group.group}>
+                          {group.types.map((type) => (
+                            <option key={type.value} value={type.value}>{type.label}</option>
+                          ))}
+                        </optgroup>
                       ))}
                     </select>
                   </div>

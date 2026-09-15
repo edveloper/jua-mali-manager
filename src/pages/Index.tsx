@@ -43,6 +43,7 @@ import { SupplierDebts } from '@/components/SupplierDebts';
 import { RecordsPanel } from '@/components/RecordsPanel';
 import { MpesaReconcile } from '@/components/MpesaReconcile';
 import { QuickActions } from '@/components/QuickActions';
+import { resolveBusinessType } from '@/lib/businessTypes';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { Navigation, type TabType } from '@/components/Navigation';
 import { Product } from '@/types/inventory';
@@ -164,7 +165,8 @@ const Index = () => {
   } = useSuppliers();
 
   useEffect(() => {
-    if (!authLoading && !user) navigate('/auth', { replace: true });
+    // The root route decides what a signed-out visitor sees; redirecting from
+    // here as well would race that decision on sign out.
   }, [user, authLoading, navigate]);
 
   // Signed in, but no longer a member of any shop -- i.e. the owner removed them.
@@ -740,7 +742,7 @@ const Index = () => {
             onVoidRestock={voidRestock}
             onQuickAddTOT={quickAddTOT}
             monthlySales={isOwner ? currentMonthSales : 0}
-            businessCategory={shop?.business_category || 'retail'}
+            businessCategory={resolveBusinessType(shop?.business_category)}
             showSummary={isOwner}
           />
         )}
@@ -764,7 +766,7 @@ const Index = () => {
                 onVoidRestock={voidRestock}
                 onQuickAddTOT={quickAddTOT}
                 monthlySales={currentMonthSales}
-                businessCategory={shop?.business_category || 'retail'}
+                businessCategory={resolveBusinessType(shop?.business_category)}
                 showSummary
               />
             </TabsContent>
@@ -777,7 +779,7 @@ const Index = () => {
                 expenses={expenses}
                 salePayments={salePayments}
                 stockPurchases={stockMovements.filter((m) => m.reason === 'restock' && m.movementType === 'in')}
-                businessCategory={shop?.business_category || 'retail'}
+                businessCategory={resolveBusinessType(shop?.business_category)}
                 onGoToExport={() => setMoneyTab('export')}
               />
             </TabsContent>
@@ -901,8 +903,8 @@ const Index = () => {
           canSetCost={isOwner}
           suppliers={suppliers}
           onAddSupplier={addSupplier}
-          onRestock={async (productId, quantity, unitCost, happenedAt, allocationMode, notes, paidNow, supplierId, paymentMethod) => {
-            await restockProduct(productId, quantity, unitCost, happenedAt, allocationMode, notes, paidNow, supplierId, paymentMethod);
+          onRestock={async (input) => {
+            await restockProduct(input);
             setRestockingProduct(null);
           }}
           onClose={() => setRestockingProduct(null)}
