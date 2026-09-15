@@ -119,9 +119,20 @@ export default function Auth() {
           setIsSubmitting(false);
           return;
         }
-        const { error } = await signUp(emailToUse, password, fullName, shopName, { businessCategory });
+        const { data, error } = await signUp(emailToUse, password, fullName, shopName, { businessCategory });
         if (error) {
-          toast({ title: 'Could not create your shop', description: error.message, variant: 'destructive' });
+          toast({ title: 'Could not create your account', description: error.message, variant: 'destructive' });
+        } else if (!data?.session) {
+          /*
+           * No session means email confirmation is switched on and the account
+           * is not usable yet. Saying "your shop is ready" here would send
+           * somebody to an app they cannot open. The shop details are waiting
+           * in their account and are made the moment they first sign in.
+           */
+          toast({
+            title: 'Check your email',
+            description: 'Tap the link we sent to finish setting up your shop.',
+          });
         } else {
           toast({ title: 'Your shop is ready', description: 'Karibu DukaKonnect.' });
           navigate('/');

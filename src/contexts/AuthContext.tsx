@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
+import { cacheClearAll } from '@/lib/localCache';
+import { clearCacheFlags } from '@/lib/offlineState';
 
 /**
  * Everything an owner may change about their own shop.
@@ -64,6 +66,8 @@ interface AuthContextType {
    * lookup errors, so a flaky connection is never mistaken for "no shop".
    */
   membershipResolved: boolean;
+  /** Set when a shop was signed up for but does not exist yet. */
+  pendingShopName: string | null;
   loading: boolean;
   signOut: () => Promise<void>;
   signIn: (email: string, password?: string) => Promise<{ data: any; error: any }>;
@@ -152,12 +156,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * the time an awaited refresh returns.
    */
   const membershipsRef = useRef<any[]>([]);
+  // Guards against two auth events both deciding to create the first shop.
+  const creatingShopRef = useRef(false);
+  const [pendingShopName, setPendingShopName] = useState<string | null>(null);
   const [activeShopId, setActiveShopId] = useState<string | null>(null);
   const [membershipResolved, setMembershipResolved] = useState(false);
   const [isRecovering, setIsRecovering] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const fetchShopData = async (userId: string) => {
+  /**
+   * Make the shop somebody signed up for, if it does not exist yet.
+   *
+   * It used to be made during signUp, one line after the account. That works
+   * only while `signUp` hands back a session: the RPC needs `auth.uid()`, and
+   * with email confirmation turned on there is no session until the link is
+   * clicked, so the call would fail and the account would exist with no shop
+   * behind it. Moving it here means one path serves both, and turning
+   * confirmation on later becomes a setting rather than a rewrite.
+   *
+   * The details ride along in `user_metadata`, which is set at signUp and is
+   * waiting whenever the first real session arrives, however long that takes.
+   */
+  const ensurePendingShop = async (): Promise<boolean> => {
+    if (creatingShopRef.current) return false;
+
+    const { data: { user: current } } = await supabase.auth.getUser();
+    const pending = current?.user_metadata?.pending_shop;
+    if (!current || !pending?.name) return false;
+
+    creatingShopRef.current = true;
+    try {
+      const { error } = await supabase.rpc('create_shop_with_owner', {
+        p_name: pending.name,
+        p_business_category: pending.business_category || 'duka',
+        p_offering_mode: pending.offering_mode || 'products',
+        p_single_offering: Boolean(pending.single_offering),
+        p_currency: 'KES',
+      });
+      if (error) throw error;
+
+      // Spread the existing metadata rather than sending the one key: the
+      // wholesale-replace behaviour that erases a person's name has bitten this
+      // codebase once already.
+      await supabase.auth.updateUser({
+        data: { ...current.user_metadata, pending_shop: null },
+      });
+      setPendingShopName(null);
+      return true;
+    } catch (err) {
+      // Leave the metadata alone so the next sign-in tries again, and let the
+      // caller show something better than an empty app.
+      console.error('Could not finish setting up the shop:', err);
+      setPendingShopName(pending.name);
+      return false;
+    } finally {
+      creatingShopRef.current = false;
+    }
+  };
+
+  const fetchShopData = async (userId: string, retriedAfterCreate = false) => {
     try {
       const { data, error } = await supabase
         .from('shop_members')
@@ -215,6 +272,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const chosen =
         rows.find((row: any) => row.shops.id === remembered) ?? rows[0] ?? null;
       setActiveShopId(chosen ? chosen.shops.id : null);
+
+      /*
+       * Belonging to no shop is not the same as having none yet.
+       *
+       * The screen treats "resolved, and a member of nothing" as having been
+       * removed by an owner, and signs the person out. A newly confirmed
+       * account is in exactly that state for the moment before its shop
+       * exists, so the shop has to be made before this flag goes up, not after.
+       */
+      if (rows.length === 0 && !retriedAfterCreate) {
+        const created = await ensurePendingShop();
+        if (created) {
+          await fetchShopData(userId, true);
+          return;
+        }
+      }
 
       // Set only on a clean lookup. If the query threw, we genuinely don't know
       // whether they have a shop, and must not act as if they don't.
@@ -327,41 +400,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       singleOffering?: boolean;
     }
   ) => {
-    // 1. Create Auth User
+    /*
+     * Make the account, and record what shop it is for. Nothing more.
+     *
+     * The shop itself is created by `ensurePendingShop` on the first load that
+     * has a real session. That is the same moment whether confirmation is off
+     * (a session comes back here) or on (it arrives after the emailed link),
+     * so there is one path instead of two and turning confirmation on later is
+     * a setting rather than a rewrite.
+     */
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password: password || '',
-      options: { data: { full_name: fullName } }
+      options: {
+        data: {
+          full_name: fullName,
+          pending_shop: {
+            name: shopName || `${fullName}'s Shop`,
+            business_category: profile?.businessCategory || 'duka',
+            offering_mode: profile?.offeringMode || 'products',
+            single_offering: Boolean(profile?.singleOffering),
+          },
+        },
+      },
     });
 
     if (authError || !authData.user) return { data: authData, error: authError };
 
-    // Set session immediately so RLS policies recognize the user for the next steps
+    setPendingShopName(shopName || `${fullName}'s Shop`);
+
+    // A session here means confirmation is off, so the shop can be made now.
+    // Without one there is nothing further to do: the account exists, and the
+    // shop is waiting in metadata for whenever they sign in.
     if (authData.session) {
       await supabase.auth.setSession(authData.session);
-    }
-
-    try {
-      // 2. Create the shop and its owner membership in one server-side call.
-      //    Clients can no longer insert into shops or shop_members directly --
-      //    that pair of permissions was what allowed a user to add themselves as
-      //    owner of somebody else's shop.
-      const { error: shopError } = await supabase.rpc('create_shop_with_owner', {
-        p_name: shopName || `${fullName}'s Shop`,
-        p_business_category: profile?.businessCategory || 'duka',
-        p_offering_mode: profile?.offeringMode || 'products',
-        p_single_offering: Boolean(profile?.singleOffering),
-        p_currency: 'KES',
-      });
-
-      if (shopError) throw shopError;
-
-      // 3. Sync local state
       await fetchShopData(authData.user.id);
-      return { data: authData, error: null };
-    } catch (err: any) {
-      return { data: authData, error: err };
     }
+
+    return { data: authData, error: null };
   };
 
   const createEmployee = async (email: string, password?: string, fullName?: string) => {
@@ -405,6 +481,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
+    // Everything saved for offline goes with them. The next person to pick up
+    // this phone may not be the person whose stock and takings are sitting in
+    // it, and a cache that outlives a session is a leak with a friendly name.
+    await cacheClearAll();
+    clearCacheFlags();
+
     // A stale or already-revoked refresh token makes the server-side sign-out
     // fail, and the local session survives that failure -- which is exactly the
     // state someone is in when sign-out "does nothing". Fall back to a local
@@ -495,7 +577,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signUp,
         refreshShopData,
         createEmployee,
-        updateShopProfile
+        updateShopProfile,
+        pendingShopName
       }}
     >
       {children}

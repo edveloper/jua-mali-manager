@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Product, Sale, SalePayment, DashboardStats, StockMovement } from '@/types/inventory';
 import { useToast } from '@/hooks/use-toast';
 import { instantForDate } from '@/lib/dates';
 import type { RestockInput } from '@/types/inventory';
+import { cacheRead, cacheWrite } from '@/lib/localCache';
+import { markFresh, markServedFromCache } from '@/lib/offlineState';
 
 export interface BasketLine {
   productId: string;
@@ -35,6 +37,16 @@ export const useInventory = () => {
   const { shop, isOwner } = useAuth();
   const { toast } = useToast();
 
+  /*
+   * Hydrate from the saved copy once per shop, not on every refresh.
+   *
+   * Without this, recording a sale refetches, the refetch reads the cache
+   * first, and the screen jumps back to the pre-sale figures for a moment
+   * before the server answers. Keyed by shop rather than a plain boolean so
+   * that switching shops still gets its own first paint.
+   */
+  const hydratedFor = useRef<string | null>(null);
+
   const fetchProducts = async () => {
     if (!shop?.id) {
       setProducts([]);
@@ -44,6 +56,22 @@ export const useInventory = () => {
       setIsLoading(false);
       return;
     }
+    /*
+     * Show what we had, then go and check.
+     *
+     * Reading the saved copy first means the Sell list is on screen before the
+     * request has even left the phone, which on a slow connection is the whole
+     * difference between an app and a spinner. When the request comes back the
+     * list is replaced; when it never comes back, the shopkeeper still has
+     * their prices and is told the figures are saved ones.
+     */
+    const firstLoad = hydratedFor.current !== shop.id;
+    const saved = firstLoad ? await cacheRead<Product>(shop.id, 'products') : null;
+    if (saved && saved.rows.length > 0) {
+      setProducts(saved.rows);
+      setIsLoading(false);
+    }
+
     try {
       setIsLoading(true);
       const { data, error } = await supabase.from('products')
@@ -54,7 +82,7 @@ export const useInventory = () => {
 
       if (error) throw error;
 
-      setProducts((data || []).map((p: any) => ({
+      const mapped: Product[] = (data || []).map((p: any) => ({
         id: p.id,
         name: p.name,
         category: p.category || 'General',
@@ -71,9 +99,19 @@ export const useInventory = () => {
         packLabel: p.pack_label ?? null,
         createdAt: p.created_at,
         updatedAt: p.updated_at
-      })));
+      }));
+
+      setProducts(mapped);
+      hydratedFor.current = shop.id;
+      markFresh('products');
+      // Not awaited: the shopkeeper is looking at the list already, and a
+      // write to IndexedDB is not something to make them wait for.
+      void cacheWrite(shop.id, 'products', mapped);
     } catch (error: any) {
       console.error("Products error:", error);
+      // A failed fetch with a saved copy on screen is not an empty shop, it is
+      // an old one. Say which, rather than leaving the figures looking live.
+      if (saved && saved.rows.length > 0) markServedFromCache('products', saved.savedAt);
     } finally {
       setIsLoading(false);
     }
@@ -81,6 +119,12 @@ export const useInventory = () => {
 
   const fetchSales = async () => {
     if (!shop?.id) return;
+
+    const saved = hydratedFor.current !== shop.id
+      ? await cacheRead<Sale>(shop.id, 'sales')
+      : null;
+    if (saved && saved.rows.length > 0) setAllSales(saved.rows);
+
     try {
       const { data, error } = await supabase.from('sales')
         .select('*')
@@ -92,7 +136,7 @@ export const useInventory = () => {
 
       if (error) throw error;
 
-      setAllSales((data || []).map((s: any) => {
+      const mapped: Sale[] = (data || []).map((s: any) => {
         const totalAmount = Number(s.total_amount || 0);
         const costAtSale = Number(s.cost_price_at_sale || 0);
         const qty = Number(s.quantity || 0);
@@ -115,8 +159,13 @@ export const useInventory = () => {
           profit: totalAmount - (costAtSale * qty),
           createdAt: s.created_at
         };
-      }));
+      });
+
+      setAllSales(mapped);
+      markFresh('sales');
+      void cacheWrite(shop.id, 'sales', mapped);
     } catch (error: any) {
+      if (saved && saved.rows.length > 0) markServedFromCache('sales', saved.savedAt);
       console.error("Sales error:", error);
     }
   };

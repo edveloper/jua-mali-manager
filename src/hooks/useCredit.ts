@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreditPayment, CreditSale, Customer } from '@/types/inventory';
 import { useToast } from '@/hooks/use-toast';
 import { ksh } from '@/lib/money';
+import { cacheRead, cacheWrite } from '@/lib/localCache';
+import { markFresh, markServedFromCache } from '@/lib/offlineState';
 
 export const useCredit = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -13,6 +15,16 @@ export const useCredit = () => {
   const { shop } = useAuth();
   const { toast } = useToast();
 
+  /*
+   * Hydrate from the saved copy once per shop, not on every refresh.
+   *
+   * Without this, recording a sale refetches, the refetch reads the cache
+   * first, and the screen jumps back to the pre-sale figures for a moment
+   * before the server answers. Keyed by shop rather than a plain boolean so
+   * that switching shops still gets its own first paint.
+   */
+  const hydratedFor = useRef<string | null>(null);
+
   const fetchData = async () => {
     if (!shop?.id) {
       setCustomers([]);
@@ -21,6 +33,20 @@ export const useCredit = () => {
       setIsLoading(false);
       return;
     }
+    /*
+     * The deni book is the thing most worth having in a dead spot. Somebody is
+     * standing at the counter asking what they owe, and "no connection" is not
+     * an answer a shopkeeper can give them.
+     */
+    const firstLoad = hydratedFor.current !== shop.id;
+    const savedCustomers = firstLoad ? await cacheRead<Customer>(shop.id, 'customers') : null;
+    const savedCredit = firstLoad ? await cacheRead<CreditSale>(shop.id, 'creditSales') : null;
+    if (savedCustomers && savedCustomers.rows.length > 0) {
+      setCustomers(savedCustomers.rows);
+      if (savedCredit) setCreditSales(savedCredit.rows);
+      setIsLoading(false);
+    }
+
     try {
       setIsLoading(true);
       const { data: custData } = await supabase.from('customers').select('*').eq('shop_id', shop.id);
@@ -39,11 +65,15 @@ export const useCredit = () => {
         createdAt: p.created_at,
       })));
 
-      if (custData) setCustomers(custData.map((c: any) => ({
-        id: c.id, name: c.name, phone: c.phone, email: c.email, createdAt: c.created_at
-      })));
+      if (custData) {
+        const mappedCustomers: Customer[] = custData.map((c: any) => ({
+          id: c.id, name: c.name, phone: c.phone, email: c.email, createdAt: c.created_at
+        }));
+        setCustomers(mappedCustomers);
+        void cacheWrite(shop.id, 'customers', mappedCustomers);
+      }
 
-      if (creditData) setCreditSales(creditData.map((cs: any) => {
+      const mappedCredit: CreditSale[] = (creditData || []).map((cs: any) => {
         const totalAmount = Number(cs.amount || 0);
         const paid = Number(cs.amount_paid || 0); 
         return {
@@ -58,8 +88,18 @@ export const useCredit = () => {
           status: cs.status,
           createdAt: cs.created_at
         };
-      }));
+      });
+
+      if (creditData) {
+        setCreditSales(mappedCredit);
+        void cacheWrite(shop.id, 'creditSales', mappedCredit);
+      }
+      hydratedFor.current = shop.id;
+      markFresh('deni');
     } catch (error: any) {
+      if (savedCustomers && savedCustomers.rows.length > 0) {
+        markServedFromCache('deni', savedCustomers.savedAt);
+      }
       console.error("Credit fetch error:", error);
     } finally {
       setIsLoading(false);

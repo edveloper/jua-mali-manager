@@ -142,7 +142,7 @@ export function MoreMenu({ onNavigate, staffCount, canInstall, onInstall, onOpen
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium text-primary">Put DukaKonnect on your home screen</p>
-            <p className="text-xs text-muted-foreground">Opens like an app, works offline</p>
+            <p className="text-xs text-muted-foreground">Opens like an app, no app store needed</p>
           </div>
         </button>
       )}

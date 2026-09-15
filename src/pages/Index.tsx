@@ -43,6 +43,7 @@ import { SupplierDebts } from '@/components/SupplierDebts';
 import { RecordsPanel } from '@/components/RecordsPanel';
 import { MpesaReconcile } from '@/components/MpesaReconcile';
 import { QuickActions } from '@/components/QuickActions';
+import { OfflineNotice } from '@/components/OfflineNotice';
 import { resolveBusinessType } from '@/lib/businessTypes';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { Navigation, type TabType } from '@/components/Navigation';
@@ -134,7 +135,7 @@ const Index = () => {
     if (!handled) setShowInstallSheet(true);
   };
 
-  const { user, loading: authLoading, isOwner, can, shop, shops, shopMember, membershipResolved, signOut } = useAuth();
+  const { user, loading: authLoading, isOwner, can, shop, shops, shopMember, membershipResolved, signOut, pendingShopName, refreshShopData } = useAuth();
 
   const {
     products, sales, allSales, stockMovements, allStockMovements, isLoading: inventoryLoading,
@@ -173,11 +174,18 @@ const Index = () => {
   // Gated on membershipResolved so a failed lookup never signs anyone out.
   useEffect(() => {
     if (authLoading || !user || !membershipResolved || shopMember) return;
+    /*
+     * A shop that was signed up for and has not been created yet is a setup
+     * that did not finish, not an owner removing somebody. Without this, the
+     * first thing a brand new account would see is being signed out and told
+     * it had been removed from a shop it never joined.
+     */
+    if (pendingShopName) return;
     (async () => {
       await signOut();
       navigate('/auth?removed=1', { replace: true });
     })();
-  }, [authLoading, user, membershipResolved, shopMember, signOut, navigate]);
+  }, [authLoading, user, membershipResolved, shopMember, signOut, navigate, pendingShopName]);
 
   const currentMonthSales = sales
     .filter((s) => {
@@ -216,6 +224,33 @@ const Index = () => {
             <Button className="w-full" onClick={() => window.location.reload()}>Try Again</Button>
           </div>
         )}
+      </div>
+    );
+  }
+
+  // Signed in, shop was asked for, shop is not there. Creating it failed, and
+  // the only useful thing to offer is another go: the details are still safe in
+  // their account, so nothing has been lost.
+  if (membershipResolved && !shopMember && pendingShopName) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <div className="sheet max-w-sm text-center space-y-3">
+          <p className="font-semibold">Almost there</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            We could not finish setting up {pendingShopName}. Nothing is lost.
+            Check your connection and try again.
+          </p>
+          <Button className="w-full" onClick={() => refreshShopData()}>
+            Try Again
+          </Button>
+          <button
+            type="button"
+            onClick={signOut}
+            className="text-sm text-muted-foreground underline"
+          >
+            Sign out
+          </button>
+        </div>
       </div>
     );
   }
@@ -455,6 +490,9 @@ const Index = () => {
               </button>
             </>
           )}
+        </div>
+        <div className="max-w-md mx-auto">
+          <OfflineNotice />
         </div>
       </header>
 

@@ -79,7 +79,7 @@ const FAQ = [
 ];
 
 const PLANS = [
-  { name: 'Bure', price: 'Free', now: true, lines: ['One shop, just you', 'Sales, stock, deni, spending', 'The last 30 days'] },
+  { name: 'Basic', price: 'Free', now: true, lines: ['One shop, just you', 'Sales, stock, deni, spending', 'The last 30 days'] },
   { name: 'Duka', price: 'KSh 300', per: 'a month', now: false, lines: ['Up to 3 staff', 'All your history', 'Invoices and spreadsheets'] },
   { name: 'Biashara', price: 'KSh 800', per: 'a month', now: false, lines: ['Several shops and branches', 'Staff without limit', 'M-Pesa matching, cheques'] },
 ];

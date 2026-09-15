@@ -54,7 +54,7 @@ export function InstallNudge({ canInstall, salesCount, onInstall }: InstallNudge
         <Download className="h-5 w-5 text-primary shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium">Keep DukaKonnect on your phone</p>
-          <p className="text-xs text-muted-foreground">Opens like an app, works offline</p>
+          <p className="text-xs text-muted-foreground">Opens like an app, no app store needed</p>
         </div>
         <Button
           size="sm"
