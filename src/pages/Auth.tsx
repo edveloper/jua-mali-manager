@@ -8,6 +8,7 @@ import { groupedBusinessTypes } from '@/lib/businessTypes';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/Logo';
+import { PhoneResetDialog } from '@/components/PhoneResetDialog';
 import { toAuthEmail, canReceiveEmail, identifierKind, prettyPhone } from '@/lib/identity';
 
 type AuthMode = 'signin' | 'signup';
@@ -37,6 +38,7 @@ export default function Auth() {
   const [isResetting, setIsResetting] = useState(false);
 
   const { signIn, signUp, user, shopMember, loading: isLoading, sendPasswordReset } = useAuth();
+  const [resettingPhone, setResettingPhone] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -63,14 +65,10 @@ export default function Auth() {
       return;
     }
 
-    // A phone login has no inbox to send to, because the address is synthetic.
-    // Saying "check your email" there would strand people.
+    // A phone login has no inbox, because the address is synthetic. It gets a
+    // texted code instead, which is the whole reason that flow exists.
     if (!canReceiveEmail(value)) {
-      toast({
-        title: 'We cannot email a phone login',
-        description: 'If you are staff, ask the shop owner to set you a new password. Owners, use Contact us.',
-        variant: 'destructive',
-      });
+      setResettingPhone(value);
       return;
     }
 
@@ -335,6 +333,14 @@ export default function Auth() {
           </p>
         </div>
       </main>
+
+      {resettingPhone && (
+        <PhoneResetDialog
+          phone={resettingPhone}
+          onClose={() => setResettingPhone(null)}
+          onDone={() => setResettingPhone(null)}
+        />
+      )}
     </div>
   );
 }

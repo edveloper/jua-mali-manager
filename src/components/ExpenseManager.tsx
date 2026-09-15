@@ -29,7 +29,7 @@ interface ExpenseManagerProps {
   openFormSignal?: number;
 }
 
-type RangeType = 'today' | 'month' | 'lastMonth' | '30d' | 'all';
+type RangeType = 'today' | 'yesterday' | 'week' | 'month' | 'lastMonth' | '30d' | 'all';
 
 
 const categoriesFor = (businessCategory: string): string[] => {
@@ -161,6 +161,17 @@ export function ExpenseManager({
       from = startOfDay(now);
       to = endOfDay(now);
       label = 'Today';
+    } else if (range === 'yesterday') {
+      const prev = subDays(now, 1);
+      from = startOfDay(prev);
+      to = endOfDay(prev);
+      label = 'Yesterday';
+    } else if (range === 'week') {
+      // Six days back plus today makes seven, which is what "last 7 days"
+      // means to somebody counting on their fingers.
+      from = startOfDay(subDays(now, 6));
+      to = endOfDay(now);
+      label = 'Last 7 Days';
     } else if (range === 'lastMonth') {
       const prev = subMonths(now, 1);
       from = startOfMonth(prev);
@@ -236,6 +247,8 @@ export function ExpenseManager({
 
   const RANGES: { value: RangeType; label: string }[] = [
     { value: 'today', label: 'Today' },
+    { value: 'yesterday', label: 'Yesterday' },
+    { value: 'week', label: '7 Days' },
     { value: 'month', label: 'This Month' },
     { value: 'lastMonth', label: 'Last Month' },
     { value: '30d', label: '30 Days' },

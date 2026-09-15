@@ -1,1 +1,13 @@
 project_id = "tmfauuvpjehdqbfjpach"
+# These two are reached by somebody who cannot sign in, which is the entire
+# point of them. Edge Functions verify a JWT by default, so without this the
+# platform returns 401 before the function ever runs and the whole recovery
+# flow fails with no log to explain it.
+#
+# They are not unguarded: rate limits, a hashed code, a ten minute expiry, an
+# attempt cap and an identical answer for every outcome all live inside them.
+[functions.request-password-otp]
+verify_jwt = false
+
+[functions.verify-password-otp]
+verify_jwt = false

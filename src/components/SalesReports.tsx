@@ -29,7 +29,7 @@ interface SalesReportsProps {
   onGoToExport: () => void;
 }
 
-type RangeType = 'today' | 'week' | 'month' | 'lastMonth' | 'custom';
+type RangeType = 'today' | 'yesterday' | 'week' | 'month' | 'lastMonth' | 'custom';
 
 const isRestockExpense = (expense: Expense) => expense.source === 'restock';
 
@@ -84,6 +84,12 @@ export function SalesReports({
     const now = new Date();
     if (rangeType === 'today') {
       return { start: startOfDay(now), end: endOfDay(now), label: 'Today' };
+    }
+    if (rangeType === 'yesterday') {
+      // Bounded at both ends, unlike the rolling ranges. Yesterday is a closed
+      // day: a figure for it should not keep moving as today goes on.
+      const prev = subDays(now, 1);
+      return { start: startOfDay(prev), end: endOfDay(prev), label: 'Yesterday' };
     }
     if (rangeType === 'week') {
       return { start: startOfDay(subDays(now, 6)), end: endOfDay(now), label: 'Last 7 Days' };
@@ -310,6 +316,7 @@ export function SalesReports({
 
   const RANGES: { value: RangeType; label: string }[] = [
     { value: 'today', label: 'Today' },
+    { value: 'yesterday', label: 'Yesterday' },
     { value: 'week', label: '7 Days' },
     { value: 'month', label: 'This Month' },
     { value: 'lastMonth', label: 'Last Month' },
