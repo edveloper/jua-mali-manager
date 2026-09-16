@@ -71,21 +71,70 @@ const sendSms = async (to: string, message: string): Promise<boolean> => {
     ? "https://api.sandbox.africastalking.com"
     : "https://api.africastalking.com";
 
-  const response = await fetch(`${host}/version1/messaging`, {
-    method: "POST",
-    headers: {
-      apiKey,
-      Accept: "application/json",
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({ username, to: `+${to}`, message }),
-  });
+  // A sender is optional on sandbox and often required on a live account. Only
+  // sent when configured, because passing an unregistered one is itself a
+  // rejection.
+  const from = Deno.env.get("AT_SENDER_ID");
+  const form = new URLSearchParams({ username, to: `+${to}`, message });
+  if (from) form.set("from", from);
 
-  if (!response.ok) {
-    console.error("SMS send failed", response.status, await response.text());
+  let response: Response;
+  try {
+    response = await fetch(`${host}/version1/messaging`, {
+      method: "POST",
+      headers: {
+        apiKey,
+        Accept: "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: form,
+    });
+  } catch (err) {
+    console.error("SMS request never reached Africa's Talking:", err);
     return false;
   }
-  return true;
+
+  const raw = await response.text();
+
+  if (!response.ok) {
+    console.error("SMS send failed", response.status, raw);
+    return false;
+  }
+
+  /*
+   * A 2xx from Africa's Talking does not mean the message went.
+   *
+   * It means the request was well formed. Whether anything was delivered is
+   * inside the body, per recipient, as a numeric status: 101 is sent, 102 is
+   * queued, and everything else is a refusal with a name attached
+   * (InvalidSenderId, InsufficientBalance, InvalidPhoneNumber). Trusting the
+   * HTTP status alone is why the first attempt failed silently, with no text,
+   * no charge and nothing in the log to say so.
+   */
+  try {
+    const parsed = JSON.parse(raw);
+    const recipients = parsed?.SMSMessageData?.Recipients ?? [];
+
+    if (recipients.length === 0) {
+      console.error("Africa's Talking accepted nothing:", raw);
+      return false;
+    }
+
+    const delivered = recipients.filter((r: { statusCode?: number }) =>
+      r.statusCode === 101 || r.statusCode === 102 || r.statusCode === 100
+    );
+
+    if (delivered.length === 0) {
+      console.error("Africa's Talking refused the message:", raw);
+      return false;
+    }
+
+    console.log("SMS accepted:", parsed?.SMSMessageData?.Message ?? raw);
+    return true;
+  } catch {
+    console.error("Could not read the reply from Africa's Talking:", raw);
+    return false;
+  }
 };
 
 Deno.serve(async (req) => {
