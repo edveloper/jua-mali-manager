@@ -5,6 +5,7 @@ import {
 import { TabType } from '@/components/Navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Logo } from '@/components/Logo';
+import { RecoveryEmailCard } from '@/components/RecoveryEmailCard';
 import { toDisplayIdentity } from '@/lib/identity';
 
 interface MoreMenuProps {
@@ -130,6 +131,11 @@ export function MoreMenu({ onNavigate, staffCount, canInstall, onInstall, onOpen
           </p>
         </div>
       </div>
+
+      {/* Directly under who you are, because it is about this account rather
+          than about the shop, and because somebody who never scrolls past the
+          first card is exactly the person who will be locked out later. */}
+      <RecoveryEmailCard />
 
       {canInstall && (
         <button

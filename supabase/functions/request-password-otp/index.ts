@@ -5,7 +5,8 @@
 // of it is refusals rather than work.
 //
 // Deploy:  npx supabase functions deploy request-password-otp --project-ref <ref>
-// Secrets: AT_USERNAME, AT_API_KEY, OTP_PEPPER
+// Secrets: OTP_PEPPER (required), RESEND_API_KEY, RESEND_FROM,
+//          AT_USERNAME, AT_API_KEY, AT_SENDER_ID
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
 
@@ -137,6 +138,58 @@ const sendSms = async (to: string, message: string): Promise<boolean> => {
   }
 };
 
+/**
+ * The other way to reach somebody, and for now the only one that works.
+ *
+ * Two separate Kenyan numbers came back UserInBlacklist: the do-not-disturb
+ * register blocks bulk SMS from an unregistered sender, and a registered sender
+ * ID wants company documents we do not have yet. So the code goes by email when
+ * an address is on file, and SMS is tried as a backstop.
+ *
+ * Kept behind its own function so swapping the provider later is one place.
+ */
+const sendEmail = async (to: string, code: string): Promise<boolean> => {
+  const apiKey = Deno.env.get("RESEND_API_KEY");
+  if (!apiKey) {
+    console.error("No email provider configured");
+    return false;
+  }
+
+  const from = Deno.env.get("RESEND_FROM") ?? "DukaKonnect <hello@dukakonnect.co.ke>";
+
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to,
+        subject: `${code} is your DukaKonnect code`,
+        // Deliberately plain. A code buried in a designed template is a code
+        // somebody has to hunt for on a small screen.
+        html: `<div style="font-family:system-ui,sans-serif;font-size:16px;line-height:1.6">
+<p>Your DukaKonnect code is:</p>
+<p style="font-size:32px;font-weight:700;letter-spacing:4px;margin:16px 0">${code}</p>
+<p>It works for 10 minutes.</p>
+<p style="color:#666;font-size:14px">We will never ask you for this code. If somebody does, they are not us. If you did not ask to reset your password, you can ignore this.</p>
+</div>`,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Email send failed", response.status, await response.text());
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Email request never left:", err);
+    return false;
+  }
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
@@ -217,7 +270,25 @@ Deno.serve(async (req) => {
     return sameAnswer;
   }
 
-  await sendSms(phone, `${code} is your DukaKonnect code. It works for 10 minutes. We will never ask you for it.`);
+  /*
+   * Email first while SMS cannot deliver, then SMS as a backstop.
+   *
+   * The order reverses itself once a sender ID is approved: a text reaches
+   * somebody who is standing behind a counter, and an inbox does not. Until
+   * then an address is the only thing that actually arrives.
+   */
+  const recoveryEmail = (user.user_metadata?.recovery_email as string | undefined)?.trim();
+
+  let sent = false;
+  if (recoveryEmail) sent = await sendEmail(recoveryEmail, code);
+  if (!sent) {
+    sent = await sendSms(
+      phone,
+      `${code} is your DukaKonnect code. It works for 10 minutes. We will never ask you for it.`,
+    );
+  }
+
+  if (!sent) console.error("Could not deliver the code by any route for", phone);
 
   // Even a failed send returns the same thing. Whether the message arrived is
   // not something to tell an unauthenticated caller.

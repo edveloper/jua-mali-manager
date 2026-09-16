@@ -84,9 +84,15 @@ export function PhoneResetDialog({ phone, onClose, onDone }: PhoneResetDialogPro
           </>
         }
       >
+        {/*
+          * Says "phone or email" without saying which, because naming the route
+          * would tell an unauthenticated caller whether this account has an
+          * address on file, and the whole flow is built not to say whether the
+          * account exists at all.
+          */}
         <p className="text-sm leading-relaxed">
-          We will text a six digit code to <span className="font-semibold num">{prettyPhone(phone)}</span>.
-          It works for ten minutes.
+          We will send a six digit code to <span className="font-semibold num">{prettyPhone(phone)}</span>,
+          or to your email if you have added one. It works for ten minutes.
         </p>
         <p className="text-xs text-muted-foreground leading-relaxed">
           Nobody from DukaKonnect will ever ask you for this code. If someone does,
