@@ -142,6 +142,32 @@ export function PhoneResetDialog({ phone, onClose, onDone }: PhoneResetDialogPro
       <button type="button" onClick={request} disabled={busy} className="text-sm text-primary underline">
         Send another code
       </button>
+
+      {/*
+        * A way out of the one dead end this flow has.
+        *
+        * A refused message still tells the caller a code is on its way, because
+        * saying otherwise would reveal whether a number has an account. That is
+        * the right call, but it leaves somebody whose network has blocked the
+        * message waiting for something that is never going to arrive. This
+        * gives them somewhere to go without saying anything the flow is meant
+        * to keep quiet.
+        */}
+      <div className="sheet">
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Nothing after a minute? Some networks block messages like these.
+          {' '}
+          <a
+            href="https://wa.me/254702931920"
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary underline"
+          >
+            Message us on WhatsApp
+          </a>
+          {' '}and we will get you back in.
+        </p>
+      </div>
     </Modal>
   );
 }
