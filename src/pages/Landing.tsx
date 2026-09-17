@@ -20,9 +20,9 @@ import { Button } from '@/components/ui/button';
  * read a single line of copy.
  *
  * Voice is warm and imperative, benefit first. Swahili is kept to the words a
- * shopkeeper uses in English anyway -- deni, bure -- rather than scattered as
- * headings. Half-translated headings read as decoration; when the whole thing
- * can be switched to Kiswahili properly, that is worth doing as one piece.
+ * shopkeeper uses in English anyway -- deni, duka -- and nowhere else. Half
+ * translated headings read as decoration; when the whole thing can be switched
+ * to Kiswahili properly, that is worth doing as one piece.
  */
 
 /*
@@ -110,7 +110,7 @@ export default function Landing() {
       <section className="bg-primary text-primary-foreground rounded-b-[2.5rem] pb-10">
         <div className="px-5 pt-10 space-y-5">
           <span className="inline-block text-xs font-bold tracking-wide uppercase bg-primary-foreground/15 rounded-full px-3 py-1">
-            Bure kuanza
+            Free to Start
           </span>
           <h1 className="text-[2.6rem] leading-[1.05] font-extrabold tracking-tight">
             Your duka,
@@ -142,7 +142,7 @@ export default function Landing() {
 
           <Link to="/auth" className="block">
             <Button className="w-full py-6 text-base font-bold bg-card text-primary hover:bg-card/90">
-              Anza bure <ArrowRight className="h-4 w-4 ml-2" />
+              Start Free <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </Link>
           <p className="text-xs text-primary-foreground/70 text-center">
@@ -318,7 +318,7 @@ export default function Landing() {
           </p>
           <Link to="/auth" className="block pt-1">
             <Button className="w-full py-6 text-base font-bold bg-card text-primary hover:bg-card/90">
-              Anza bure <ArrowRight className="h-4 w-4 ml-2" />
+              Start Free <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </Link>
           <a

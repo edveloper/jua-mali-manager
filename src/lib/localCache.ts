@@ -22,7 +22,9 @@
 
 const DB_NAME = 'dukakonnect';
 const STORE = 'snapshots';
-const VERSION = 1;
+/** Sales made with no signal, waiting to be sent. Added in version 2. */
+export const PENDING_STORE = 'pending';
+const VERSION = 2;
 
 export interface Snapshot<T> {
   rows: T[];
@@ -46,8 +48,13 @@ const open = (): Promise<IDBDatabase | null> => {
     try {
       const request = indexedDB.open(DB_NAME, VERSION);
       request.onupgradeneeded = () => {
+        // Runs for a fresh database and for an upgrade alike, so each store is
+        // checked rather than assumed absent.
         if (!request.result.objectStoreNames.contains(STORE)) {
           request.result.createObjectStore(STORE);
+        }
+        if (!request.result.objectStoreNames.contains(PENDING_STORE)) {
+          request.result.createObjectStore(PENDING_STORE, { keyPath: 'opId' });
         }
       };
       request.onsuccess = () => resolve(request.result);
@@ -64,6 +71,9 @@ const open = (): Promise<IDBDatabase | null> => {
 // Keyed by shop, so switching between three shops does not show one another's
 // stock, and signing out of one leaves the others intact.
 const keyFor = (shopId: string, name: string) => `${shopId}:${name}`;
+
+/** Shared with the pending-sale queue, which lives in the same database. */
+export const openDb = open;
 
 export const cacheWrite = async <T>(shopId: string, name: string, rows: T[]): Promise<void> => {
   const db = await open();
@@ -107,6 +117,9 @@ export const cacheClearAll = async (): Promise<void> => {
   if (!db) return;
 
   try {
+    // Snapshots only. A sale sitting in the queue is money that happened and
+    // has not reached the server: clearing it on sign out would delete a
+    // shopkeeper's takings to tidy up a cache.
     db.transaction(STORE, 'readwrite').objectStore(STORE).clear();
   } catch {
     // Nothing to be done, and nothing that depends on it having worked.

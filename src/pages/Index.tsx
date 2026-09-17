@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Search, ShoppingCart, Receipt, HandCoins } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Search, ShoppingCart, Receipt, HandCoins, CloudUpload } from 'lucide-react';
 import { format, subDays, addDays, isSameDay } from 'date-fns';
 import { useInventory, BasketLine, BasketPayment } from '@/hooks/useInventory';
 import { useCredit } from '@/hooks/useCredit';
@@ -142,6 +142,7 @@ const Index = () => {
     products, sales, allSales, stockMovements, allStockMovements, isLoading: inventoryLoading,
     addProduct, bulkImportProducts, updateProduct, deleteProduct,
     recordBasketSale, voidSale, voidRestock, restockProduct, getLowStockProducts, getStats, searchProducts,
+    pendingSaleCount, drainPendingSales,
     salePayments
   } = useInventory();
 
@@ -503,6 +504,32 @@ const Index = () => {
         </div>
         <div className="max-w-md mx-auto">
           <OfflineNotice />
+
+          {/*
+            * A queue nobody can see is a queue nobody trusts.
+            *
+            * Somebody who records four sales in a dead spot needs to know the
+            * app still has them, or they will write them in a book as well and
+            * then have two sets of figures that disagree. Tappable, because the
+            * first instinct on seeing it is to want it gone.
+            */}
+          {pendingSaleCount > 0 && (
+            <button
+              type="button"
+              onClick={() => drainPendingSales()}
+              className="w-full flex items-center gap-2 px-3 py-2 bg-primary/10 border-b border-primary/30 text-left"
+            >
+              <CloudUpload className="h-4 w-4 text-primary shrink-0" />
+              <p className="text-xs leading-snug flex-1">
+                <span className="font-semibold">
+                  {pendingSaleCount} {pendingSaleCount === 1 ? 'sale' : 'sales'} waiting to send
+                </span>
+                <span className="text-muted-foreground">
+                  {' '}Saved on this phone. Tap to try now.
+                </span>
+              </p>
+            </button>
+          )}
         </div>
       </header>
 
@@ -613,7 +640,16 @@ const Index = () => {
               </button>
             )}
 
-            {isOwner && (
+            {/*
+              * Not while the stock is still arriving.
+              *
+              * An empty array means "not loaded yet" just as often as it means
+              * "nothing here", and the app stops waiting for inventory as soon
+              * as membership resolves. So a shop with three hundred products
+              * was being shown the first-day checklist for a moment on every
+              * single sign-in.
+              */}
+            {isOwner && !inventoryLoading && (
               <GettingStarted
                 hasProducts={products.length > 0}
                 hasSales={sales.length > 0}

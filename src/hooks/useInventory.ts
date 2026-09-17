@@ -6,6 +6,17 @@ import { useToast } from '@/hooks/use-toast';
 import { instantForDate } from '@/lib/dates';
 import type { RestockInput } from '@/types/inventory';
 import { cacheRead, cacheWrite } from '@/lib/localCache';
+import { enqueueSale, pendingSales, removeSale, looksLikeNoSignal } from '@/lib/saleQueue';
+
+/*
+ * The generated Supabase types are produced from the live schema, so they do
+ * not know a function until its migration has been applied. Narrowed to one
+ * named escape hatch rather than scattering casts through the call sites.
+ */
+const callRpc = supabase.rpc as unknown as (
+  fn: string,
+  args: Record<string, unknown>,
+) => Promise<{ data: unknown; error: { message?: string; code?: string } | null }>;
 import { markFresh, markServedFromCache } from '@/lib/offlineState';
 
 export interface BasketLine {
@@ -46,6 +57,14 @@ export const useInventory = () => {
    * that switching shops still gets its own first paint.
    */
   const hydratedFor = useRef<string | null>(null);
+  // One drain at a time. The online event can fire more than once.
+  const drainingRef = useRef(false);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const refreshPendingCount = async () => {
+    if (!shop?.id) { setPendingCount(0); return; }
+    setPendingCount((await pendingSales(shop.id)).length);
+  };
 
   const fetchProducts = async () => {
     if (!shop?.id) {
@@ -413,19 +432,31 @@ export const useInventory = () => {
   ) => {
     if (!shop?.id || lines.length === 0) return null;
 
+    /*
+     * Name the sale before sending it, and keep that name for every retry.
+     *
+     * This is what lets a queued sale be sent twice safely: the server
+     * recognises the second arrival and answers with what happened the first
+     * time, instead of recording it again.
+     */
+    const opId = crypto.randomUUID();
+    const lineRows = lines.map((l) => ({
+      product_id: l.productId,
+      quantity: l.quantity,
+      unit_price: l.unitPrice ?? null,
+    }));
+    const paymentRows = payments.map((p) => ({
+      method: p.method,
+      amount: round2(p.amount),
+      reference: p.reference ?? null,
+    }));
+
     try {
-      const { data, error } = await supabase.rpc('record_basket_sale_atomic', {
+      const { data, error } = await callRpc('record_sale_once', {
         p_shop_id: shop.id,
-        p_lines: lines.map((l) => ({
-          product_id: l.productId,
-          quantity: l.quantity,
-          unit_price: l.unitPrice ?? null,
-        })),
-        p_payments: payments.map((p) => ({
-          method: p.method,
-          amount: round2(p.amount),
-          reference: p.reference ?? null,
-        })),
+        p_client_op_id: opId,
+        p_lines: lineRows,
+        p_payments: paymentRows,
         p_customer_id: credit?.customerId ?? null,
         p_credit_amount: round2(credit?.amount ?? 0),
       });
@@ -434,10 +465,99 @@ export const useInventory = () => {
       await fetchProducts();
       await fetchSales();
       await fetchSalePayments();
-      return Array.isArray(data) ? data[0] : data;
+      const rows = data as Record<string, unknown>[] | Record<string, unknown> | null;
+      return Array.isArray(rows) ? rows[0] : rows;
     } catch (error: any) {
+      /*
+       * No signal is not a failed sale.
+       *
+       * The goods went across the counter either way. Telling somebody the sale
+       * failed, when what actually failed was the network, teaches them the app
+       * cannot be trusted in the places they most need it. So it is kept, and
+       * sent when there is something to send it over.
+       *
+       * A genuine refusal -- not enough stock, no permission -- is a different
+       * thing entirely and is reported as before, because retrying it forever
+       * would change nothing.
+       */
+      if (looksLikeNoSignal(error)) {
+        await enqueueSale({
+          opId,
+          shopId: shop.id,
+          lines: lineRows,
+          payments: paymentRows,
+          customerId: credit?.customerId ?? null,
+          creditAmount: round2(credit?.amount ?? 0),
+          queuedAt: Date.now(),
+          attempts: 0,
+        });
+        await refreshPendingCount();
+        toast({
+          title: 'Saved on this phone',
+          description: 'No network. It will be sent as soon as you have signal.',
+        });
+        return { out_receipt_id: null, queued: true } as any;
+      }
+
       toast({ title: "Sale failed", description: error.message, variant: "destructive" });
       return null;
+    }
+  };
+
+  /*
+   * Send whatever is waiting.
+   *
+   * Runs when the browser says the network is back and once on load, because
+   * "back online" is a hopeful claim rather than a promise and a phone that was
+   * closed while offline never hears the event at all.
+   *
+   * Failures are left in the queue. The server refuses a second recording of
+   * the same named sale, so retrying costs a wasted request and never a
+   * duplicate.
+   */
+  const drainPendingSales = async () => {
+    if (!shop?.id || drainingRef.current) return;
+    drainingRef.current = true;
+
+    try {
+      const waiting = await pendingSales(shop.id);
+      if (waiting.length === 0) return;
+
+      let sent = 0;
+      for (const sale of waiting) {
+        const { error } = await callRpc('record_sale_once', {
+          p_shop_id: sale.shopId,
+          p_client_op_id: sale.opId,
+          p_lines: sale.lines,
+          p_payments: sale.payments,
+          p_customer_id: sale.customerId,
+          p_credit_amount: sale.creditAmount,
+        });
+
+        if (error) {
+          // Still no signal: stop and keep the rest for next time. A real
+          // refusal would repeat on every drain, so it is dropped rather than
+          // left to jam the queue forever.
+          if (looksLikeNoSignal(error)) break;
+          console.error('A queued sale was refused outright:', error);
+        }
+
+        await removeSale(sale.opId);
+        sent += 1;
+      }
+
+      if (sent > 0) {
+        toast({
+          title: sent === 1 ? 'Sale sent' : `${sent} sales sent`,
+          description: 'What you recorded offline is now on the server.',
+        });
+        await fetchProducts();
+        await fetchSales();
+        await fetchSalePayments();
+      }
+    } finally {
+      drainingRef.current = false;
+      await refreshPendingCount();
     }
   };
 
@@ -499,6 +619,24 @@ export const useInventory = () => {
     };
   };
 
+  /*
+   * Send what is waiting, when there is something to send it over.
+   *
+   * Both triggers matter. The event covers signal returning while the app is
+   * open; the mount covers a phone that was shut in a dead spot and opened
+   * somewhere with coverage, which never fires an event at all.
+   */
+  useEffect(() => {
+    if (!shop?.id) return;
+
+    void refreshPendingCount();
+    void drainPendingSales();
+
+    const onBack = () => { void drainPendingSales(); };
+    window.addEventListener('online', onBack);
+    return () => window.removeEventListener('online', onBack);
+  }, [shop?.id]);
+
   return {
     products,
     sales,
@@ -525,6 +663,8 @@ export const useInventory = () => {
      * exact and should be the only thing on screen. Everything else is
      * somebody typing part of a name, where a substring is what they mean.
      */
+    pendingSaleCount: pendingCount,
+    drainPendingSales,
     searchProducts: (q: string) => {
       const query = q.trim().toLowerCase();
       if (!query) return products;

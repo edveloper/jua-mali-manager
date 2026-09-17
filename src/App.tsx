@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import PublicInvoice from "./pages/PublicInvoice";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { PasswordSetupGate } from "@/components/PasswordSetupGate";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -19,8 +20,41 @@ import NotFound from "./pages/NotFound";
  * is the most expensive first impression available. Somebody signing in has the
  * app cached from last time either way.
  */
-const Index = lazy(() => import("./pages/Index"));
-const Landing = lazy(() => import("./pages/Landing"));
+/**
+ * A split chunk that fails to arrive, retried once.
+ *
+ * Splitting the bundle bought a landing visitor a much smaller download, and
+ * cost this: when a deploy ships while a tab is open, the cached index.html
+ * asks for chunk hashes that no longer exist, the import rejects, and React
+ * renders nothing at all. It looks exactly like the app being broken, and a
+ * refresh fixes it, which is how people learn to distrust an app.
+ *
+ * One reload picks up the new HTML. Guarded through sessionStorage so a chunk
+ * that is genuinely broken cannot put the tab in a reload loop, and wrapped in
+ * try/catch because private windows take that storage away.
+ */
+const RELOAD_KEY = "dukakonnect:chunk-reload";
+
+const lazyWithReload = (factory: () => Promise<{ default: React.ComponentType<unknown> }>) =>
+  lazy(async () => {
+    try {
+      const loaded = await factory();
+      try { sessionStorage.removeItem(RELOAD_KEY); } catch { /* not available */ }
+      return loaded;
+    } catch (error) {
+      let alreadyTried = true;
+      try {
+        alreadyTried = Boolean(sessionStorage.getItem(RELOAD_KEY));
+        if (!alreadyTried) sessionStorage.setItem(RELOAD_KEY, "1");
+      } catch { /* not available, so do not reload blindly */ }
+
+      if (!alreadyTried) window.location.reload();
+      throw error;
+    }
+  });
+
+const Index = lazyWithReload(() => import("./pages/Index"));
+const Landing = lazyWithReload(() => import("./pages/Landing"));
 
 const Splash = () => (
   <div className="min-h-screen bg-background flex items-center justify-center">
@@ -74,7 +108,11 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AppRoutes />
+          {/* Last line of defence. Anything that throws below here shows a
+              card with a button rather than an empty white page. */}
+          <ErrorBoundary>
+            <AppRoutes />
+          </ErrorBoundary>
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
