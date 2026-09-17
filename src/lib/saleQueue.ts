@@ -40,14 +40,31 @@ export interface QueuedSale {
  * connection has no code and usually arrives as a TypeError from fetch.
  */
 export const looksLikeNoSignal = (error: unknown): boolean => {
+  // The one certain answer. Everything below it is inference.
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
-  if (error instanceof TypeError) return true;
 
   const candidate = error as { code?: string; message?: string } | null;
+
+  // Postgres refused it. That will refuse identically forever.
   if (candidate?.code) return false;
 
+  /*
+   * A bare `error instanceof TypeError` used to count as no signal, and it hid
+   * a real bug for a whole round of testing: a mis-bound method threw a
+   * TypeError, every sale was quietly filed as "no network", and the app looked
+   * like it was working offline when it was simply broken.
+   *
+   * A dropped connection says so in the message. A programming mistake does
+   * not, and should be allowed to fail loudly.
+   */
   const message = (candidate?.message ?? '').toLowerCase();
-  return message.includes('fetch') || message.includes('network') || message.includes('timeout');
+  return (
+    message.includes('failed to fetch') ||
+    message.includes('networkerror') ||
+    message.includes('network request failed') ||
+    message.includes('load failed') ||
+    message.includes('timeout')
+  );
 };
 
 export const enqueueSale = async (sale: QueuedSale): Promise<void> => {

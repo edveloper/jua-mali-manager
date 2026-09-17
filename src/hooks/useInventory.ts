@@ -13,7 +13,7 @@ import { enqueueSale, pendingSales, removeSale, looksLikeNoSignal } from '@/lib/
  * not know a function until its migration has been applied. Narrowed to one
  * named escape hatch rather than scattering casts through the call sites.
  */
-const callRpc = supabase.rpc as unknown as (
+const callRpc = supabase.rpc.bind(supabase) as unknown as (
   fn: string,
   args: Record<string, unknown>,
 ) => Promise<{ data: unknown; error: { message?: string; code?: string } | null }>;
