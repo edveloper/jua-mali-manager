@@ -25,6 +25,8 @@ export interface Product {
   unitsPerPack?: number | null;
   /** What that pack is called here: crate, carton, bale, dozen. */
   packLabel?: string | null;
+  /** The number printed on the packet. Unique within a shop when set. */
+  barcode?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

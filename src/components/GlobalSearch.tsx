@@ -38,10 +38,18 @@ export function GlobalSearch({ products, customers, onClose, onPickProduct, onPi
     return words.every((word) => hay.includes(word));
   };
 
-  const foundProducts = useMemo(
-    () => (words.length === 0 ? [] : products.filter((p) => matches(`${p.name} ${p.category ?? ''}`)).slice(0, LIMIT)),
-    [products, query]
-  );
+  const foundProducts = useMemo(() => {
+    if (words.length === 0) return [];
+
+    // A scanned barcode is exact and unambiguous, so it wins outright rather
+    // than sitting among near-misses on the name.
+    const scanned = products.find((p) => (p.barcode ?? '').toLowerCase() === query);
+    if (scanned) return [scanned];
+
+    return products
+      .filter((p) => matches(`${p.name} ${p.category ?? ''} ${p.barcode ?? ''}`))
+      .slice(0, LIMIT);
+  }, [products, query]);
 
   const foundCustomers = useMemo(
     () => (words.length === 0 ? [] : customers.filter((c) => matches(`${c.name} ${c.phone ?? ''}`)).slice(0, LIMIT)),

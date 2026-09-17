@@ -45,6 +45,7 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
     category: '',
     unitsPerPack: '',
     packLabel: '',
+    barcode: '',
   });
 
   useEffect(() => {
@@ -61,6 +62,7 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
         category: product.category || '',
         unitsPerPack: product.unitsPerPack ? String(product.unitsPerPack) : '',
         packLabel: product.packLabel || '',
+        barcode: product.barcode || '',
       });
       setCanonicalId(product.canonicalId ?? null);
       setChosenName(product.canonicalId ? product.name : null);
@@ -111,6 +113,7 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
       // database refuses it anyway.
       unitsPerPack: parseInt(formData.unitsPerPack) > 1 ? parseInt(formData.unitsPerPack) : null,
       packLabel: formData.packLabel.trim() || null,
+      barcode: formData.barcode.trim() || null,
     });
   };
 
@@ -335,6 +338,22 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
         Only if you buy it in packs and sell it one at a time. Leave both empty
         otherwise.
       </p>
+
+      <div className="space-y-2">
+        <Label htmlFor="barcode">Barcode (Optional)</Label>
+        <Input
+          id="barcode"
+          inputMode="numeric"
+          placeholder="The number under the bars"
+          value={formData.barcode}
+          onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+          className="num"
+        />
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Type or scan it and this item comes straight up when you search, which
+          beats picking the right bottle out of a list of near-identical names.
+        </p>
+      </div>
 
       <div className="space-y-2">
         <Label htmlFor="category">Category (Optional)</Label>

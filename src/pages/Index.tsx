@@ -45,6 +45,7 @@ import { MpesaReconcile } from '@/components/MpesaReconcile';
 import { QuickActions } from '@/components/QuickActions';
 import { OfflineNotice } from '@/components/OfflineNotice';
 import { resolveBusinessType } from '@/lib/businessTypes';
+import { needsReordering } from '@/lib/restockTiming';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { Navigation, type TabType } from '@/components/Navigation';
 import { Product } from '@/types/inventory';
@@ -309,7 +310,16 @@ const Index = () => {
     }))
     .filter((row) => row.amount > 0);
 
+  /*
+   * What to reorder, by both measures.
+   *
+   * The threshold list on its own misses the case that actually costs a sale:
+   * twenty bottles of milk with a warn-at of five is above the line and gone by
+   * Thursday. Computed once here so the count on Home and the list on the
+   * reorder screen can never disagree about how many there are.
+   */
   const lowStockProducts = getLowStockProducts();
+  const toReorder = needsReordering(products, sales);
   const unpaidDeniCount = creditSales.filter((cs) => cs.status !== 'paid').length;
   const staffCount = members.filter((m) => m.role === 'employee').length;
 
@@ -624,7 +634,7 @@ const Index = () => {
                 stockValue={stats.totalStockValue}
                 stockRetailValue={stats.totalStockRetailValue ?? 0}
                 owedToYou={getTotalOwed()}
-                lowStockCount={lowStockProducts.length}
+                lowStockCount={toReorder.length}
                 onNavigate={goTo}
               />
             )}
@@ -875,7 +885,8 @@ const Index = () => {
 
         {activeTab === 'alerts' && (
           <LowStockAlerts
-            products={lowStockProducts}
+            products={products}
+            sales={sales}
             onRestock={isOwner || can('restock_stock') ? (p) => setRestockingProduct(p) : undefined}
           />
         )}

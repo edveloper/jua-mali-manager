@@ -97,6 +97,7 @@ export const useInventory = () => {
         canonicalSource: p.canonical_source ?? null,
         unitsPerPack: p.units_per_pack ?? null,
         packLabel: p.pack_label ?? null,
+        barcode: p.barcode ?? null,
         createdAt: p.created_at,
         updatedAt: p.updated_at
       }));
@@ -309,7 +310,8 @@ export const useInventory = () => {
         canonical_id: productData.canonicalId ?? null,
         canonical_source: productData.canonicalSource ?? null,
         units_per_pack: productData.unitsPerPack ?? null,
-        pack_label: productData.packLabel ?? null
+        pack_label: productData.packLabel ?? null,
+        barcode: productData.barcode?.trim() || null
       }]);
       if (error) throw error;
       toast({ title: "Product added successfully" });
@@ -367,7 +369,8 @@ export const useInventory = () => {
           canonical_id: updates.canonicalId ?? null,
           canonical_source: updates.canonicalSource ?? null,
           units_per_pack: updates.unitsPerPack ?? null,
-          pack_label: updates.packLabel ?? null
+          pack_label: updates.packLabel ?? null,
+          barcode: updates.barcode?.trim() || null
         })
         .eq('id', id);
       if (error) throw error;
@@ -515,7 +518,26 @@ export const useInventory = () => {
     getStats,
     getLowStockProducts: () => products.filter(p => p.quantity <= p.lowStockThreshold),
     getRestockMovements: () => stockMovements.filter((m) => m.reason === 'restock' && m.movementType === 'in'),
-    searchProducts: (q: string) => products.filter(p => p.name.toLowerCase().includes(q.toLowerCase())),
+    /*
+     * Name or barcode, with an exact barcode first.
+     *
+     * A scanner types the whole number and presses enter, so the match is
+     * exact and should be the only thing on screen. Everything else is
+     * somebody typing part of a name, where a substring is what they mean.
+     */
+    searchProducts: (q: string) => {
+      const query = q.trim().toLowerCase();
+      if (!query) return products;
+
+      const scanned = products.find((p) => (p.barcode ?? '').toLowerCase() === query);
+      if (scanned) return [scanned];
+
+      return products.filter(
+        (p) =>
+          p.name.toLowerCase().includes(query) ||
+          (p.barcode ?? '').toLowerCase().includes(query)
+      );
+    },
     refreshProducts: fetchProducts
   };
 };
