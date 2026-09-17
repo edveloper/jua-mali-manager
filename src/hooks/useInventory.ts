@@ -584,6 +584,44 @@ export const useInventory = () => {
     }
   };
 
+  /**
+   * Point existing products at the shared catalogue.
+   *
+   * Everything typed in before the catalogue existed is unlinked, which means it
+   * contributes nothing to comparisons and gains nothing from them. Recorded as
+   * 'matched' rather than 'chosen': nobody tapped these, we proposed them and
+   * somebody agreed, which is a weaker claim and should read as one.
+   */
+  const linkProductsToCatalog = async (pairs: { productId: string; canonicalId: string }[]) => {
+    if (!shop?.id || !isOwner || pairs.length === 0) return 0;
+
+    let linked = 0;
+    for (const pair of pairs) {
+      const { error } = await supabase
+        .from('products')
+        // Cast for the same reason as callRpc: the generated types come from
+        // the live schema and were produced before these columns existed.
+        .update({ canonical_id: pair.canonicalId, canonical_source: 'matched' } as never)
+        .eq('id', pair.productId)
+        .eq('shop_id', shop.id);
+
+      if (error) {
+        console.error('Could not link a product to the catalogue:', error);
+        continue;
+      }
+      linked += 1;
+    }
+
+    if (linked > 0) {
+      toast({
+        title: linked + (linked === 1 ? ' product matched' : ' products matched'),
+        description: 'You can change any of them by editing the product.',
+      });
+      await fetchProducts();
+    }
+    return linked;
+  };
+
   const restockProduct = async (input: RestockInput) => {
     const {
       productId, happenedAt, allocationMode, notes, paidNow = true,
@@ -686,6 +724,7 @@ export const useInventory = () => {
      * exact and should be the only thing on screen. Everything else is
      * somebody typing part of a name, where a substring is what they mean.
      */
+    linkProductsToCatalog,
     pendingSaleCount: pendingCount,
     drainPendingSales,
     searchProducts: (q: string) => {

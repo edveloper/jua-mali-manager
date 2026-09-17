@@ -144,7 +144,7 @@ const Index = () => {
     products, sales, allSales, stockMovements, allStockMovements, isLoading: inventoryLoading,
     addProduct, bulkImportProducts, updateProduct, deleteProduct,
     recordBasketSale, voidSale, voidRestock, restockProduct, getLowStockProducts, getStats, searchProducts,
-    pendingSaleCount, drainPendingSales,
+    pendingSaleCount, drainPendingSales, linkProductsToCatalog,
     salePayments
   } = useInventory();
 
@@ -753,6 +753,7 @@ const Index = () => {
             takes={takes}
             onRecordCount={recordCount}
             onImportProducts={bulkImportProducts}
+            onLinkToCatalog={linkProductsToCatalog}
           />
         )}
 

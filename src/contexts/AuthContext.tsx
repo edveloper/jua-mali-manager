@@ -18,6 +18,9 @@ export interface ShopProfileUpdate {
   single_offering?: boolean;
   currency?: string;
   address?: string | null;
+  /** A closed list, so shops can be grouped. Free-text address stays for invoices. */
+  county?: string | null;
+  ward?: string | null;
   phone?: string | null;
   email?: string | null;
   kra_pin?: string | null;
@@ -231,6 +234,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             currency,
             created_at,
             address,
+            county,
+            ward,
             phone,
             email,
             kra_pin,

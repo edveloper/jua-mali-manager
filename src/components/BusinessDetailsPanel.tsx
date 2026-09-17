@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { COUNTIES } from '@/lib/counties';
 import { groupedBusinessTypes, resolveBusinessType } from '@/lib/businessTypes';
 
 /** Two megabytes is generous for a shop mark and mean enough to catch a photo. */
@@ -43,6 +44,8 @@ export function BusinessDetailsPanel() {
       name: shop.name ?? '',
       business_category: resolveBusinessType(shop.business_category),
       address: shop.address ?? '',
+      county: shop.county ?? '',
+      ward: shop.ward ?? '',
       phone: shop.phone ?? '',
       email: shop.email ?? '',
       kra_pin: shop.kra_pin ?? '',
@@ -243,7 +246,44 @@ export function BusinessDetailsPanel() {
             value={form.address ?? ''}
             onChange={(e) => set({ address: e.target.value })}
           />
+          <p className="text-xs text-muted-foreground">This is what prints on an invoice.</p>
         </div>
+
+        {/*
+          * Asked separately from the address because they answer a different
+          * question. An address is for a customer finding the door; these are
+          * so the shop can one day be told what its neighbours charge, which
+          * needs something that can be grouped rather than read.
+          */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="biz-county">County</Label>
+            <select
+              id="biz-county"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={form.county ?? ''}
+              onChange={(e) => set({ county: e.target.value })}
+            >
+              <option value="">Not said</option>
+              {COUNTIES.map((county) => (
+                <option key={county} value={county}>{county}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="biz-ward">Ward</Label>
+            <Input
+              id="biz-ward"
+              placeholder="e.g. Mariakani"
+              value={form.ward ?? ''}
+              onChange={(e) => set({ ward: e.target.value })}
+            />
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed -mt-1">
+          Only used to compare prices with shops near you, and only ever counted
+          together with others. Leave them empty if you would rather not.
+        </p>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">

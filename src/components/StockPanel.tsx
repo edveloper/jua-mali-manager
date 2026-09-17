@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { StockTakeSummary } from '@/hooks/useStockTake';
 import { CatalogImportPanel } from '@/components/CatalogImportPanel';
+import { CatalogMatchPanel } from '@/components/CatalogMatchPanel';
 import { money } from '@/lib/money';
 
 interface StockPanelProps {
@@ -24,6 +25,8 @@ interface StockPanelProps {
     durationMinutes: number;
     unit?: string;
   }>) => Promise<{ inserted: number; error: any }>;
+  /** Pointing already-typed products at the shared catalogue. */
+  onLinkToCatalog?: (pairs: { productId: string; canonicalId: string }[]) => Promise<number>;
   onRecordCount: (
     lines: { product_id: string; counted_qty: number }[]
   ) => Promise<{ items_counted: number; items_short: number; items_over: number; shrinkage_value: number } | null>;
@@ -34,7 +37,7 @@ type SortKey = 'value' | 'quantity' | 'name';
 
 const DEAD_AFTER_DAYS = 30;
 
-export function StockPanel({ products, sales, takes, onRecordCount, onImportProducts }: StockPanelProps) {
+export function StockPanel({ products, sales, takes, onRecordCount, onImportProducts, onLinkToCatalog }: StockPanelProps) {
   const [mode, setMode] = useState<Mode>('snapshot');
   const [sortKey, setSortKey] = useState<SortKey>('value');
   const [counts, setCounts] = useState<Record<string, string>>({});
@@ -293,6 +296,8 @@ export function StockPanel({ products, sales, takes, onRecordCount, onImportProd
           Cost value is what that much stock cost you, not what it sells for.
         </p>
       </div>
+
+      {onLinkToCatalog && <CatalogMatchPanel products={products} onLink={onLinkToCatalog} />}
 
       {onImportProducts && <CatalogImportPanel onImportProducts={onImportProducts} />}
     </div>
