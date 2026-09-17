@@ -515,7 +515,7 @@ export const useInventory = () => {
    * the same named sale, so retrying costs a wasted request and never a
    * duplicate.
    */
-  const drainPendingSales = async () => {
+  const drainPendingSales = async (options?: { manual?: boolean }) => {
     if (!shop?.id || drainingRef.current) return;
     drainingRef.current = true;
 
@@ -554,6 +554,29 @@ export const useInventory = () => {
         await fetchProducts();
         await fetchSales();
         await fetchSalePayments();
+      } else if (options?.manual) {
+        /*
+         * Somebody tapped and nothing happened, so say why.
+         *
+         * Without this the banner reads as a dead button: it tries, the network
+         * is still gone, the queue is unchanged and there is nothing on screen
+         * to show any of that took place. A person taps twice more and then
+         * writes the sales in a book as well.
+         */
+        toast({
+          title: 'Still no network',
+          description: 'Your sales are safe on this phone and will go as soon as there is signal.',
+        });
+      }
+    } catch (error) {
+      // A fetch that rejects rather than returning an error would otherwise
+      // escape as an unhandled rejection, which is silent everywhere.
+      console.error('Could not send the waiting sales:', error);
+      if (options?.manual) {
+        toast({
+          title: 'Could not send them yet',
+          description: 'They are still saved on this phone. Nothing is lost.',
+        });
       }
     } finally {
       drainingRef.current = false;

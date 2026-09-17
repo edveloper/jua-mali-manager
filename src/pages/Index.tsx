@@ -44,6 +44,7 @@ import { RecordsPanel } from '@/components/RecordsPanel';
 import { MpesaReconcile } from '@/components/MpesaReconcile';
 import { QuickActions } from '@/components/QuickActions';
 import { OfflineNotice } from '@/components/OfflineNotice';
+import { useOnline } from '@/hooks/useOnline';
 import { resolveBusinessType } from '@/lib/businessTypes';
 import { needsReordering } from '@/lib/restockTiming';
 import { GlobalSearch } from '@/components/GlobalSearch';
@@ -122,6 +123,7 @@ const Index = () => {
     return () => document.removeEventListener('visibilitychange', rollOver);
   }, [followToday]);
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
+  const isOnline = useOnline();
 
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -516,8 +518,8 @@ const Index = () => {
           {pendingSaleCount > 0 && (
             <button
               type="button"
-              onClick={() => drainPendingSales()}
-              className="w-full flex items-center gap-2 px-3 py-2 bg-primary/10 border-b border-primary/30 text-left"
+              onClick={() => drainPendingSales({ manual: true })}
+              className="w-full flex items-center gap-2 px-3 py-2 bg-primary/10 border-b border-primary/30 text-left active:bg-primary/20 transition-colors"
             >
               <CloudUpload className="h-4 w-4 text-primary shrink-0" />
               <p className="text-xs leading-snug flex-1">
@@ -525,7 +527,11 @@ const Index = () => {
                   {pendingSaleCount} {pendingSaleCount === 1 ? 'sale' : 'sales'} waiting to send
                 </span>
                 <span className="text-muted-foreground">
-                  {' '}Saved on this phone. Tap to try now.
+                  {/* Telling somebody to tap while their phone has no signal is
+                      advice that cannot work. Say what will happen instead. */}
+                  {isOnline
+                    ? ' Saved on this phone. Tap to send them now.'
+                    : ' Saved on this phone. They will go as soon as you have signal.'}
                 </span>
               </p>
             </button>
