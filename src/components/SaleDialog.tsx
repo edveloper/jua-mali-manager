@@ -166,6 +166,42 @@ export function SaleDialog({
   const customerToUse = selectedCustomer ?? exactMatch ?? null;
   const hasCustomer = Boolean(customerToUse) || isNewCustomer;
 
+  /*
+   * Somebody new needs a name and a number, both.
+   *
+   * In testing, staff put the whole thing in the name box: "John 0712345678".
+   * That was not carelessness, it was the form's fault. The phone box only
+   * appeared once a name had been typed, and both boxes carried a placeholder
+   * rather than a label, so the moment somebody started typing the only words
+   * on screen disappeared and nothing was left to say a second box existed.
+   *
+   * Both boxes are now on screen from the start, both are labelled, and a
+   * number is required: a debt you cannot follow up is a debt you have written
+   * off without noticing.
+   */
+  const nameHasDigits = /\d/.test(customerQuery);
+  const phoneDigits = newCustomerPhone.replace(/\D/g, '');
+  const phoneLooksReal = phoneDigits.length >= 9;
+  const newCustomerReady = Boolean(trimmedCustomer) && !nameHasDigits && phoneLooksReal;
+
+  /**
+   * Take the number out of the name box and put it where it belongs.
+   *
+   * A run of nine or more digits is a phone number, not part of anybody's name,
+   * so it is moved rather than refused. Correcting somebody silently beats
+   * telling them off, and it teaches them the second box exists by filling it
+   * in front of them.
+   */
+  const handleCustomerName = (value: string) => {
+    const run = value.match(/(\+?\d[\d\s-]{8,})/);
+    if (run && run[0].replace(/\D/g, '').length >= 9) {
+      if (!newCustomerPhone.trim()) setNewCustomerPhone(run[0].replace(/[^\d+]/g, ''));
+      setCustomerQuery(value.replace(run[0], '').replace(/\s+/g, ' ').trim());
+      return;
+    }
+    setCustomerQuery(value);
+  };
+
   const matches = query.trim()
     ? products
         .filter((p) => p.name.toLowerCase().includes(query.trim().toLowerCase()) && p.quantity > 0)
@@ -202,7 +238,9 @@ export function SaleDialog({
     lines.length > 0 &&
     !anyLineError &&
     (splitMode ? remaining === 0 : true) &&
-    !(deniAmount > 0 && !hasCustomer);
+    !(deniAmount > 0 && !hasCustomer) &&
+    // A new person is only usable once both halves are there.
+    !(deniAmount > 0 && isNewCustomer && !newCustomerReady);
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -622,13 +660,23 @@ export function SaleDialog({
                 </div>
               ) : (
                 <>
-                  <Input
-                    id="deni-customer"
-                    placeholder="Customer name"
-                    value={customerQuery}
-                    onChange={(e) => setCustomerQuery(e.target.value)}
-                    autoComplete="off"
-                  />
+                  <div className="space-y-1.5">
+                    <label htmlFor="deni-customer" className="text-sm font-medium">
+                      Their name
+                    </label>
+                    <Input
+                      id="deni-customer"
+                      placeholder="e.g. Mary Wanjiku"
+                      value={customerQuery}
+                      onChange={(e) => handleCustomerName(e.target.value)}
+                      autoComplete="off"
+                    />
+                    {nameHasDigits && (
+                      <p className="text-xs text-destructive">
+                        Numbers go in the phone box below, not in the name.
+                      </p>
+                    )}
+                  </div>
                   {customerMatches.length > 0 && (
                     <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
                       {customerMatches.map((c) => (
@@ -654,13 +702,31 @@ export function SaleDialog({
                     </p>
                   )}
 
-                  {isNewCustomer && (
-                    <Input
-                      placeholder="Phone number (optional)"
-                      value={newCustomerPhone}
-                      onChange={(e) => setNewCustomerPhone(e.target.value)}
-                      inputMode="tel"
-                    />
+                  {/*
+                    * On screen from the start, not conditional on a name being
+                    * typed first. A box that appears later is a box nobody
+                    * knows to expect, which is how the number ended up in the
+                    * name in the first place.
+                    */}
+                  {!exactMatch && (
+                    <div className="space-y-1.5">
+                      <label htmlFor="deni-phone" className="text-sm font-medium">
+                        Their phone number
+                      </label>
+                      <Input
+                        id="deni-phone"
+                        placeholder="e.g. 0712 345 678"
+                        value={newCustomerPhone}
+                        onChange={(e) => setNewCustomerPhone(e.target.value)}
+                        inputMode="tel"
+                        className="num"
+                      />
+                      {trimmedCustomer !== '' && !phoneLooksReal && (
+                        <p className="text-xs text-destructive">
+                          Needed, so you can follow this up later.
+                        </p>
+                      )}
+                    </div>
                   )}
                 </>
               )}

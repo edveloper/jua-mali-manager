@@ -20,7 +20,9 @@ import { Button } from '@/components/ui/button';
  * read a single line of copy.
  *
  * Voice is warm and imperative, benefit first. Swahili is kept to the words a
- * shopkeeper uses in English anyway -- deni, duka -- and nowhere else. Half
+ * shopkeeper uses in English anyway -- duka -- and nowhere else. "Deni" names
+ * a tab inside the app and is not used out here to explain what the app does,
+ * because somebody who has never opened it has no reason to know the word. Half
  * translated headings read as decoration; when the whole thing can be switched
  * to Kiswahili properly, that is worth doing as one piece.
  */
@@ -44,7 +46,7 @@ const SHOTS = [
 const WORRIES = [
   {
     question: 'Who owes me, and how much?',
-    answer: 'Every deni in one place, with the name, the amount and how long it has been sitting there.',
+    answer: 'Everyone who owes you in one place, with the amount and how long it has been sitting there.',
     icon: HandCoins,
   },
   {
@@ -66,7 +68,7 @@ const WORRIES = [
 
 const STEPS = [
   { title: 'Put in what you sell', body: 'Type a few letters and pick from a list of what shops here already sell, in English or Kiswahili.' },
-  { title: 'Record as you go', body: 'Cash, M-Pesa, part now and part on deni. Whatever really happened at the counter.' },
+  { title: 'Record as you go', body: 'Cash, M-Pesa, part now and the rest on credit. Whatever really happened at the counter.' },
   { title: 'Look at your day', body: 'Takings, spending, and what is actually left. Then the week and the month.' },
 ];
 
@@ -79,7 +81,7 @@ const FAQ = [
 ];
 
 const PLANS = [
-  { name: 'Basic', price: 'Free', now: true, lines: ['One shop, just you', 'Sales, stock, deni, spending', 'The last 30 days'] },
+  { name: 'Basic', price: 'Free', now: true, lines: ['One shop, just you', 'Sales, stock, credit, spending', 'The last 30 days'] },
   { name: 'Duka', price: 'KSh 300', per: 'a month', now: false, lines: ['Up to 3 staff', 'All your history', 'Invoices and spreadsheets'] },
   { name: 'Biashara', price: 'KSh 800', per: 'a month', now: false, lines: ['Several shops and branches', 'Staff without limit', 'M-Pesa matching, cheques'] },
 ];
@@ -118,7 +120,7 @@ export default function Landing() {
             in your pocket.
           </h1>
           <p className="text-primary-foreground/85 text-lg leading-relaxed">
-            Sales, stock, deni and spending. Know exactly what you made today,
+            Sales, stock, credit and spending. Know exactly what you made today,
             siku kwa siku.
           </p>
 
@@ -154,8 +156,6 @@ export default function Landing() {
       <main className="px-5 py-12 space-y-14">
         {/* ------------------------------------------------- what you get */}
         <section className="space-y-4">
-          <h2 className="text-2xl font-extrabold tracking-tight">Have a Look</h2>
-          <p className="text-muted-foreground">This is the whole thing, on a real phone.</p>
           {/* Scrolls sideways rather than stacking, so five screens cost one
               screenful instead of five. */}
           <div className="-mx-5 px-5 flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2">
