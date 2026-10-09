@@ -82,10 +82,12 @@ for (const [key, isHome] of pages) {
 }
 
 // Bare shell for the routes that must stay out of search results.
+// Neutral wording: this is also what WhatsApp shows when a shop sends a customer
+// an invoice link, so it must not read as a sign-in page.
 const shell = withHead(template, {
   path: '/auth',
-  title: 'Sign in · DukaKonnect',
-  description: 'Sign in to DukaKonnect.',
+  title: 'DukaKonnect',
+  description: 'Sales, stock, deni and expenses for small shops in Kenya.',
   noindex: true,
 });
 fs.writeFileSync(path.join(dist, 'app.html'), shell);
