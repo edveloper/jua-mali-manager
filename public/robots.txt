@@ -1,14 +1,15 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
+# Link previews (WhatsApp, X, Facebook) may fetch anything, including shared invoices.
 User-agent: Twitterbot
 Allow: /
 
 User-agent: facebookexternalhit
 Allow: /
 
+# Everyone else, search engines included. Sign-in and customer invoices stay out
+# of search results; invoices are also served with noindex.
 User-agent: *
 Allow: /
+Disallow: /auth
+Disallow: /i/
+
+Sitemap: https://dukakonnect.co.ke/sitemap.xml

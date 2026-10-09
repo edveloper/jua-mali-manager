@@ -4,6 +4,9 @@ import {
   Store, MessageCircle, ArrowRight,
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
+import { PublicFooter } from '@/components/PublicPage';
+import { usePageMeta } from '@/lib/page-meta';
+import { PUBLIC_ROUTES } from '@/seo/public-routes';
 import { Button } from '@/components/ui/button';
 
 /**
@@ -87,6 +90,7 @@ const PLANS = [
 ];
 
 export default function Landing() {
+  usePageMeta(PUBLIC_ROUTES.home.title, PUBLIC_ROUTES.home.description);
   return (
     /*
      * One column, the same width as the app.
@@ -333,10 +337,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <footer className="flex flex-col items-center gap-2 py-8 opacity-70">
-        <Logo size="sm" wordmark={false} />
-        <p className="text-xs text-muted-foreground">biashara yako, siku kwa siku</p>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

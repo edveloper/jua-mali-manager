@@ -55,6 +55,8 @@ const lazyWithReload = (factory: () => Promise<{ default: React.ComponentType<un
 
 const Index = lazyWithReload(() => import("./pages/Index"));
 const Landing = lazyWithReload(() => import("./pages/Landing"));
+const Privacy = lazyWithReload(() => import("./pages/Privacy"));
+const Terms = lazyWithReload(() => import("./pages/Terms"));
 
 const Splash = () => (
   <div className="min-h-screen bg-background flex items-center justify-center">
@@ -94,6 +96,9 @@ const AppRoutes = () => {
         <Route path="/auth" element={<Auth />} />
         {/* No session required: a customer reads this from a WhatsApp link. */}
         <Route path="/i/:token" element={<PublicInvoice />} />
+        {/* Public legal pages. Also prerendered to static HTML at build time. */}
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

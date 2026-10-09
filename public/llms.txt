@@ -1,0 +1,29 @@
+# DukaKonnect
+
+> DukaKonnect keeps the books for small shops in Kenya: sales, stock, credit (deni) and spending, recorded day by day on a phone, so the owner knows what they actually took home. Free to start.
+
+DukaKonnect is a web app, installable on Android and iOS, built for small retail shops (dukas) in Kenya that run on a paper daybook. It is made by Eddie Ezekiel Ochieng.
+
+## What it does
+
+- Record a sale by tapping an item; stock adjusts itself.
+- Negotiated prices, within a range the owner sets for each item.
+- Deni: credit sales and repayments, with a dated payment history per customer.
+- Restocking that updates the average unit cost and logs the spend.
+- One-off, variable and recurring expenses.
+- Reports over any date range, exportable to a spreadsheet.
+- Staff logins that can sell and check stock but never see cost prices, spending or profit.
+
+## Pricing
+
+Free while it is getting started. Shops that join now keep their price when paid plans arrive, and recording a sale will always be free.
+
+## Pages
+
+- [Home](https://dukakonnect.co.ke/): what DukaKonnect is, how to start, and questions.
+- [Privacy Policy](https://dukakonnect.co.ke/privacy): what is stored and who can see it.
+- [Terms of Use](https://dukakonnect.co.ke/terms)
+
+## Contact
+
+eddie.ochieng@usalama-voice.com

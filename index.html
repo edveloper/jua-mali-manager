@@ -80,9 +80,28 @@
         window.__installPrompt = null;
         window.dispatchEvent(new Event('installpromptchange'));
       });
+
+      /*
+        Public pages arrive already rendered (scripts/prerender.mjs). Someone who
+        is signed in should not glimpse the landing page while the app loads, so
+        if a saved session exists the boot splash shows instead of it.
+      */
+      try {
+        for (var i = 0; i < localStorage.length; i++) {
+          if (/^sb-.+-auth-token$/.test(localStorage.key(i) || '')) {
+            document.documentElement.classList.add('has-session');
+            break;
+          }
+        }
+      } catch (e) { /* storage unavailable: treat as signed out */ }
     </script>
 
     <style>
+      /* On a prerendered page, signed-out visitors see the page; signed-in
+         users see the splash until the app takes over. */
+      html.prerendered:not(.has-session) #app-boot-loading { display: none; }
+      html.has-session #prerender { display: none; }
+
       /* Shown before any JavaScript runs, so it is deliberately self-contained
          and uses the brand colours directly rather than CSS variables. */
       #app-boot-loading {
@@ -162,6 +181,7 @@
           <div class="bar"><span></span></div>
         </div>
       </div>
+      <!-- prerender -->
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
