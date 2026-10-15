@@ -7,6 +7,12 @@ import { PAYMENT_METHODS, PaymentMethod, lastUsedMethod, rememberMethod, takesRe
 import { useCheques } from '@/hooks/useCheques';
 import { todayKey } from '@/lib/dates';
 import { money } from '@/lib/money';
+import {
+  splitNameAndPhone,
+  nameHasDigits,
+  phoneLooksReal,
+  customerReady,
+} from '@/lib/customerEntry';
 
 interface CreditManagerProps {
   customers: Customer[];
@@ -53,9 +59,23 @@ export function CreditManager({
   const customerNameFor = (id?: string | null) =>
     customers.find((c) => c.id === id)?.name ?? 'Customer';
 
+  /*
+   * The second door.
+   *
+   * The sale dialog was taught to separate a name from a number and this
+   * form was not, so staff carried on putting both in the name box here and
+   * nothing stopped them. Same rules, from the same module, so the next
+   * change lands in both places at once.
+   */
+  const handleCustomerName = (value: string) => {
+    const split = splitNameAndPhone(value, newCustomerPhone);
+    setNewCustomerName(split.name);
+    if (split.phone !== newCustomerPhone) setNewCustomerPhone(split.phone);
+  };
+
   const handleAddCustomer = () => {
-    if (!newCustomerName.trim()) return;
-    onAddCustomer(newCustomerName.trim(), newCustomerPhone.trim() || undefined);
+    if (!customerReady(newCustomerName, newCustomerPhone)) return;
+    onAddCustomer(newCustomerName.trim(), newCustomerPhone.trim());
     setNewCustomerName('');
     setNewCustomerPhone('');
     setShowAddCustomer(false);
@@ -411,11 +431,43 @@ export function CreditManager({
 
       {showAddCustomer && (
         <div className="sheet space-y-2">
-          <Input placeholder="Name" value={newCustomerName} onChange={(e) => setNewCustomerName(e.target.value)} />
-          <Input placeholder="Phone number" type="tel" value={newCustomerPhone} onChange={(e) => setNewCustomerPhone(e.target.value)} />
+          <div className="space-y-1.5">
+            <label htmlFor="new-customer-name" className="text-sm font-medium">Their name</label>
+            <Input
+              id="new-customer-name"
+              placeholder="e.g. Mary Wanjiku"
+              value={newCustomerName}
+              onChange={(e) => handleCustomerName(e.target.value)}
+            />
+            {nameHasDigits(newCustomerName) && (
+              <p className="text-xs text-destructive">
+                Numbers go in the phone box below, not in the name.
+              </p>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="new-customer-phone" className="text-sm font-medium">Their phone number</label>
+            <Input
+              id="new-customer-phone"
+              placeholder="e.g. 0712 345 678"
+              type="tel"
+              className="num"
+              value={newCustomerPhone}
+              onChange={(e) => setNewCustomerPhone(e.target.value)}
+            />
+            {newCustomerName.trim() !== '' && !phoneLooksReal(newCustomerPhone) && (
+              <p className="text-xs text-destructive">Needed, so you can follow this up later.</p>
+            )}
+          </div>
           <div className="flex gap-2">
             <Button variant="ghost" className="flex-1" onClick={() => setShowAddCustomer(false)}>Cancel</Button>
-            <Button className="flex-1" onClick={handleAddCustomer} disabled={!newCustomerName.trim()}>Save</Button>
+            <Button
+              className="flex-1"
+              onClick={handleAddCustomer}
+              disabled={!customerReady(newCustomerName, newCustomerPhone)}
+            >
+              Save
+            </Button>
           </div>
         </div>
       )}

@@ -7,6 +7,12 @@ import { Modal } from '@/components/Modal';
 import { BasketLine, BasketPayment } from '@/hooks/useInventory';
 import { PAYMENT_METHODS, PaymentMethod, lastUsedMethod, rememberMethod, takesReference } from '@/lib/payment';
 import { money } from '@/lib/money';
+import {
+  splitNameAndPhone,
+  nameHasDigits as hasDigits,
+  phoneLooksReal,
+  customerReady,
+} from '@/lib/customerEntry';
 
 interface SaleDialogProps {
   products: Product[];
@@ -179,10 +185,9 @@ export function SaleDialog({
    * number is required: a debt you cannot follow up is a debt you have written
    * off without noticing.
    */
-  const nameHasDigits = /\d/.test(customerQuery);
-  const phoneDigits = newCustomerPhone.replace(/\D/g, '');
-  const phoneLooksReal = phoneDigits.length >= 9;
-  const newCustomerReady = Boolean(trimmedCustomer) && !nameHasDigits && phoneLooksReal;
+  const nameHasDigits = hasDigits(customerQuery);
+  const phoneOk = phoneLooksReal(newCustomerPhone);
+  const newCustomerReady = customerReady(customerQuery, newCustomerPhone);
 
   /**
    * Take the number out of the name box and put it where it belongs.
@@ -193,13 +198,9 @@ export function SaleDialog({
    * in front of them.
    */
   const handleCustomerName = (value: string) => {
-    const run = value.match(/(\+?\d[\d\s-]{8,})/);
-    if (run && run[0].replace(/\D/g, '').length >= 9) {
-      if (!newCustomerPhone.trim()) setNewCustomerPhone(run[0].replace(/[^\d+]/g, ''));
-      setCustomerQuery(value.replace(run[0], '').replace(/\s+/g, ' ').trim());
-      return;
-    }
-    setCustomerQuery(value);
+    const split = splitNameAndPhone(value, newCustomerPhone);
+    setCustomerQuery(split.name);
+    if (split.phone !== newCustomerPhone) setNewCustomerPhone(split.phone);
   };
 
   const matches = query.trim()
@@ -721,7 +722,7 @@ export function SaleDialog({
                         inputMode="tel"
                         className="num"
                       />
-                      {trimmedCustomer !== '' && !phoneLooksReal && (
+                      {trimmedCustomer !== '' && !phoneOk && (
                         <p className="text-xs text-destructive">
                           Needed, so you can follow this up later.
                         </p>
