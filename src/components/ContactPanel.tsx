@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button';
 const CONTACT = {
   name: 'Eddie Ezekiel Ochieng',
   phone: '+254702931920',
-  email: 'ed.veloper10@gmail.com',
-  website: 'https://www.eddie-ezekiel.com/',
+  email: 'enquiries@eddie-ezekiel.com',
+  website: 'https://eddie-ezekiel.com/',
 };
 
 export function ContactPanel() {

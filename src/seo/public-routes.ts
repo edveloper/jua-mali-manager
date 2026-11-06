@@ -44,5 +44,5 @@ export const PUBLIC_ROUTES: Record<'home' | 'privacy' | 'terms' | 'notFound', Pu
   },
 };
 
-export const LEGAL_UPDATED = '10 October 2026';
-export const CONTACT_EMAIL = 'eddie.ochieng@usalama-voice.com';
+export const LEGAL_UPDATED = '6 November 2026';
+export const CONTACT_EMAIL = 'enquiries@eddie-ezekiel.com';
