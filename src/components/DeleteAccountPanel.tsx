@@ -55,7 +55,7 @@ export function DeleteAccountPanel({ onExport }: DeleteAccountPanelProps) {
         message = await response.json().then((b) => b?.error).catch(() => undefined);
       }
       toast({
-        title: 'Could not delete your account',
+        title: 'Could Not Delete Your Account',
         description: message || 'Check your connection and try again.',
         variant: 'destructive',
       });
