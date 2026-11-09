@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "ke.co.dukakonnect.app",
+      "sha256_cert_fingerprints": [
+        "0E:7C:15:79:D0:69:AE:1F:7E:8D:B7:2C:3F:C8:6A:9C:81:D0:AA:69:F5:1B:9A:77:7B:48:67:5E:2F:FA:78:E7",
+        "27:1A:46:7C:6E:D5:53:9B:85:10:FF:98:36:F8:DD:43:F2:CD:FB:85:03:E5:0A:B5:14:48:72:BF:F6:22:15:E7"
+      ]
+    }
+  }
+]
