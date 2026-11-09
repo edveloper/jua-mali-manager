@@ -35,6 +35,7 @@ import { MoreMenu } from '@/components/MoreMenu';
 import { HelpPanel } from '@/components/HelpPanel';
 import { PrivacyPanel } from '@/components/PrivacyPanel';
 import { ContactPanel } from '@/components/ContactPanel';
+import { DeleteAccountPanel } from '@/components/DeleteAccountPanel';
 import { AboutPanel } from '@/components/AboutPanel';
 import { GettingStarted } from '@/components/GettingStarted';
 import { CashUp } from '@/components/CashUp';
@@ -56,7 +57,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 /** Screens reached from More, which get a back arrow instead of a nav slot. */
-const SUB_SCREENS: TabType[] = ['more', 'staff', 'activity', 'business', 'help', 'privacy', 'contact', 'about', 'alerts'];
+const SUB_SCREENS: TabType[] = ['more', 'staff', 'activity', 'business', 'help', 'privacy', 'contact', 'about', 'alerts', 'delete-account'];
 
 /**
  * Where the back arrow goes.
@@ -78,6 +79,7 @@ const SCREEN_TITLES: Partial<Record<TabType, string>> = {
   contact: 'Contact Us',
   about: 'About DukaKonnect',
   alerts: 'Running Low',
+  'delete-account': 'Delete Account',
 };
 
 const Index = () => {
@@ -957,6 +959,11 @@ const Index = () => {
         {activeTab === 'privacy' && <PrivacyPanel />}
         {activeTab === 'contact' && <ContactPanel />}
         {activeTab === 'about' && <AboutPanel />}
+        {activeTab === 'delete-account' && (
+          <DeleteAccountPanel
+            onExport={isOwner ? () => { setMoneyTab('export'); setActiveTab('money'); } : undefined}
+          />
+        )}
       </main>
 
       <Navigation

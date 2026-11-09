@@ -11,10 +11,11 @@ import { StaticRouter } from 'react-router-dom/server';
 import Landing from './pages/Landing';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
+import DeleteAccount from './pages/DeleteAccount';
 import NotFound from './pages/NotFound';
 import { PUBLIC_ROUTES, SITE_URL, type PublicRoute } from './seo/public-routes';
 
-const PAGES = { home: Landing, privacy: Privacy, terms: Terms, notFound: NotFound } as const;
+const PAGES = { home: Landing, privacy: Privacy, terms: Terms, deleteAccount: DeleteAccount, notFound: NotFound } as const;
 
 export type PageKey = keyof typeof PAGES;
 

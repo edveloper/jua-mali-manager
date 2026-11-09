@@ -194,6 +194,14 @@ export function MoreMenu({ onNavigate, staffCount, canInstall, onInstall, onOpen
         Log out
       </button>
 
+      <button
+        type="button"
+        onClick={() => onNavigate('delete-account')}
+        className="w-full py-2 text-xs text-muted-foreground underline underline-offset-2"
+      >
+        Delete Account
+      </button>
+
       <div className="flex flex-col items-center gap-2 pt-1 pb-2 opacity-60">
         <Logo size="sm" wordmark={false} />
         <p className="text-xs text-muted-foreground">biashara yako, siku kwa siku</p>

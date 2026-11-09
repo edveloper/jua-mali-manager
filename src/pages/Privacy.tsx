@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { PublicPage, Section } from '@/components/PublicPage';
 import { usePageMeta } from '@/lib/page-meta';
 import { CONTACT_EMAIL, LEGAL_UPDATED, PUBLIC_ROUTES } from '@/seo/public-routes';
@@ -121,8 +122,9 @@ export default function Privacy() {
         <ul className={ul}>
           <li>Export your sales and spending to a spreadsheet whenever you like, from Money.</li>
           <li>
-            Ask through Contact us, or by email, and we will delete your shop and everything in it,
-            for good.
+            Delete your account in the app, which removes your shop and everything in it for good.
+            The <Link to="/delete-account" className="text-primary underline">steps are here</Link>,
+            including what to do if you cannot sign in.
           </li>
           <li>
             If you are unhappy with how your information is handled, you can complain to the Office
@@ -133,7 +135,7 @@ export default function Privacy() {
 
       <Section heading="How long it is kept">
         <p>
-          For as long as your shop uses DukaKonnect. When you ask for deletion, your shop and its
+          For as long as your shop uses DukaKonnect. When you delete your account, your shop and its
           records are removed; copies in routine backups are overwritten in the normal course.
         </p>
       </Section>

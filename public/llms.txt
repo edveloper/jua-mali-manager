@@ -23,6 +23,7 @@ Free while it is getting started. Shops that join now keep their price when paid
 - [Home](https://dukakonnect.co.ke/): what DukaKonnect is, how to start, and questions.
 - [Privacy Policy](https://dukakonnect.co.ke/privacy): what is stored and who can see it.
 - [Terms of Use](https://dukakonnect.co.ke/terms)
+- [Delete Your Account](https://dukakonnect.co.ke/delete-account): how to delete an account and shop records.
 
 ## Contact
 

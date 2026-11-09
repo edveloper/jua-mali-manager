@@ -5,6 +5,7 @@
 //   dist/index.html    landing page (also the app's shell for signed-in users)
 //   dist/privacy.html  served at /privacy   (vercel.json: cleanUrls)
 //   dist/terms.html    served at /terms
+//   dist/delete-account.html  served at /delete-account
 //   dist/404.html      served with a 404 status for unknown paths
 //   dist/app.html      bare shell, noindex: /auth and /i/:token rewrite to it
 import fs from 'node:fs';
@@ -68,6 +69,7 @@ const pages = [
   ['home', true],
   ['privacy', false],
   ['terms', false],
+  ['deleteAccount', false],
   ['notFound', false],
 ];
 

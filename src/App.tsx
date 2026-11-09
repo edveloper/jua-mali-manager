@@ -57,6 +57,7 @@ const Index = lazyWithReload(() => import("./pages/Index"));
 const Landing = lazyWithReload(() => import("./pages/Landing"));
 const Privacy = lazyWithReload(() => import("./pages/Privacy"));
 const Terms = lazyWithReload(() => import("./pages/Terms"));
+const DeleteAccount = lazyWithReload(() => import("./pages/DeleteAccount"));
 
 const Splash = () => (
   <div className="min-h-screen bg-background flex items-center justify-center">
@@ -99,6 +100,7 @@ const AppRoutes = () => {
         {/* Public legal pages. Also prerendered to static HTML at build time. */}
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
+        <Route path="/delete-account" element={<DeleteAccount />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -30,7 +30,7 @@ export default function Terms() {
       <Section heading="Your records are yours">
         <p>
           Everything you record belongs to you. You let DukaKonnect store and process it only so
-          that the app can work for you. You can export it at any time and ask for it to be deleted.
+          that the app can work for you. You can export it at any time and delete it yourself.
           How it is handled is set out in the <Link to="/privacy" className="text-primary underline">Privacy Policy</Link>.
         </p>
       </Section>
@@ -64,7 +64,7 @@ export default function Terms() {
 
       <Section heading="Leaving, or being asked to leave">
         <p>
-          You can stop using DukaKonnect whenever you like and ask for your shop to be deleted. An
+          You can stop using DukaKonnect whenever you like and delete your account from the app. An
           account used for fraud, unlawful trade or to attack the service may be suspended.
         </p>
       </Section>

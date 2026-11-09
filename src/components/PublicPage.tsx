@@ -14,6 +14,7 @@ export function PublicFooter() {
       <nav className="flex gap-4 text-xs text-muted-foreground">
         <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
         <Link to="/terms" className="hover:text-foreground">Terms</Link>
+        <Link to="/delete-account" className="hover:text-foreground">Delete Account</Link>
         <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-foreground">Contact</a>
       </nav>
     </footer>

@@ -14,7 +14,7 @@ export interface PublicRoute {
   noindex?: boolean;
 }
 
-export const PUBLIC_ROUTES: Record<'home' | 'privacy' | 'terms' | 'notFound', PublicRoute> = {
+export const PUBLIC_ROUTES: Record<'home' | 'privacy' | 'terms' | 'deleteAccount' | 'notFound', PublicRoute> = {
   home: {
     path: '/',
     file: 'index.html',
@@ -35,6 +35,13 @@ export const PUBLIC_ROUTES: Record<'home' | 'privacy' | 'terms' | 'notFound', Pu
     title: 'Terms of Use · DukaKonnect',
     description: 'The terms for using DukaKonnect to keep the books for your shop.',
   },
+  deleteAccount: {
+    path: '/delete-account',
+    file: 'delete-account.html',
+    title: 'Delete Your Account · DukaKonnect',
+    description:
+      'How to delete your DukaKonnect account and your shop records, what is removed, and what to do if you cannot sign in.',
+  },
   notFound: {
     path: '/404',
     file: '404.html',
@@ -44,5 +51,5 @@ export const PUBLIC_ROUTES: Record<'home' | 'privacy' | 'terms' | 'notFound', Pu
   },
 };
 
-export const LEGAL_UPDATED = '6 November 2026';
+export const LEGAL_UPDATED = '8 November 2026';
 export const CONTACT_EMAIL = 'enquiries@eddie-ezekiel.com';

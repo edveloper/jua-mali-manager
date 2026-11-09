@@ -27,7 +27,7 @@ const SECTIONS: { title: string; paragraphs: string[] }[] = [
     title: 'Getting it out, or getting rid of it',
     paragraphs: [
       'Export your sales and spending to a spreadsheet whenever you like, from Money. They are your records. Keep your own copy.',
-      'Want the whole thing gone? Ask through Contact us and we will delete your shop and everything in it, for good.',
+      'Want the whole thing gone? Tap Delete Account at the bottom of your account screen. It deletes your shop and everything in it, for good.',
     ],
   },
   {

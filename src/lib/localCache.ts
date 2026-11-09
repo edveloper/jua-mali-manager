@@ -109,6 +109,22 @@ export const cacheRead = async <T>(shopId: string, name: string): Promise<Snapsh
 };
 
 /**
+ * Forget the waiting sales too. Only for when the account itself has been
+ * deleted, so there is nowhere left for them to go.
+ */
+export const cacheForgetEverything = async (): Promise<void> => {
+  await cacheClearAll();
+  const db = await open();
+  if (!db) return;
+
+  try {
+    db.transaction(PENDING_STORE, 'readwrite').objectStore(PENDING_STORE).clear();
+  } catch {
+    // Nothing to be done, and nothing that depends on it having worked.
+  }
+};
+
+/**
  * Forget everything. Called on sign out, because the next person to open this
  * phone may not be the person whose takings are sitting in it.
  */

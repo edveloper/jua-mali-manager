@@ -7,6 +7,7 @@ export type TabType =
   | 'credit'
   | 'money'
   | 'more'
+  | 'delete-account'
   | 'alerts'
   | 'staff'
   | 'help'
