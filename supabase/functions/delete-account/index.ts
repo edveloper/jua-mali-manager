@@ -52,14 +52,15 @@ Deno.serve(async (req) => {
   if (callerError || !caller?.user) return json(401, { error: "Invalid or expired session" });
   const userId = caller.user.id;
 
-  let body: { confirm?: string };
+  let body: { confirm?: string; password?: string };
   try {
     body = await req.json();
   } catch {
     return json(400, { error: "Invalid JSON body" });
   }
   const confirm = normalise(String(body.confirm ?? ""));
-  if (!confirm) return json(400, { error: "Please confirm first." });
+  const password = String(body.password ?? "");
+  if (!confirm || !password) return json(400, { error: "Please confirm first." });
 
   // 2. Work out what this login alone owns.
   const { data: memberships, error: membershipsError } = await admin
@@ -110,6 +111,25 @@ Deno.serve(async (req) => {
   //    and anything typed is enough.
   if (shopsToDelete.length > 0 && !shopsToDelete.some((s) => normalise(s.name) === confirm)) {
     return json(400, { error: "That is not the name of your shop. Nothing was changed." });
+  }
+
+  // The password, because somebody holding an unlocked phone can read the shop's
+  // name off the screen. Checked on a client of its own: signing in on the admin
+  // client would swap its service role for this user's session.
+  const passwordCheck = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") ?? serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { error: passwordError } = await passwordCheck.auth.signInWithPassword({
+    email: caller.user.email ?? "",
+    password,
+  });
+  if (passwordError) {
+    const wrong = passwordError.code === "invalid_credentials" || /invalid login/i.test(passwordError.message ?? "");
+    return json(wrong ? 403 : 500, {
+      error: wrong
+        ? "That password is not right. Nothing was changed."
+        : "Could not check your password. Nothing was changed.",
+    });
   }
 
   // 4. Staff whose only work was in these shops lose their login too. One who

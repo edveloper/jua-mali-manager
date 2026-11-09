@@ -20,14 +20,16 @@ const shopLabel = (name: string, branch: string | null) => (branch ? `${name} ($
 
 /**
  * Deletes the account for good. There is no undo, so the screen spells out what
- * goes, offers the export first, and makes the person type the shop's name.
- * Typing a name is deliberately slower than tapping twice.
+ * goes, offers the export first, and asks for the shop's name and the password.
+ * The name stops a slip of the thumb. The password stops whoever else is holding
+ * an unlocked phone, since the name is right there on the screen.
  */
 export function DeleteAccountPanel({ onExport }: DeleteAccountPanelProps) {
   const { shop, shops, signOut, refreshShopData } = useAuth();
   const { toast } = useToast();
   const online = useOnline();
   const [typed, setTyped] = useState('');
+  const [password, setPassword] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
   const owned = shops.filter((s) => s.role === 'owner');
@@ -38,11 +40,11 @@ export function DeleteAccountPanel({ onExport }: DeleteAccountPanelProps) {
   const matches = normalise(typed) === normalise(word);
 
   const handleDelete = async () => {
-    if (!matches || isDeleting) return;
+    if (!matches || !password || isDeleting) return;
     setIsDeleting(true);
 
     const { data, error } = await supabase.functions.invoke('delete-account', {
-      body: { confirm: typed },
+      body: { confirm: typed, password },
     });
 
     if (error || !data?.deleted) {
@@ -143,11 +145,25 @@ export function DeleteAccountPanel({ onExport }: DeleteAccountPanelProps) {
           spellCheck={false}
           disabled={isDeleting}
         />
+        <label htmlFor="delete-password" className="font-semibold block pt-1">
+          Your Password
+        </label>
+        <Input
+          id="delete-password"
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          autoComplete="current-password"
+          disabled={isDeleting}
+        />
+        <p className="text-xs text-muted-foreground">
+          Forgotten it? Log out and reset it from the sign-in screen, then come back.
+        </p>
         <Button
           variant="destructive"
           className="w-full"
           onClick={handleDelete}
-          disabled={!matches || isDeleting || !online}
+          disabled={!matches || !password || isDeleting || !online}
         >
           {isDeleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
           {isDeleting ? 'Deleting...' : 'Delete My Account'}
