@@ -51,5 +51,5 @@ export const PUBLIC_ROUTES: Record<'home' | 'privacy' | 'terms' | 'deleteAccount
   },
 };
 
-export const LEGAL_UPDATED = '8 November 2026';
+export const LEGAL_UPDATED = '10 November 2026';
 export const CONTACT_EMAIL = 'enquiries@eddie-ezekiel.com';
