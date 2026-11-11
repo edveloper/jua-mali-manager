@@ -71,7 +71,7 @@ export function GettingStarted({ hasProducts, hasSales, onNavigate }: GettingSta
       </div>
 
       <p className="text-xs text-muted-foreground border-t border-border/70 pt-3">
-        Selling on deni, staff logins and expenses are all there when you need them.
+        Selling on credit, staff logins and expenses are all there when you need them.
         Nothing has to be set up first.
       </p>
     </div>

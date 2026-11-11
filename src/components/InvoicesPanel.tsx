@@ -38,7 +38,7 @@ const STATUS_TONE: Record<string, string> = {
 /**
  * Invoices, raised from sales that already happened.
  *
- * Only deni sales are offered. An invoice here documents goods that have gone
+ * Only credit sales are offered. An invoice here documents goods that have gone
  * out and money that has not come in, so a sale settled at the till has nothing
  * to invoice for and is deliberately absent from the list.
  */
@@ -56,7 +56,7 @@ export function InvoicesPanel({
   const [cancelling, setCancelling] = useState<Invoice | null>(null);
   const [sending, setSending] = useState<SendableInvoice | null>(null);
 
-  // Unpaid deni with no live invoice against it. Those are the only sales a
+  // Unpaid credit with no live invoice against it. Those are the only sales a
   // document can honestly be raised for.
   const invoiceable = useMemo(() => {
     const receiptOf = (c: CreditSale) => c.receiptId || c.saleId;
@@ -111,7 +111,7 @@ export function InvoicesPanel({
           <div>
             <p className="sheet-heading">Ready to invoice</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Sales on deni with no invoice yet.
+              Sales on credit with no invoice yet.
             </p>
           </div>
           <div className="divide-y divide-border/70">
@@ -147,7 +147,7 @@ export function InvoicesPanel({
         {invoices.length === 0 ? (
           <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
             Nothing raised yet. When a customer takes goods and wants to be billed, put the
-            sale on deni first, then invoice it from the list above.
+            sale on credit first, then invoice it from the list above.
           </p>
         ) : (
           <div className="mt-1 divide-y divide-border/70">
@@ -305,7 +305,7 @@ export function InvoicesPanel({
       {cancelling && (
         <ConfirmDialog
           title="Cancel this invoice?"
-          message="The link stops working straight away. The sale and the deni stay exactly as they are, this only cancels the document."
+          message="The link stops working straight away. The sale and what is owed stay exactly as they are, this only cancels the document."
           details={[
             { label: 'Invoice', value: cancelling.number },
             { label: 'Customer', value: cancelling.billTo?.name ?? '' },

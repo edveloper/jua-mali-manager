@@ -77,7 +77,7 @@ const toLine = (p: Product): Line => ({
  *
  * Two things a counter actually does that the old one-item-one-method dialog
  * could not express: a customer buying several things in one go, and a customer
- * paying part in cash, part by M-Pesa and taking the rest on deni.
+ * paying part in cash, part by M-Pesa and taking the rest on credit.
  *
  * The design tries hard not to make the common case pay for the rare one. A
  * single item paid one way needs no more taps than before -- the split controls
@@ -100,7 +100,7 @@ export function SaleDialog({
   const [parts, setParts] = useState<Part[]>(() => [{ method: lastUsedMethod(), amount: '', reference: '' }]);
   const [deniInput, setDeniInput] = useState('');
 
-  // Customer, needed only when something is going on deni.
+  // Customer, needed only when something is going on credit.
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [customerQuery, setCustomerQuery] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
@@ -302,7 +302,7 @@ export function SaleDialog({
               ? 'Saving...'
               : isGiveaway ? 'Record giveaway'
               : deniAmount > 0 && deniAmount === basketTotal
-                ? (wantsInvoice ? 'Record and invoice' : 'Record on deni')
+                ? (wantsInvoice ? 'Record and invoice' : 'Record on Credit')
                 : (wantsInvoice ? 'Complete and invoice' : 'Complete sale')}
           </Button>
         </>
@@ -508,7 +508,7 @@ export function SaleDialog({
                   className="px-1 text-xs"
                   onClick={() => setMethod('deni')}
                 >
-                  Deni
+                  Credit
                 </Button>
               </div>
               {method !== 'deni' && takesReference(method) && (
@@ -606,13 +606,13 @@ export function SaleDialog({
               </Button>
 
               <div className="flex items-center gap-2">
-                <span className="w-24 shrink-0 text-sm text-muted-foreground">On deni</span>
+                <span className="w-24 shrink-0 text-sm text-muted-foreground">On credit</span>
                 <Input
                   type="number"
                   inputMode="decimal"
                   step="0.01"
                   placeholder="0"
-                  aria-label="Amount taken on deni"
+                  aria-label="Amount taken on credit"
                   value={deniInput}
                   onChange={(e) => setDeniInput(e.target.value)}
                   onFocus={(e) => e.target.select()}
@@ -632,11 +632,11 @@ export function SaleDialog({
             </div>
           )}
 
-          {/* Customer, only when something is going on deni */}
+          {/* Customer, only when something is going on credit */}
           {deniAmount > 0 && (
             <div className="space-y-2">
               <label htmlFor="deni-customer" className="text-sm font-medium">
-                Who is taking KSh {money(deniAmount)} on deni?
+                Who is taking KSh {money(deniAmount)} on credit?
               </label>
 
               {resolvedCustomer ? (

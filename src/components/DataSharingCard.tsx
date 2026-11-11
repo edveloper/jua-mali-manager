@@ -133,7 +133,7 @@ export function DataSharingCard() {
           details={[
             { label: 'Shop', value: shop?.name ?? '' },
             { label: 'Shared', value: 'Items, prices, quantities' },
-            { label: 'Not Shared', value: 'Customers, deni, takings' },
+            { label: 'Not Shared', value: 'Customers, credit, takings' },
           ]}
           confirmLabel="Yes, Count Me In"
           cancelLabel="Not Now"

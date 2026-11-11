@@ -34,7 +34,7 @@ export const useCredit = () => {
       return;
     }
     /*
-     * The deni book is the thing most worth having in a dead spot. Somebody is
+     * The credit book is the thing most worth having in a dead spot. Somebody is
      * standing at the counter asking what they owe, and "no connection" is not
      * an answer a shopkeeper can give them.
      */

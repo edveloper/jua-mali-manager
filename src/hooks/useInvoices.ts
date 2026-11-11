@@ -71,7 +71,7 @@ export const useInvoices = () => {
         (data || []).map((row: any) => {
           const total = Number(row.total || 0);
           const paidAtSale = Number(row.paid_at_sale || 0);
-          // Settled at the counter, plus anything paid against the deni since.
+          // Settled at the counter, plus anything paid against the credit since.
           // No credit record means the whole thing was paid at the till.
           const paid = row.credit_sale_id
             ? paidAtSale + (paidByCredit.get(row.credit_sale_id) ?? 0)

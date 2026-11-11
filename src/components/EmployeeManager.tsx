@@ -20,10 +20,10 @@ const PERMISSIONS: { key: string; title: string; detail: string; enabledToast: s
   },
   {
     key: 'manage_deni',
-    title: 'Handle deni',
+    title: 'Handle Credit',
     detail: 'See who owes you and record their payments. They still cannot see your profit.',
-    enabledToast: 'can now handle deni',
-    disabledToast: 'can no longer handle deni',
+    enabledToast: 'can now handle credit',
+    disabledToast: 'can no longer handle credit',
   },
   {
     key: 'restock_stock',

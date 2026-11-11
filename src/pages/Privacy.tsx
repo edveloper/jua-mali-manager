@@ -37,7 +37,7 @@ export default function Privacy() {
           </li>
           <li>
             <strong>Your customers.</strong> The names, phone numbers and, if you add them, email
-            addresses of customers who take things on deni, with what they owe and have paid.
+            addresses of customers who buy on credit, with what they owe and have paid.
           </li>
           <li>
             <strong>Your staff.</strong> The names and sign-in details of anyone you add to your shop.

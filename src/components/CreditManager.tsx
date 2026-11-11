@@ -475,7 +475,7 @@ export function CreditManager({
       {owing.length === 0 ? (
         <div className="sheet">
           <p className="text-sm text-muted-foreground">
-            No customers yet. They get added automatically the first time you sell on deni.
+            No customers yet. They get added automatically the first time you sell on credit.
           </p>
         </div>
       ) : (

@@ -4,7 +4,7 @@
 
 DukaKonnect keeps the books for small shops in Kenya — the kind of business in Voi,
 Oyugis or Kilifi that runs on a paper daybook and a good memory. It records
-sales, tracks stock, follows up deni, and tells the owner what they actually took
+sales, tracks stock, keeps track of who owes the shop, and tells the owner what they actually took
 home that day.
 
 The name is Swahili, from the Arabic *tārīkh*: a date, and a record kept over
@@ -15,7 +15,7 @@ time. That is what the app is — a dated book, one day at a time.
 - **Sell** — tap an item, set the quantity, stock adjusts itself
 - **Negotiated prices** — staff can agree a price with a customer, but only
   within a range the owner sets on each item
-- **Deni** — credit sales and repayments, with a dated payment history
+- **Credit** — sales on credit and repayments, with a dated payment history
 - **Stock** — restock records raise stock, update the average unit cost, and log
   the spend in one step
 - **Spending** — one-off, variable and recurring expenses, with the option to
@@ -52,7 +52,7 @@ Vite, React, TypeScript, Tailwind, shadcn/ui, Supabase.
 Two rules worth knowing before changing anything:
 
 1. **Money moves through database functions, not the client.** Selling,
-   restocking, voiding a sale and recording a deni payment all run as
+   restocking, voiding a sale and recording a credit repayment all run as
    `SECURITY DEFINER` RPCs that lock the row they touch. That is what stops two
    phones on the same counter from overwriting each other.
 2. **`shop_members` is not writable from the client.** Membership is created by

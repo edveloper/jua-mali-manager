@@ -11,7 +11,7 @@ const GUIDES: { title: string; points: string[] }[] = [
     title: 'Selling',
     points: [
       'Tap an item on the Sell screen, set the quantity, done. Stock goes down on its own.',
-      'Say how it was paid, or whether it went on deni. That is the only reason the app can tell you what should be in the drawer at closing.',
+      'Say how it was paid, or whether it went on credit. That is the only reason the app can tell you what should be in the drawer at closing.',
       'Haggled? Type the price you agreed over the usual one. That box only shows up if the owner has allowed it for you.',
     ],
   },
@@ -40,17 +40,17 @@ const GUIDES: { title: string; points: string[] }[] = [
     ],
   },
   {
-    title: 'Deni',
+    title: 'Credit',
     points: [
-      'Deni shows who owes you and how much, biggest debt first.',
+      'Credit shows who owes you and how much, biggest debt first.',
       'Record part payments as they come. Each one is saved with its date and how it was paid.',
-      'A sale on deni counts as income the day it happens. The payment later is not income again, it is the money finally arriving.',
+      'A sale on credit counts as income the day it happens. The payment later is not income again, it is the money finally arriving.',
     ],
   },
   {
     title: 'Closing the till',
     points: [
-      'Home shows what should be in the drawer: cash sales, plus deni paid in cash, minus cash you paid out.',
+      'Home shows what should be in the drawer: cash sales, plus credit paid back in cash, minus cash you paid out.',
       'M-Pesa and Airtel are left out on purpose. That money went to your phone, not into the drawer.',
       'Count what is really there and type it in. If it does not match, you know the same evening rather than at month end.',
     ],
@@ -61,7 +61,7 @@ const GUIDES: { title: string; points: string[] }[] = [
       'Add staff under More. Give them a temporary password; they choose their own the first time they sign in.',
       'They can sell and see what is in stock. What you paid for goods, what you spend and what you make stay yours.',
       'Forgotten their password? Open Staff, tap New password, and give them a temporary one. They choose their own again when they sign in.',
-      'You can let someone agree prices with customers, handle deni, or record spending. Each one is a separate switch, off until you turn it on.',
+      'You can let someone agree prices with customers, handle credit, or record spending. Each one is a separate switch, off until you turn it on.',
       'For prices, set the lowest and highest you will accept on the item first, then switch it on for that person.',
     ],
   },

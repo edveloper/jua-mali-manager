@@ -138,7 +138,7 @@ export function ActivityLog({
       // visible at a glance instead of buried in a total.
       const how = [
         ...paid.map((p) => `${methodLabel(p.method)} ${money(p.amount)}`),
-        ...(debt ? [`deni ${money(debt.amount)} · ${customerName(debt.customerId)}`] : []),
+        ...(debt ? [`on credit ${money(debt.amount)} · ${customerName(debt.customerId)}`] : []),
       ].join(' · ');
 
       out.push({
@@ -153,14 +153,14 @@ export function ActivityLog({
       });
     }
 
-    // --- Deni repaid -------------------------------------------------------
+    // --- Credit repaid -------------------------------------------------------
     for (const p of creditPayments) {
       if (!recent(p.paidAt)) continue;
       out.push({
         key: `credit-${p.id}`,
         at: new Date(p.paidAt),
         lens: 'in',
-        title: 'Deni repaid',
+        title: 'Credit Paid Back',
         detail: `${customerName(p.customerId)}${p.paymentMethod ? ` · ${methodLabel(p.paymentMethod)}` : ''}`,
         amount: p.amount,
         flow: 'in',

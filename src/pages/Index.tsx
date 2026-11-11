@@ -271,8 +271,8 @@ const Index = () => {
   const dayProfit = daySales.reduce((sum, s) => sum + Number(s.profit || 0), 0);
   const daySpent = getAccruedExpensesForDate(viewDate, { includeInventoryPurchases: false });
 
-  // What was taken on deni today. Read from the credit book rather than from the
-  // sales, because a receipt can be part paid and part deni -- the debt is the
+  // What was sold on credit today. Read from the credit book rather than from the
+  // sales, because a receipt can be part paid and part on credit -- the debt is the
   // only place the unpaid share is actually written down.
   const dayCredits = creditSales.filter((c) => isSameDay(new Date(c.createdAt), viewDate));
   const dayOnDeni = dayCredits.reduce((sum, c) => sum + Number(c.amount || 0), 0);
@@ -360,7 +360,7 @@ const Index = () => {
     setEditingProduct(null);
   };
 
-  // Items, payments and any deni go to the database as one call, so a basket
+  // Items, payments and any credit go to the database as one call, so a basket
   // cannot end up half recorded. The customer is still resolved first: creating
   // them afterwards and failing would leave a sale nobody owed.
   const handleSell = async (
@@ -403,7 +403,7 @@ const Index = () => {
     /*
      * The invoice is raised here rather than three screens later.
      *
-     * Somebody putting goods on deni for a business already knows whether a
+     * Somebody putting goods on credit for a business already knows whether a
      * document is wanted. Making them finish the sale, walk to Money, find the
      * sale again and raise it there meant remembering to come back, which is
      * the step people skip.

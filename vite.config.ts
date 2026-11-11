@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => ({
       manifest: {
         name: 'DukaKonnect · biashara yako, siku kwa siku',
         short_name: 'DukaKonnect',
-        description: 'Sales, stock, deni and expenses for small shops in Kenya.',
+        description: 'Sales, stock, credit and expenses for small shops in Kenya.',
         theme_color: '#c85a2e',
         background_color: '#f8f7f5',
         display: 'standalone', // This makes it look like a real app

@@ -33,7 +33,7 @@ export function AboutPanel() {
       <div className="sheet space-y-2 text-sm">
         <p className="sheet-heading">Who it is for</p>
         <p className="text-muted-foreground leading-relaxed">
-          Small businesses, the ones that actually run on cash, deni and memory. It is
+          Small businesses, the ones that actually run on cash, credit and memory. It is
           priced so a shop taking a few thousand a day can justify it without thinking
           hard, and built so that after a week you would notice if it went.
         </p>

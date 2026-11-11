@@ -94,7 +94,7 @@ export function DeleteAccountPanel({ onExport }: DeleteAccountPanelProps) {
             ))}
           </ul>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            That means every sale, product, deni record, expense, invoice and customer in it. Invoice
+            That means every sale, product, credit record, expense, invoice and customer in it. Invoice
             links you have sent stop working. Your staff lose their logins as well, unless they also
             work in another shop.
           </p>

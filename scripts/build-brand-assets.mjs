@@ -27,7 +27,7 @@ const QUIET = '#7a6a5f';
 
 const NAME = 'DukaKonnect';
 const TAGLINE = 'biashara yako, siku kwa siku';
-const BLURB = 'Sales, stock, deni and expenses for small shops in Kenya.';
+const BLURB = 'Sales, stock, credit and expenses for small shops in Kenya.';
 
 /*
  * The mark: a K, drawn as a connection.

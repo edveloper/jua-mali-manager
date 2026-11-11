@@ -3,7 +3,7 @@ export type PaymentMethod = 'cash' | 'mpesa' | 'airtel' | 'other';
 /**
  * Cheque is a payment method the books know about, but never an option at the
  * till. A cheque handed over is a promise, not money, so it is settled through
- * the deni flow where it can be held until it clears. It appears here only so
+ * the credit flow where it can be held until it clears. It appears here only so
  * that a cleared cheque reads as "Cheque" wherever payments are listed.
  */
 export type RecordedMethod = PaymentMethod | 'cheque';

@@ -42,7 +42,7 @@ export function QuickActions({ onClose, onRecordSale, onRecordSpending, onRecord
     ...(onRecordRepayment
       ? [{
           label: 'Record a Repayment',
-          hint: 'Somebody paying down their deni',
+          hint: 'Somebody paying off what they owe',
           icon: HandCoins,
           onClick: onRecordRepayment,
         }]

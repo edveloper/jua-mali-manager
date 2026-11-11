@@ -422,7 +422,7 @@ export const useInventory = () => {
   // unitPrice is the negotiated price per line. Omit it to sell at the catalog
   // price; the RPC re-checks permission and the owner's band either way.
   //
-  // Items, payments and the deni all land in one transaction. The old flow wrote
+  // Items, payments and any credit all land in one transaction. The old flow wrote
   // the sale first and the debt afterwards, so a failure in between left a sale
   // looking paid that nobody owed.
   const recordBasketSale = async (

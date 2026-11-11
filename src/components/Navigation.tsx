@@ -63,7 +63,7 @@ export function Navigation({
   const ownerTabs: NavItem[] = [
     { id: 'dashboard', label: 'Home', icon: Home, covers: ['alerts'] },
     { id: 'products', label: 'Sell', icon: Package, covers: ['stock'] },
-    { id: 'credit', label: 'Deni', icon: Users, badge: deniCount },
+    { id: 'credit', label: 'Credit', icon: Users, badge: deniCount },
     { id: 'money', label: 'Money', icon: Wallet, covers: ['spending'] },
   ];
 
@@ -72,7 +72,7 @@ export function Navigation({
   const employeeTabs: NavItem[] = [
     { id: 'dashboard', label: 'Home', icon: Home, covers: ['alerts'] },
     { id: 'products', label: 'Sell', icon: Package, covers: ['stock'] },
-    ...(canManageDeni ? [{ id: 'credit' as TabType, label: 'Deni', icon: Users, badge: deniCount }] : []),
+    ...(canManageDeni ? [{ id: 'credit' as TabType, label: 'Credit', icon: Users, badge: deniCount }] : []),
     ...(canRecordExpenses ? [{ id: 'spending' as TabType, label: 'Spending', icon: Receipt }] : []),
   ];
 

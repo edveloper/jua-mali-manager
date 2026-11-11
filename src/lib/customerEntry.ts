@@ -3,7 +3,7 @@
  *
  * This exists because there were two forms and only one of them was fixed.
  * Staff kept typing "John 0712345678" into a name box; the sale dialog was
- * taught to cope and the Add Customer form on the Deni tab was not, so the
+ * taught to cope and the Add Customer form on the Credit tab was not, so the
  * behaviour carried straight on through the other door. Two copies of a rule
  * are one copy and a bug waiting to be found.
  *

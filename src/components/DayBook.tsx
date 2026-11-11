@@ -9,7 +9,7 @@ interface DayBookProps {
   deniPaidBack: number;
   spent: number;
   takeHome: number;
-  /** Money actually received today, keyed by method. Excludes deni. */
+  /** Money actually received today, keyed by method. Excludes credit. */
   byMethod: { method: string; label: string; amount: number }[];
   stockValue: number;
   stockRetailValue: number;
@@ -57,7 +57,7 @@ export function DayBook({
             </div>
             {onDeni > 0 && (
               <div className="ledger-sub">
-                <span>on deni</span>
+                <span>on credit</span>
                 <span className="num">{money(onDeni)}</span>
               </div>
             )}
@@ -66,7 +66,7 @@ export function DayBook({
 
         {deniPaidBack > 0 && (
           <div className="ledger-line">
-            <span className="font-medium">Deni paid back</span>
+            <span className="font-medium">Credit paid back</span>
             <span className="amount text-success">{money(deniPaidBack)}</span>
           </div>
         )}

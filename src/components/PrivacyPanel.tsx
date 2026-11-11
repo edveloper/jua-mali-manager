@@ -4,7 +4,7 @@ const SECTIONS: { title: string; paragraphs: string[] }[] = [
   {
     title: 'What we keep',
     paragraphs: [
-      'What you type in. Your shop name, what you sell and for how much, every sale, what you spend, and the names and numbers of customers who take things on deni.',
+      'What you type in. Your shop name, what you sell and for how much, every sale, what you spend, and the names and numbers of customers who buy on credit.',
       'It is kept on servers, not on your phone. Lose the phone and your records are still there when you sign in on another one.',
     ],
   },

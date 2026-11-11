@@ -20,7 +20,7 @@ export const PUBLIC_ROUTES: Record<'home' | 'privacy' | 'terms' | 'deleteAccount
     file: 'index.html',
     title: 'DukaKonnect · biashara yako, siku kwa siku',
     description:
-      'DukaKonnect keeps the books for small shops in Kenya. Record sales, track stock, follow up deni, and see what you actually took home today. Free to start.',
+      'DukaKonnect keeps the books for small shops in Kenya. Record sales, track stock, keep track of who owes you, and see what you actually took home today. Free to start.',
   },
   privacy: {
     path: '/privacy',

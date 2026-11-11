@@ -23,9 +23,9 @@ import { Button } from '@/components/ui/button';
  * read a single line of copy.
  *
  * Voice is warm and imperative, benefit first. Swahili is kept to the words a
- * shopkeeper uses in English anyway -- duka -- and nowhere else. "Deni" names
- * a tab inside the app and is not used out here to explain what the app does,
- * because somebody who has never opened it has no reason to know the word. Half
+ * shopkeeper uses in English anyway -- duka -- and nowhere else. The Credit tab was
+ * called "Deni" until November 2026; the Swahili word confused people trying the
+ * app for the first time, so it is plain English now, inside and out. Half
  * translated headings read as decoration; when the whole thing can be switched
  * to Kiswahili properly, that is worth doing as one piece.
  */

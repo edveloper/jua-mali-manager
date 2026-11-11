@@ -19,7 +19,7 @@ const LIMIT = 6;
  * Finding a thing without knowing which screen it lives on.
  *
  * Until now the only way to reach a product was to scroll the Sell list and the
- * only way to reach a customer was to scroll Deni, which is fine at forty items
+ * only way to reach a customer was to scroll Credit, which is fine at forty items
  * and useless at four hundred. The header is the one place on screen from every
  * tab, so the search belongs there.
  *

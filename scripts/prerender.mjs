@@ -89,7 +89,7 @@ for (const [key, isHome] of pages) {
 const shell = withHead(template, {
   path: '/auth',
   title: 'DukaKonnect',
-  description: 'Sales, stock, deni and expenses for small shops in Kenya.',
+  description: 'Sales, stock, credit and expenses for small shops in Kenya.',
   noindex: true,
 });
 fs.writeFileSync(path.join(dist, 'app.html'), shell);

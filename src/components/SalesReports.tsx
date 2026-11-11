@@ -161,7 +161,7 @@ export function SalesReports({
       byMethod.set(p.method, (byMethod.get(p.method) || 0) + p.amount);
     }
 
-    // Whatever the payment rows and the deni do not account for is takings from
+    // Whatever the payment rows and the credit do not account for is takings from
     // before methods were recorded. Shown as its own line rather than folded
     // into cash, because we genuinely do not know how it arrived.
     const paidNow = periodPayments.reduce((sum, p) => sum + p.amount, 0);
@@ -370,13 +370,13 @@ export function SalesReports({
         </div>
         {report.onDeni > 0 && (
           <div className="ledger-sub">
-            <span>taken on deni</span>
+            <span>sold on credit</span>
             <span className="num">{money(report.onDeni)}</span>
           </div>
         )}
         {report.deniPaidBack > 0 && (
           <div className="ledger-line">
-            <span className="text-muted-foreground">Deni paid back</span>
+            <span className="text-muted-foreground">Credit paid back</span>
             <span className="amount text-success">{money(report.deniPaidBack)}</span>
           </div>
         )}

@@ -104,7 +104,7 @@ export function CashUp({
       </div>
       {cashDeniPaid > 0 && (
         <div className="ledger-line">
-          <span className="text-muted-foreground">Deni paid in cash</span>
+          <span className="text-muted-foreground">Credit paid back in cash</span>
           <span className="num">{money(cashDeniPaid)}</span>
         </div>
       )}
