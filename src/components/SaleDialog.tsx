@@ -205,9 +205,13 @@ export function SaleDialog({
 
   const matches = query.trim()
     ? products
-        .filter((p) => p.name.toLowerCase().includes(query.trim().toLowerCase()) && p.quantity > 0)
+        .filter(
+          (p) =>
+            p.name.toLowerCase().includes(query.trim().toLowerCase()) &&
+            (p.tracksStock === false || p.quantity > 0)
+        )
         .slice(0, 6)
-    : products.filter((p) => p.quantity > 0).slice(0, 6);
+    : products.filter((p) => p.tracksStock === false || p.quantity > 0).slice(0, 6);
 
   const addProduct = (p: Product) => {
     setLines((current) => {

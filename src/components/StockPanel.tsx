@@ -57,18 +57,27 @@ export function StockPanel({ products, sales, takes, onRecordCount, onImportProd
     return map;
   }, [sales]);
 
+  /*
+   * The shelf, and only the shelf.
+   *
+   * Everything on this screen is about things you are holding. A service is
+   * not held, so counting it here would value a salon's haircuts as stock
+   * and ask somebody to count them during a stock take.
+   */
+  const stocked = useMemo(() => products.filter((p) => p.tracksStock !== false), [products]);
+
   const totals = useMemo(() => {
-    const units = products.reduce((sum, p) => sum + p.quantity, 0);
-    const atCost = products.reduce((sum, p) => sum + p.costPrice * p.quantity, 0);
-    const atRetail = products.reduce((sum, p) => sum + p.sellingPrice * p.quantity, 0);
+    const units = stocked.reduce((sum, p) => sum + p.quantity, 0);
+    const atCost = stocked.reduce((sum, p) => sum + p.costPrice * p.quantity, 0);
+    const atRetail = stocked.reduce((sum, p) => sum + p.sellingPrice * p.quantity, 0);
     return { units, atCost, atRetail };
-  }, [products]);
+  }, [stocked]);
 
   // Money sitting on the shelf that has not moved. Nobody asks for this, which
   // is exactly why it is worth showing.
   const deadStock = useMemo(() => {
     const now = new Date();
-    return products
+    return stocked
       .filter((p) => p.quantity > 0)
       .map((p) => {
         const last = lastSold.get(p.id);
@@ -77,16 +86,16 @@ export function StockPanel({ products, sales, takes, onRecordCount, onImportProd
       })
       .filter((row) => row.days === null || row.days >= DEAD_AFTER_DAYS)
       .sort((a, b) => b.value - a.value);
-  }, [products, lastSold]);
+  }, [stocked, lastSold]);
 
   const deadValue = deadStock.reduce((sum, row) => sum + row.value, 0);
 
   const sorted = useMemo(() => {
-    const list = [...products];
+    const list = [...stocked];
     if (sortKey === 'value') return list.sort((a, b) => b.costPrice * b.quantity - a.costPrice * a.quantity);
     if (sortKey === 'quantity') return list.sort((a, b) => b.quantity - a.quantity);
     return list.sort((a, b) => a.name.localeCompare(b.name));
-  }, [products, sortKey]);
+  }, [stocked, sortKey]);
 
   const enteredLines = Object.entries(counts)
     .filter(([, value]) => value.trim() !== '' && Number.isFinite(Number(value)))
@@ -198,7 +207,7 @@ export function StockPanel({ products, sales, takes, onRecordCount, onImportProd
       <div className="sheet">
         <div className="ledger-line">
           <span className="text-muted-foreground">On the shelf</span>
-          <span className="num">{products.length} items · {totals.units} units</span>
+          <span className="num">{stocked.length} items · {totals.units} units</span>
         </div>
         <div className="ledger-line ledger-rule">
           <span className="text-muted-foreground">Cost you</span>
@@ -214,7 +223,7 @@ export function StockPanel({ products, sales, takes, onRecordCount, onImportProd
         </div>
       </div>
 
-      <Button className="w-full" onClick={() => setMode('counting')} disabled={products.length === 0}>
+      <Button className="w-full" onClick={() => setMode('counting')} disabled={stocked.length === 0}>
         Count the shelf
       </Button>
 

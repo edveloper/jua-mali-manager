@@ -75,6 +75,9 @@ export const forecastRunOut = (
   }
 
   return products
+    // Nothing to run out of, so nothing to forecast. A barber does not need
+    // telling which day he runs out of haircuts.
+    .filter((product) => product.tracksStock !== false)
     .map((product) => {
       const entry = sold.get(product.id);
       const units = entry?.units ?? 0;

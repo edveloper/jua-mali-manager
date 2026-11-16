@@ -117,6 +117,7 @@ export const useInventory = () => {
         unitsPerPack: p.units_per_pack ?? null,
         packLabel: p.pack_label ?? null,
         barcode: p.barcode ?? null,
+        tracksStock: p.tracks_stock ?? true,
         createdAt: p.created_at,
         updatedAt: p.updated_at
       }));
@@ -330,7 +331,8 @@ export const useInventory = () => {
         canonical_source: productData.canonicalSource ?? null,
         units_per_pack: productData.unitsPerPack ?? null,
         pack_label: productData.packLabel ?? null,
-        barcode: productData.barcode?.trim() || null
+        barcode: productData.barcode?.trim() || null,
+        tracks_stock: productData.tracksStock ?? true
       }]);
       if (error) throw error;
       toast({ title: "Product added successfully" });
@@ -389,7 +391,8 @@ export const useInventory = () => {
           canonical_source: updates.canonicalSource ?? null,
           units_per_pack: updates.unitsPerPack ?? null,
           pack_label: updates.packLabel ?? null,
-          barcode: updates.barcode?.trim() || null
+          barcode: updates.barcode?.trim() || null,
+          tracks_stock: updates.tracksStock ?? true
         })
         .eq('id', id);
       if (error) throw error;
@@ -670,11 +673,13 @@ export const useInventory = () => {
 
     return {
       totalProducts: products.length,
-      lowStockCount: products.filter(p => p.quantity <= p.lowStockThreshold).length,
+      // Only things that are actually counted can be low.
+      lowStockCount: products.filter(p => p.tracksStock !== false && p.quantity <= p.lowStockThreshold).length,
       // Stock on hand is worth what you paid for it, not what you hope to sell
       // it for. Valuing it at retail books the profit before the sale happens.
-      totalStockValue: products.reduce((sum, p) => sum + (p.costPrice * p.quantity), 0),
-      totalStockRetailValue: products.reduce((sum, p) => sum + (p.sellingPrice * p.quantity), 0),
+      // A salon is not holding ninety haircuts worth of stock.
+      totalStockValue: products.reduce((sum, p) => sum + (p.tracksStock === false ? 0 : p.costPrice * p.quantity), 0),
+      totalStockRetailValue: products.reduce((sum, p) => sum + (p.tracksStock === false ? 0 : p.sellingPrice * p.quantity), 0),
       todaySales: todaySalesData.reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0),
       todayProfit: todaySalesData.reduce((sum, s) => sum + (Number(s.profit) || 0), 0)
     };
@@ -715,7 +720,8 @@ export const useInventory = () => {
     recordBasketSale,
     restockProduct,
     getStats,
-    getLowStockProducts: () => products.filter(p => p.quantity <= p.lowStockThreshold),
+    getLowStockProducts: () =>
+      products.filter(p => p.tracksStock !== false && p.quantity <= p.lowStockThreshold),
     getRestockMovements: () => stockMovements.filter((m) => m.reason === 'restock' && m.movementType === 'in'),
     /*
      * Name or barcode, with an exact barcode first.

@@ -46,6 +46,7 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
     unitsPerPack: '',
     packLabel: '',
     barcode: '',
+    tracksStock: true,
   });
 
   useEffect(() => {
@@ -63,6 +64,7 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
         unitsPerPack: product.unitsPerPack ? String(product.unitsPerPack) : '',
         packLabel: product.packLabel || '',
         barcode: product.barcode || '',
+        tracksStock: product.tracksStock !== false,
       });
       setCanonicalId(product.canonicalId ?? null);
       setChosenName(product.canonicalId ? product.name : null);
@@ -101,7 +103,6 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
       sellingPrice: parseFloat(formData.sellingPrice) || 0,
       minPrice: minPriceValue,
       maxPrice: maxPriceValue,
-      quantity: parseInt(formData.quantity) || 0,
       lowStockThreshold: parseInt(formData.lowStockThreshold) || 5,
       durationMinutes: parseInt(formData.durationMinutes) || 0,
       category: formData.category || undefined,
@@ -114,6 +115,9 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
       unitsPerPack: parseInt(formData.unitsPerPack) > 1 ? parseInt(formData.unitsPerPack) : null,
       packLabel: formData.packLabel.trim() || null,
       barcode: formData.barcode.trim() || null,
+      tracksStock: formData.tracksStock,
+      // A service has no shelf, so whatever is in those boxes is noise.
+      quantity: formData.tracksStock ? parseInt(formData.quantity) || 0 : 0,
     });
   };
 
@@ -168,6 +172,12 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
                   }));
                   setCanonicalId(entry.id);
                   setChosenName(entry.name);
+                  // Seventy-one entries on the shared list are marked as
+                  // services. Tapping one answers this question without
+                  // anybody being asked it.
+                  if (entry.kind === 'service') {
+                    setFormData((prev) => ({ ...prev, tracksStock: false }));
+                  }
                 }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-left active:bg-muted transition-colors"
               >
@@ -272,6 +282,39 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
         </div>
       )}
 
+      {/*
+        * Asked before the stock boxes, because it decides whether they mean
+        * anything. A barber adding a haircut should never be made to invent
+        * a number, and a shopkeeper adding a crate should never see this
+        * question twice.
+        */}
+      <div className="space-y-2">
+        <Label>Do you keep stock of this?</Label>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant={formData.tracksStock ? 'default' : 'outline'}
+            onClick={() => setFormData({ ...formData, tracksStock: true })}
+          >
+            Yes, I count it
+          </Button>
+          <Button
+            type="button"
+            variant={formData.tracksStock ? 'outline' : 'default'}
+            onClick={() => setFormData({ ...formData, tracksStock: false })}
+          >
+            No, it is a service
+          </Button>
+        </div>
+        {!formData.tracksStock && (
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Haircuts, meals, repairs. It has a price and nothing to count, so
+            it will never show as running low or finished.
+          </p>
+        )}
+      </div>
+
+      {formData.tracksStock && (
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label htmlFor="quantity">How many you have *</Label>
@@ -301,6 +344,7 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
           />
         </div>
       </div>
+      )}
 
       {/*
         * Set once here, used every time stock comes in.

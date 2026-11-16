@@ -39,20 +39,21 @@ export function ProductList({
    * heading, where they are still findable and still one tap from a restock.
    */
   const displayProducts = [...found].sort((a, b) => {
-    const aOut = a.quantity === 0;
-    const bOut = b.quantity === 0;
+    // Services never sink to the Finished group at the bottom.
+    const aOut = a.tracksStock !== false && a.quantity === 0;
+    const bOut = b.tracksStock !== false && b.quantity === 0;
     if (aOut !== bOut) return aOut ? 1 : -1;
     return 0;
   });
 
-  const firstSoldOut = displayProducts.findIndex((p) => p.quantity === 0);
+  const firstSoldOut = displayProducts.findIndex((p) => p.tracksStock !== false && p.quantity === 0);
 
   useEffect(() => { setVisibleCount(PAGE_SIZE); }, [searchQuery]);
 
   const visibleProducts = displayProducts.slice(0, visibleCount);
   const remainingCount = displayProducts.length - visibleProducts.length;
 
-  const isLow = (p: Product) => p.quantity <= p.lowStockThreshold;
+  const isLow = (p: Product) => p.tracksStock !== false && p.quantity <= p.lowStockThreshold;
 
   /*
    * The row of actions belongs to anyone who has something to do in it.
@@ -110,7 +111,9 @@ export function ProductList({
             const low = isLow(product);
             const open = openId === product.id;
 
-            const soldOut = product.quantity === 0;
+            // A service is never finished, because there was never a count.
+            const tracks = product.tracksStock !== false;
+            const soldOut = tracks && product.quantity === 0;
             const startsSoldOut = firstSoldOut >= 0 && index === firstSoldOut;
 
             return (
@@ -133,11 +136,13 @@ export function ProductList({
                     </div>
                     <div className="flex items-baseline gap-2 mt-0.5">
                       <span className={`text-xs num ${low ? 'text-warning font-medium' : 'text-muted-foreground'}`}>
-                        {soldOut
-                          ? (onRestock ? 'Finished. Tap to add stock' : 'Finished')
-                          : `${product.quantity} left`}
+                        {!tracks
+                          ? 'Service'
+                          : soldOut
+                            ? (onRestock ? 'Finished. Tap to add stock' : 'Finished')
+                            : `${product.quantity} left`}
                       </span>
-                      {low && product.quantity > 0 && <AlertTriangle className="h-3 w-3 text-warning" />}
+                      {tracks && low && product.quantity > 0 && <AlertTriangle className="h-3 w-3 text-warning" />}
                       {isOwner && product.costPrice > 0 && (
                         <span className="text-xs text-muted-foreground num ml-auto">
                           cost {money(product.costPrice)}

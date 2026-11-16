@@ -27,6 +27,14 @@ export interface Product {
   packLabel?: string | null;
   /** The number printed on the packet. Unique within a shop when set. */
   barcode?: string | null;
+  /*
+   * Whether this thing sits on a shelf.
+   *
+   * False for a haircut, a plate of pilau, a car wash. Those have a price
+   * and no quantity, and every stock figure the app would show for them is
+   * invented. Defaults true, because almost everything is a thing.
+   */
+  tracksStock?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
