@@ -43,6 +43,15 @@ interface Line {
   maxPrice: number | null;
   costPrice: number;
   stock: number;
+  /*
+   * Whether `stock` means anything.
+   *
+   * A service has no shelf, so its quantity is zero and always will be.
+   * Checking a basket line against it refuses every haircut before the request
+   * has even left the phone, which is the client repeating the mistake the
+   * sale function was just taught not to make.
+   */
+  tracksStock: boolean;
 }
 
 interface Part {
@@ -70,6 +79,7 @@ const toLine = (p: Product): Line => ({
   maxPrice: p.maxPrice ?? null,
   costPrice: Number(p.costPrice || 0),
   stock: Number(p.quantity || 0),
+  tracksStock: p.tracksStock !== false,
 });
 
 /**
@@ -119,7 +129,7 @@ export function SaleDialog({
     const qty = qtyOf(l);
     if (l.quantityInput.trim() === '') return 'Enter how many';
     if (qty < 1) return 'At least 1';
-    if (qty > l.stock) return `Only ${l.stock} in stock`;
+    if (l.tracksStock && qty > l.stock) return `Only ${l.stock} in stock`;
     if (!canOverridePrice) return '';
     if (l.priceInput.trim() === '' || !Number.isFinite(Number(l.priceInput))) return 'Enter a price';
     const price = num(l.priceInput);
@@ -321,7 +331,7 @@ export function SaleDialog({
               <div className="min-w-0">
                 <p className="font-medium truncate">{line.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {line.stock} in stock · usual KSh {money(line.listPrice)}
+                  {line.tracksStock ? `${line.stock} in stock` : 'Service'} · usual KSh {money(line.listPrice)}
                 </p>
               </div>
               <Button
@@ -439,7 +449,7 @@ export function SaleDialog({
               >
                 <span className="text-sm font-medium truncate">{p.name}</span>
                 <span className="text-xs text-muted-foreground shrink-0">
-                  {p.quantity} left · {money(p.sellingPrice)}
+                  {p.tracksStock === false ? 'Service' : `${p.quantity} left`} · {money(p.sellingPrice)}
                 </span>
               </button>
             ))}
