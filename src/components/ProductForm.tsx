@@ -346,6 +346,10 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
       </div>
       )}
 
+      {/* Packs and barcodes are facts about a thing on a shelf. A haircut
+          has neither, and asking reads as the app not having listened. */}
+      {formData.tracksStock && (
+        <>
       {/*
         * Set once here, used every time stock comes in.
         *
@@ -398,6 +402,8 @@ export function ProductForm({ product, onSave, onClose }: ProductFormProps) {
           beats picking the right bottle out of a list of near-identical names.
         </p>
       </div>
+        </>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="category">Category (Optional)</Label>
