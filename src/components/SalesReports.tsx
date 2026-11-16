@@ -123,9 +123,27 @@ export function SalesReports({
     const deniPaidBack = getCreditPaymentsTotalForRange
       ? getCreditPaymentsTotalForRange(start, end)
       : 0;
-    const runningCosts = getExpenseTotalForRange(start, end, 'accrual', {
+    const allOtherCosts = getExpenseTotalForRange(start, end, 'accrual', {
       includeInventoryPurchases: false,
     });
+
+    /*
+     * Split what it cost to make the thing from what it costs to open the door.
+     *
+     * For a duka this is already handled: the thing sold is the thing bought,
+     * so its cost rides along on the sale. A restaurant buys rice and sells
+     * pilau, so its ingredient spend has been landing in running costs, which
+     * leaves gross profit equal to sales and claims a hundred per cent margin.
+     *
+     * Net profit does not move. Only the shape of the answer changes, and with
+     * it the one number a restaurant manages: the share of takings that goes on
+     * what they sell.
+     */
+    const costOfSalesSpend = periodExpenses
+      .filter((e) => !isRestockExpense(e) && e.isCostOfSales)
+      .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+    const runningCosts = Math.max(0, allOtherCosts - costOfSalesSpend);
 
     const byItem = new Map<string, { qty: number; revenue: number; profit: number }>();
     for (const s of periodSales) {
@@ -226,8 +244,15 @@ export function SalesReports({
     ).size;
 
     return {
-      totalSales, grossProfit, onDeni, deniPaidBack, runningCosts,
-      takeHome: grossProfit - runningCosts,
+      totalSales,
+      // Gross profit already carries the cost of anything bought to resell.
+      // Taking the rest off here is what makes a margin mean something for a
+      // kitchen, where that cost could never be recorded per plate.
+      grossProfit: grossProfit - costOfSalesSpend,
+      costOfSalesSpend,
+      onDeni, deniPaidBack, runningCosts,
+      // Unchanged on purpose: the same shillings, told apart.
+      takeHome: grossProfit - costOfSalesSpend - runningCosts,
       topItems, categorySpend, methodSplit, trend, trendByMonth: byMonth, tradingDays,
       averageDay: tradingDays ? totalSales / tradingDays : 0,
       restockSpend: periodPurchases.reduce((sum, p) => sum + Number(p.totalCost || 0), 0),
@@ -379,6 +404,28 @@ export function SalesReports({
             <span className="text-muted-foreground">Credit paid back</span>
             <span className="amount text-success">{money(report.deniPaidBack)}</span>
           </div>
+        )}
+
+        {/*
+          * Shown only when there is some, so a duka's sheet is unchanged. For a
+          * kitchen this is the line the whole split exists for: what share of
+          * takings went on what was sold.
+          */}
+        {report.costOfSalesSpend > 0 && (
+          <>
+            <div className="ledger-line">
+              <span className="text-muted-foreground">Cost of what you sold</span>
+              <span className="amount text-destructive">- {money(report.costOfSalesSpend)}</span>
+            </div>
+            {report.totalSales > 0 && (
+              <div className="ledger-sub">
+                <span>that is</span>
+                <span className="num">
+                  {Math.round((report.costOfSalesSpend / report.totalSales) * 100)}% of takings
+                </span>
+              </div>
+            )}
+          </>
         )}
 
         <div className="ledger-line ledger-rule">

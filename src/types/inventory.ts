@@ -194,6 +194,13 @@ export interface Expense {
    * as COGS and it must not be counted again as an operating expense.
    */
   source: 'manual' | 'restock';
+  /*
+   * Whether this is the cost of making the thing, or the cost of keeping the
+   * doors open. Ingredients for a restaurant are the first; rent is the second.
+   * Never true on restock spend, which already counts through the sale.
+   */
+  isCostOfSales?: boolean;
+
   /** null on older rows and on restock spend; treated as cash when closing the till. */
   paymentMethod?: string | null;
   /** null on anything recorded before the column existed. */
@@ -211,6 +218,7 @@ export interface ExpenseDraft {
   expenseType: 'one_off' | 'variable' | 'recurring';
   recurrenceUnit: 'none' | 'daily' | 'weekly' | 'monthly' | 'annual';
   allocationMode: 'cash' | 'accrual';
+  isCostOfSales?: boolean;
   paymentMethod?: string | null;
   effectiveFrom?: string | null;
   effectiveTo?: string | null;

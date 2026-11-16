@@ -130,6 +130,7 @@ export const useExpenses = (currentPeriodSales: number = 0) => {
       setExpenses(data.map((e: any) => ({
         id: e.id,
         category: e.category,
+        isCostOfSales: e.is_cost_of_sales ?? false,
         description: e.description,
         amount: Number(e.amount),
         date: e.date,
@@ -155,6 +156,7 @@ export const useExpenses = (currentPeriodSales: number = 0) => {
     const { error } = await supabase.from('expenses').insert([{
       shop_id: shop.id,
       category: expense.category,
+      is_cost_of_sales: expense.isCostOfSales ?? false,
       description: expense.description,
       amount: expense.amount,
       date: expense.date,

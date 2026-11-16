@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PAYMENT_METHODS, PaymentMethod, lastUsedMethod, methodLabel } from '@/lib/payment';
 import { money } from '@/lib/money';
+import { defaultsToCostOfSales, SPLITS_COST_OF_SALES } from '@/lib/costOfSales';
 import { format, startOfMonth, subDays, subMonths, startOfDay, endOfDay, endOfMonth } from 'date-fns';
 
 interface ExpenseManagerProps {
@@ -136,6 +137,16 @@ export function ExpenseManager({
   const [categoryPicked, setCategoryPicked] = useState(false);
   const [pickingCategory, setPickingCategory] = useState(false);
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  /*
+   * Follows the category until somebody disagrees with it.
+   *
+   * Guessing from the category is right almost every time and saves a tap on
+   * every single purchase. But only the owner knows whether the gas cylinder
+   * is for the kitchen or the office, so once they have said, we stop
+   * guessing for this entry.
+   */
+  const [isCostOfSales, setIsCostOfSales] = useState(false);
+  const [costOfSalesPicked, setCostOfSalesPicked] = useState(false);
   const [expenseType, setExpenseType] = useState<Expense['expenseType']>('one_off');
   const [recurrenceUnit, setRecurrenceUnit] = useState<Expense['recurrenceUnit']>('monthly');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(lastUsedMethod);
@@ -144,6 +155,12 @@ export function ExpenseManager({
   const [cancellingRestock, setCancellingRestock] = useState<StockMovement | null>(null);
 
   const categories = useMemo(() => categoriesFor(businessCategory), [businessCategory]);
+  const asksCostOfSales = SPLITS_COST_OF_SALES.has(businessCategory);
+
+  useEffect(() => {
+    if (costOfSalesPicked) return;
+    setIsCostOfSales(asksCostOfSales && defaultsToCostOfSales(category, businessCategory));
+  }, [category, businessCategory, asksCostOfSales, costOfSalesPicked]);
 
   useEffect(() => {
     if (categoryPicked) return;
@@ -433,6 +450,42 @@ export function ExpenseManager({
               <p className="text-xs text-muted-foreground">
                 A bill like rent is spread across the days it covers, so one day does not
                 look ruinous and the rest better than they were.
+              </p>
+            </div>
+          )}
+
+          {/*
+            * Only for trades where the question means something. A duka's cost
+            * of sales rides along on the sale itself, so asking a shopkeeper to
+            * classify every purchase would be work with no answer at the end.
+            */}
+          {asksCostOfSales && (
+            <div className="space-y-1.5">
+              <Label>What kind of cost is it?</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={isCostOfSales ? 'default' : 'outline'}
+                  size="sm"
+                  className="text-xs px-1"
+                  onClick={() => { setIsCostOfSales(true); setCostOfSalesPicked(true); }}
+                >
+                  Cost of what I sell
+                </Button>
+                <Button
+                  type="button"
+                  variant={isCostOfSales ? 'outline' : 'default'}
+                  size="sm"
+                  className="text-xs px-1"
+                  onClick={() => { setIsCostOfSales(false); setCostOfSalesPicked(true); }}
+                >
+                  Running the place
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {isCostOfSales
+                  ? 'Counted against your takings, so you can see what share of them goes on this.'
+                  : 'Rent, wages, licences. Costs that carry on whether you sell anything or not.'}
               </p>
             </div>
           )}
