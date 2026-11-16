@@ -125,6 +125,22 @@ export function SaleDialog({
     [lines]
   );
 
+  /**
+   * The most of this that can be added, or null when there is no ceiling.
+   *
+   * A service has a stock of zero and always will, so capping against it drove
+   * the quantity to nought on every tap of plus. Written once and used by
+   * everything that needs a limit, because this assumption has now been found
+   * in three separate places one at a time.
+   */
+  const ceilingFor = (l: Line): number | null => (l.tracksStock ? l.stock : null);
+
+  const bumped = (l: Line, by: number): string => {
+    const next = qtyOf(l) + by;
+    const ceiling = ceilingFor(l);
+    return String(ceiling === null ? Math.max(1, next) : Math.max(1, Math.min(ceiling, next)));
+  };
+
   const lineError = (l: Line): string => {
     const qty = qtyOf(l);
     if (l.quantityInput.trim() === '') return 'Enter how many';
@@ -232,7 +248,7 @@ export function SaleDialog({
         const next = [...current];
         next[existing] = {
           ...next[existing],
-          quantityInput: String(Math.min(next[existing].stock, qtyOf(next[existing]) + 1)),
+          quantityInput: bumped(next[existing], 1),
         };
         return next;
       }
@@ -358,7 +374,7 @@ export function SaleDialog({
                     className="shrink-0"
                     aria-label={`One less ${line.name}`}
                     onClick={() =>
-                      patchLine(index, { quantityInput: String(Math.max(1, qtyOf(line) - 1)) })
+                      patchLine(index, { quantityInput: bumped(line, -1) })
                     }
                   >
                     <Minus className="h-4 w-4" />
@@ -369,7 +385,7 @@ export function SaleDialog({
                     inputMode="numeric"
                     step="1"
                     min={1}
-                    max={line.stock}
+                    max={ceilingFor(line) ?? undefined}
                     value={line.quantityInput}
                     onChange={(e) => patchLine(index, { quantityInput: e.target.value })}
                     onFocus={(e) => e.target.select()}
@@ -382,7 +398,7 @@ export function SaleDialog({
                     aria-label={`One more ${line.name}`}
                     onClick={() =>
                       patchLine(index, {
-                        quantityInput: String(Math.min(line.stock, qtyOf(line) + 1)),
+                        quantityInput: bumped(line, 1),
                       })
                     }
                   >
